@@ -1,0 +1,50 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Make output directory",
+            "command": "cmd.exe",
+            "args": [
+                "/C",
+                "if not exist \"${fileDirname}\\bin\\${input:configuration}\" mkdir \"${fileDirname}\\bin\\${input:configuration}\""
+            ]
+        },
+        {
+            "type": "shell",
+            "label": "cl.exe build active file",
+            "command": "cl.exe",
+            "args": [
+                "/Zi",
+                "/EHsc",
+                "/Fo:",
+                "${fileDirname}\\bin\\${input:configuration}\\${fileBasenameNoExtension}.obj",
+                "/Fe:",
+                "${fileDirname}\\bin\\${input:configuration}\\${fileBasenameNoExtension}.exe",
+                "${file}"
+            ],
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": [
+                "Make output directory"
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "configuration",
+            "description": "Select configuration to build:",
+            "options": [
+                "debug",
+                "release"
+            ],
+            "default": "debug"
+        }
+    ]
+}

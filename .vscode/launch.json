@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "cl.exe build and debug active file",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${fileDirname}\\bin\\${input:configuration}\\${fileBasenameNoExtension}.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "cl.exe build active file",
+        }
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "configuration",
+            "description": "Select configuration to run:",
+            "options": [
+                "debug",
+                "release"
+            ],
+            "default": "debug"
+        }
+    ]
+}
