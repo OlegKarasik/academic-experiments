@@ -3,24 +3,34 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "Make output directory",
+            "label": "Make output directory (debug)",
             "command": "cmd.exe",
             "args": [
                 "/C",
-                "if not exist \"${fileDirname}\\bin\\${input:configuration}\" mkdir \"${fileDirname}\\bin\\${input:configuration}\""
+                "if not exist \"${fileDirname}\\bin\\Debug\" mkdir \"${fileDirname}\\bin\\Debug\""
             ]
         },
         {
             "type": "shell",
-            "label": "cl.exe build active file",
+            "label": "Make output directory (release)",
+            "command": "cmd.exe",
+            "args": [
+                "/C",
+                "if not exist \"${fileDirname}\\bin\\Release\" mkdir \"${fileDirname}\\bin\\Release\""
+            ]
+        },
+        {
+            "type": "shell",
+            "label": "Build active file (debug)",
+            "detail": "compiler: cl.exe",
             "command": "cl.exe",
             "args": [
                 "/Zi",
                 "/EHsc",
                 "/Fo:",
-                "${fileDirname}\\bin\\${input:configuration}\\${fileBasenameNoExtension}.obj",
+                "${fileDirname}\\bin\\Debug\\${fileBasenameNoExtension}.obj",
                 "/Fe:",
-                "${fileDirname}\\bin\\${input:configuration}\\${fileBasenameNoExtension}.exe",
+                "${fileDirname}\\bin\\Debug\\${fileBasenameNoExtension}.exe",
                 "${file}"
             ],
             "problemMatcher": [
@@ -31,20 +41,29 @@
                 "isDefault": true
             },
             "dependsOn": [
-                "Make output directory"
+                "Make output directory (debug)"
             ]
-        }
-    ],
-    "inputs": [
+        },
         {
-            "type": "pickString",
-            "id": "configuration",
-            "description": "Select configuration to build:",
-            "options": [
-                "debug",
-                "release"
+            "type": "shell",
+            "label": "Build active file (release)",
+            "detail": "compiler: cl.exe",
+            "command": "cl.exe",
+            "args": [
+                "/Zi",
+                "/EHsc",
+                "/Fo:",
+                "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.obj",
+                "/Fe:",
+                "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.exe",
+                "${file}"
             ],
-            "default": "debug"
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "dependsOn": [
+                "Make output directory (release)"
+            ]
         }
     ]
 }
