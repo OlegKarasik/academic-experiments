@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "cstdint": "cpp",
+        "ios": "cpp",
+        "memory": "cpp",
+        "random": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "unordered_map": "cpp"
+    }
+}

@@ -3,6 +3,7 @@
 #include <string>
 
 #include "../../utilz/matrix.h"
+#include "../../utilz/graphs.h"
 
 using namespace std;
 
