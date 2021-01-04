@@ -52,6 +52,7 @@
             "args": [
                 "/Zi",
                 "/EHsc",
+                "/O2",
                 "/Fo:",
                 "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.obj",
                 "/Fe:",
