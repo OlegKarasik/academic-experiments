@@ -3,7 +3,7 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "Make output directory (debug)",
+            "label": "mkdir (debug)",
             "command": "cmd.exe",
             "args": [
                 "/C",
@@ -12,7 +12,7 @@
         },
         {
             "type": "shell",
-            "label": "Make output directory (release)",
+            "label": "mkdir (release)",
             "command": "cmd.exe",
             "args": [
                 "/C",
@@ -21,7 +21,7 @@
         },
         {
             "type": "shell",
-            "label": "Build active file (debug)",
+            "label": "build (debug)",
             "detail": "compiler: cl.exe",
             "command": "cl.exe",
             "args": [
@@ -41,12 +41,12 @@
                 "isDefault": true
             },
             "dependsOn": [
-                "Make output directory (debug)"
+                "mkdir (debug)"
             ]
         },
         {
             "type": "shell",
-            "label": "Build active file (release)",
+            "label": "build (release)",
             "detail": "compiler: cl.exe",
             "command": "cl.exe",
             "args": [
@@ -56,13 +56,15 @@
                 "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.obj",
                 "/Fe:",
                 "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.exe",
+                "/FAs",
+                "/Fa\"${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.asm\"",
                 "${file}"
             ],
             "problemMatcher": [
                 "$msCompile"
             ],
             "dependsOn": [
-                "Make output directory (release)"
+                "mkdir (release)"
             ]
         }
     ]
