@@ -68,8 +68,7 @@ public:
     bool operator!=(const iterator &o) const noexcept { return !(*this == o); };
   };
 
-  square_shape(pointer data, size_type size)
-      : m_p(data), m_s(size) {}
+  square_shape(pointer data, size_type size) : m_p(data), m_s(size) {}
 
   size_type s() { return this->m_s; }
 
@@ -79,9 +78,12 @@ public:
   pointer operator[](size_type idx) { return &this->m_p[idx * this->m_s]; }
 
   bool operator==(const square_shape &o) const noexcept {
-    return this == &o || (this->m_p == o.m_p && this->m_s == o.m_s && this->m_h == o.m_h);
+    return this == &o ||
+           (this->m_p == o.m_p && this->m_s == o.m_s && this->m_h == o.m_h);
   };
-  bool operator!=(const square_shape &o) const noexcept { return !(*this == o); };
+  bool operator!=(const square_shape &o) const noexcept {
+    return !(*this == o);
+  };
 };
 
 constexpr long no_edge_value() {
@@ -90,17 +92,17 @@ constexpr long no_edge_value() {
 
 void _impl(square_shape<long> &shape) {
   for (size_t k = 0; k < shape.s(); ++k) {
-    long *kr = shape[k];
+    long *k_row = shape[k];
 
     for (size_t i = 0; i < shape.s(); ++i) {
-      long *ir = shape[i];
-      long *r = kr;
+      long *i_row = shape[i];
+      long *k_row_l = k_row;
 
-      long v = ir[k];
-      for (size_t j = 0; j < shape.s(); ++j, ++ir, ++r) {
-        long distance = v + *r;
-        if (*ir > distance)
-          *ir = distance;
+      long ik = i_row[k];
+      for (size_t j = 0; j < shape.s(); ++j, ++i_row, ++k_row_l) {
+        long distance = ik + *k_row_l;
+        if (*i_row > distance)
+          *i_row = distance;
       };
     };
   };
