@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 
@@ -22,11 +23,54 @@ void _impl(long* matrix, size_t matrix_sz) {
     };
 };
 
-void set(long* matrix, size_t sz, long i, long j, long v) {
-    matrix[i * sz + j] = v;
+template<typename T>
+class rstore {
+    private:
+        size_t m_length;
+
+        T* m_data;
+
+    public:
+        rstore(T* data, size_t length)
+            : m_data(data)
+            , m_length(length) { }
+
+        T* operator*() {
+            return this->m_data;
+        }
+
+        rstore& operator++() {
+            this->m_data += this->m_length;
+            return *this;
+        }
+        rstore  operator++(int) {
+            rstore prev = *this;
+
+            ++(*this);
+
+            return prev;
+        }
+        rstore operator+(int distance) {
+            return rstore(this->m_data + (this->m_length * distance), this->m_length);
+        }
+
+        bool operator==(const rstore &other) const noexcept {
+            if (this != &other) {
+                return this->m_data == other.m_data && this->m_length == other.m_length;
+            };
+            return true;
+        };
+
+        bool operator!=(const rstore &other) const noexcept {
+            return !(*this == other);
+        };
+};
+
+void set(rstore<long>& rs, long i, long j, long v) {
+    (*(rs + i))[j] = v;
 }
-long get(long* matrix, size_t sz, long i, long j) {
-    return matrix[i * sz + j];
+long get(rstore<long>& rs, long i, long j) {
+    return (*(rs + i))[j];
 }
 
 constexpr long no_edge_value() { return ((std::numeric_limits<long>::max)() / 2L) - 1L; };
@@ -50,24 +94,28 @@ int main(int argc, char* argv[]) {
 
     std::fill_n(matrix, matrix_sz * matrix_sz, no_edge_value());
 
-    set(matrix, matrix_sz, 1, 2, 9);
-    set(matrix, matrix_sz, 1, 3, 2);
-    set(matrix, matrix_sz, 1, 6, 3);
-    set(matrix, matrix_sz, 3, 4, 3);
-    set(matrix, matrix_sz, 3, 6, 6);
-    set(matrix, matrix_sz, 4, 6, 4);
-    set(matrix, matrix_sz, 4, 2, 1);
+    rstore<long> rs_begin(matrix, matrix_sz);
+    rstore<long> rs_end = rs_begin + matrix_sz;
+
+    set(rs_begin, 1, 2, 9);
+    set(rs_begin, 1, 3, 2);
+    set(rs_begin, 1, 6, 5);
+    set(rs_begin, 3, 4, 3);
+    set(rs_begin, 3, 6, 6);
+    set(rs_begin, 4, 6, 4);
+    set(rs_begin, 4, 2, 1);
 
     _impl(matrix, matrix_sz);
 
-    for (size_t i = 0; i < matrix_sz; ++i) {
-        for (size_t j = 0; j < matrix_sz; ++j) {
-            long v = get(matrix, matrix_sz, i, j);
-            if (v != no_edge_value()) {
-                std::cout << "m[" << i << "," << j << "] = " << v << endl;
+    long c = 0;
+    std::for_each(rs_begin, rs_end, [&c, matrix_sz](long* v) -> void {
+        for (size_t i = 0; i < matrix_sz; ++i) {
+            if (v[i] != no_edge_value()) {
+                std::cout << "m[" << c << "," << i << "] = " << v[i] << endl;
             }
         }
-    };
+        ++c;
+    });
 
     return 0;
 }
