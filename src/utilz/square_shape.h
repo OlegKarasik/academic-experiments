@@ -80,13 +80,13 @@ public:
     : m_p(nullptr)
     , m_s(0)
   {}
-  square_shape(const square_shape &o)
-    : m_p(o.m_p)
-    , m_s(o.m_s)
-  {}
   square_shape(pointer data, size_t size)
     : m_p(data)
     , m_s(size)
+  {}
+  square_shape(const square_shape &o)
+    : m_p(o.m_p)
+    , m_s(o.m_s)
   {}
 
   pointer p() { return this->m_p; }
@@ -111,15 +111,6 @@ public:
     if (this != &o) {
       this->m_s = o.m_s;
       this->m_p = o.m_p;
-    }
-    return *this;
-  }
-
-  square_shape& operator=(square_shape&& o) noexcept
-  {
-    if (this != &o) {
-      this->m_s = std::exchange(o.m_s, 0);
-      this->m_p = std::exchange(o.m_p, nullptr);
     }
     return *this;
   }
