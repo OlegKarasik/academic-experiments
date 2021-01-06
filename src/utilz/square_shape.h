@@ -1,3 +1,5 @@
+#pragma once
+
 using namespace std;
 
 namespace utilz {
@@ -5,8 +7,8 @@ namespace utilz {
 template<typename T>
 class square_shape
 {
-  using pointer = T*;
-  using reference = T&;
+  using pointer    = T*;
+  using reference  = T&;
   using value_type = T;
 
 private:
@@ -66,7 +68,7 @@ public:
       return *this;
     }
 
-    reference operator[](size_t idx) { return this->m_p[idx]; }
+    reference       operator[](size_t idx) { return this->m_p[idx]; }
     const reference operator[](size_t idx) const { return this->m_p[idx]; }
 
     bool operator==(const iterator& o) const noexcept
@@ -84,18 +86,24 @@ public:
     : m_p(data)
     , m_s(size)
   {}
-  square_shape(const square_shape &o)
+  square_shape(const square_shape& o)
     : m_p(o.m_p)
     , m_s(o.m_s)
   {}
 
-  pointer p() { return this->m_p; }
   size_t s() { return this->m_s; }
 
   iterator begin() { return iterator(this->m_p); }
   iterator end() { return iterator(this->m_p + (this->m_s * this->m_s)); }
 
-  pointer operator[](size_t idx) { return &this->m_p[idx * this->m_s]; }
+  pointer   operator[](size_t i) { return &this->m_p[i * this->m_s]; }
+  reference operator()(size_t i, size_t j)
+  {
+    if (this->m_s <= i || this->m_s <= j)
+      throw std::out_of_range("erro: shape isn\'t large enough to hold the data");
+
+    return this->m_p[i * this->m_s + j];
+  }
 
   bool operator==(const square_shape& o) const noexcept
   {
@@ -115,15 +123,5 @@ public:
     return *this;
   }
 };
-
-template<typename T>
-void
-range_check_set(square_shape<T>& shape, size_t i, size_t j, const T& v)
-{
-  if (shape.s() <= i || shape.s() <= j)
-    throw std::out_of_range("erro: shape isn\'t large enough to hold the data");
-
-  shape[i][j] = v;
-}
 
 } // namespace utilz
