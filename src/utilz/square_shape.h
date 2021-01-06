@@ -83,4 +83,19 @@ public:
   };
 };
 
+template<typename T, typename Iterator>
+void fill_shape(square_shape<T> &shape, Iterator &first, Iterator &limit) {
+  for (; first != limit; ++first) {
+    std::tuple<T, T, T> t = *first;
+
+    T i, j, v;
+    std::tie(i, j, v) = t;
+
+    if (shape.s() <= i || shape.s() <= j)
+      throw std::out_of_range("erro: shape isn\'t large enough to hold the data");
+
+    shape[i][j] = v;
+  }
+}
+
 } // namespace utilz

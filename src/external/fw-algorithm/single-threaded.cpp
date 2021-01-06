@@ -1,9 +1,10 @@
 #include <algorithm>
 #include <iostream>
+#include <array>
+#include <tuple>
 
 #include "../../utilz/square_shape.h"
 
-using namespace std;
 using namespace utilz;
 
 constexpr long no_edge_value() {
@@ -50,13 +51,17 @@ int main(int argc, char *argv[]) {
   // Fill it with default values
   std::fill(shape.begin(), shape.end(), no_edge_value());
 
-  shape[1][2] = 9;
-  shape[1][3] = 2;
-  shape[1][6] = 5;
-  shape[3][4] = 3;
-  shape[3][6] = 6;
-  shape[4][6] = 4;
-  shape[4][2] = 1;
+  std::array<std::tuple<long, long, long>, 7> input = {
+    make_tuple(1, 2, 9),
+    make_tuple(1, 3, 2),
+    make_tuple(1, 6, 5),
+    make_tuple(3, 4, 3),
+    make_tuple(3, 6, 6),
+    make_tuple(4, 6, 4),
+    make_tuple(4, 2, 1)
+  };
+
+  fill_shape(shape, input.begin(), input.end());
 
   _impl(shape);
 
