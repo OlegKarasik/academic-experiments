@@ -27,10 +27,10 @@ void
 calculate(rect_shape<long>& shape)
 {
   for (size_t k = 0; k < shape.h(); ++k) {
-    long* k_row = shape[k];
+    long* k_row = shape(k);
 
     for (size_t i = 0; i < shape.h(); ++i) {
-      long* i_row   = shape[i];
+      long* i_row   = shape(i);
       long* k_row_l = k_row;
 
       long ik = i_row[k];

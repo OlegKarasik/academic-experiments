@@ -34,9 +34,9 @@ public:
       throw std::runtime_error("erro: can't allocate memory");
     }
 
-    this->m_shape = rect_shape<T>(this->m_mem, w, h);
+    std::fill_n(this->m_mem, w * h, this->m_v);
 
-    std::fill(this->m_shape.begin(), this->m_shape.end(), this->m_v);
+    this->m_shape = rect_shape<T>(this->m_mem, w, h);
   }
 
   rect_shape<T>& operator()() noexcept
@@ -49,7 +49,8 @@ template<typename T, typename M>
 class rect_shape_matrix_output
 {
 private:
-  M& m_memory;
+  M&              m_memory;
+  rect_shape_s<T> m_shape;
 
 public:
   rect_shape_matrix_output(M& memory)
@@ -59,11 +60,13 @@ public:
   void prep(size_t w, size_t h)
   {
     this->m_memory.prep(w, h);
+
+    this->m_shape = rect_shape_s<T>(this->m_memory());
   }
 
   T& operator()(size_t i, size_t j)
   {
-    return this->m_memory()(i, j);
+    return this->m_shape(i, j);
   }
 };
 
@@ -71,11 +74,11 @@ template<typename T>
 class rect_shape_matrix_input
 {
 private:
-  const rect_shape<T> m_shape;
+  const rect_shape_s<T> m_shape;
 
 public:
   rect_shape_matrix_input(const rect_shape<T>& s)
-    : m_shape(s)
+    : m_shape(rect_shape_s<T>(s))
   {}
 
   size_t w() const noexcept

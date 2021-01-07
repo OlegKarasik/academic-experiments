@@ -11,78 +11,7 @@ private:
 
   T* m_mem;
 
-  void _throwif(size_t i, size_t j) const
-  {
-    if (this->m_h <= i || this->m_w <= j)
-      throw std::out_of_range("The indeces are outside of rectangular shape");
-  }
-
 public:
-  class iterator
-  {
-  private:
-    T* m_mem;
-
-  public:
-    iterator(T* mem)
-      : m_mem(mem)
-    {}
-
-    iterator& operator++() noexcept
-    {
-      ++this->m_mem;
-      return *this;
-    }
-    iterator& operator++(int) noexcept
-    {
-      iterator p = this->m_mem;
-
-      ++(*this);
-
-      return *this;
-    }
-    iterator& operator--() noexcept
-    {
-      --this->m_mem;
-      return *this;
-    }
-    iterator& operator--(int) noexcept
-    {
-      iterator p = this->m_mem;
-
-      --(*this);
-
-      return *this;
-    }
-
-    T& operator*() noexcept
-    {
-      return *this->m_mem;
-    }
-    const T& operator*() const noexcept
-    {
-      return *this->m_mem;
-    }
-
-    T& operator->() noexcept
-    {
-      return *this->m_mem;
-    }
-    const T& operator->() const noexcept
-    {
-      return *this->m_mem;
-    }
-
-    bool operator==(const iterator& o) const noexcept
-    {
-      return this == &o || this->m_mem == o.m_mem;
-    };
-    bool operator!=(const iterator& o) const noexcept
-    {
-      return !(*this == o);
-    };
-  };
-
   rect_shape()
     : m_mem(nullptr)
     , m_w(0)
@@ -108,32 +37,21 @@ public:
     return this->m_h;
   }
 
-  iterator begin() noexcept
-  {
-    return iterator(this->m_mem);
-  }
-  iterator end() noexcept
-  {
-    return iterator(this->m_mem + (this->m_w * this->m_h));
-  }
-
-  T* operator[](size_t i) noexcept
+  T* operator()(size_t i) noexcept
   {
     return &this->m_mem[i * this->m_w];
   }
-  const T* operator[](size_t i) const noexcept
+  const T* operator()(size_t i) const noexcept
   {
     return &this->m_mem[i * this->m_w];
   }
 
   T& operator()(size_t i, size_t j)
   {
-    this->_throwif(i, j);
     return this->m_mem[i * this->m_w + j];
   }
   const T& operator()(size_t i, size_t j) const
   {
-    this->_throwif(i, j);
     return this->m_mem[i * this->m_w + j];
   }
 
@@ -152,6 +70,91 @@ public:
       this->m_h   = o.m_h;
       this->m_w   = o.m_w;
       this->m_mem = o.m_mem;
+    }
+    return *this;
+  }
+};
+
+template<typename T>
+class rect_shape_s
+{
+private:
+  rect_shape<T> m_shape;
+
+  void _throwif_exceeds_h(size_t i) const
+  {
+    if (this->m_shape.h() <= i)
+      throw std::out_of_range("The indeces are outside of rectangular shape's height");
+  }
+  void _throwif_exceeds_w(size_t j) const
+  {
+    if (this->m_shape.w() <= j)
+      throw std::out_of_range("The indeces are outside of rectangular shape's width");
+  }
+
+public:
+  rect_shape_s()
+  {}
+  rect_shape_s(rect_shape<T>& s)
+    : m_shape(s)
+  {}
+  rect_shape_s(const rect_shape<T>& s)
+    : m_shape(s)
+  {}
+  rect_shape_s(const rect_shape_s& o)
+    : m_shape(o.m_shape)
+  {}
+
+  size_t w() const noexcept
+  {
+    return this->m_shape.w();
+  }
+  size_t h() const noexcept
+  {
+    return this->m_shape.h();
+  }
+
+  T* operator()(size_t i) noexcept
+  {
+    this->_throwif_exceeds_h(i);
+
+    return this->m_shape(i);
+  }
+  const T* operator()(size_t i) const noexcept
+  {
+    this->_throwif_exceeds_h(i);
+
+    return this->m_shape(i);
+  }
+
+  T& operator()(size_t i, size_t j)
+  {
+    this->_throwif_exceeds_h(i);
+    this->_throwif_exceeds_w(j);
+
+    return this->m_shape(i, j);
+  }
+  const T& operator()(size_t i, size_t j) const
+  {
+    this->_throwif_exceeds_h(i);
+    this->_throwif_exceeds_w(j);
+
+    return this->m_shape(i, j);
+  }
+
+  bool operator==(const rect_shape_s& o) const noexcept
+  {
+    return this == &o || this->m_shape == o.m_shape;
+  };
+  bool operator!=(const rect_shape_s& o) const noexcept
+  {
+    return !(*this == o);
+  };
+
+  rect_shape_s& operator=(const rect_shape_s& o)
+  {
+    if (this != &o) {
+      this->m_shape = o.m_shape;
     }
     return *this;
   }
