@@ -4,19 +4,18 @@
 
 namespace utilz {
 
-template<typename T>
+template<typename T, T V>
 class rect_shape_matrix_memory
 {
 private:
-  const T m_v;
+  const T m_v = V;
 
   T*            m_mem;
   rect_shape<T> m_shape;
 
 public:
-  rect_shape_matrix_memory(const T& v)
+  rect_shape_matrix_memory()
     : m_mem(nullptr)
-    , m_v(v)
   {}
   ~rect_shape_matrix_memory()
   {

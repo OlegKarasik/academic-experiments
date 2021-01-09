@@ -84,7 +84,7 @@ fprint_matrix(const std::string& path, P& predicate, S& matrix_input)
 
 
 template<typename T>
-class matrix_all_output_predicate
+class matrix_all_predicate
 {
 public:
   bool operator()(const T& v)
@@ -93,15 +93,14 @@ public:
   }
 };
 
-template<typename T>
-class matrix_except_input_predicate
+template<typename T, T V>
+class matrix_except_predicate
 {
 private:
-  const T m_v;
+  const T m_v = V;
 
 public:
-  matrix_except_input_predicate(const T& v)
-    : m_v(v)
+  matrix_except_predicate()
   {}
 
   bool operator()(const T& v)

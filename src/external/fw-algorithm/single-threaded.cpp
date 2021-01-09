@@ -11,30 +11,55 @@
 
 using namespace utilz;
 
-using matrix_memory           = rect_shape_matrix_memory<long>;
-using matrix_output           = rect_shape_matrix_output<long, matrix_memory>;
-using matrix_output_predicate = matrix_all_output_predicate<long>;
-using matrix_input            = rect_shape_matrix_input<long>;
-using matrix_input_predicate  = matrix_except_input_predicate<long>;
-
+/* Constant value which indicates that there is no path between two vertexes.
+     Please note: this value can be used ONLY when input paths are >= 0.
+ */
 constexpr long
-no_edge_value()
+no_path_value()
 {
   return ((std::numeric_limits<long>::max)() / 2) - 1;
 };
 
-void
-calculate(rect_shape<long>& shape)
+template<typename T, T V>
+class rect_shape_precondition
 {
-  for (size_t k = 0; k < shape.h(); ++k) {
-    long* k_row = shape(k);
+private:
+  const T m_s = V;
 
-    for (size_t i = 0; i < shape.h(); ++i) {
-      long* i_row   = shape(i);
+public:
+  rect_shape_precondition()
+  {}
+
+  bool operator()(const rect_shape<T>& s)
+  {
+    for (size_t i = 0; i < s.w(); ++i)
+      for (size_t j = 0; j < s.h(); ++j)
+        if (s(i, j) < this->m_s)
+          return false;
+
+    return s.w() == s.h();
+  }
+};
+
+using matrix_precondition     = rect_shape_precondition<long, 0>;
+using matrix_memory           = rect_shape_matrix_memory<long, no_path_value()>;
+using matrix_output           = rect_shape_matrix_output<long, matrix_memory>;
+using matrix_output_predicate = matrix_all_predicate<long>;
+using matrix_input            = rect_shape_matrix_input<long>;
+using matrix_input_predicate  = matrix_except_predicate<long, no_path_value()>;
+
+void
+calculate(rect_shape<long>& matrix)
+{
+  for (size_t k = 0; k < matrix.h(); ++k) {
+    long* k_row = matrix(k);
+
+    for (size_t i = 0; i < matrix.h(); ++i) {
+      long* i_row   = matrix(i);
       long* k_row_l = k_row;
 
       long ik = i_row[k];
-      for (size_t j = 0; j < shape.w(); ++j, ++i_row, ++k_row_l) {
+      for (size_t j = 0; j < matrix.w(); ++j, ++i_row, ++k_row_l) {
         long distance = ik + *k_row_l;
         if (*i_row > distance)
           *i_row = distance;
@@ -74,26 +99,26 @@ main(int argc, char* argv[])
     }
   }
 
-  matrix_memory memory(no_edge_value());
+  // Load matrix from a file. All memory management is handed by "memory" object
+  // (which will deallocate memory on destruction).
+  matrix_memory memory;
 
-  {
-    matrix_output           output(memory);
-    matrix_output_predicate predicate;
+  fscan_matrix<long>(input_path, matrix_output_predicate(), matrix_output(memory));
 
-    fscan_matrix<long>(input_path, predicate, output);
+  rect_shape<long> matrix = memory();
+
+  // Ensure loaded matrix is a square matrix and every cell contains positive value
+  matrix_precondition precondition;
+  if (!precondition(matrix)) {
+    std::cerr << "Input should be a square matrix with values greater or equal to zero" << std::endl;
+    return 1;
   }
 
-  rect_shape<long> shape = memory();
+  // Calculate all shortest paths
+  calculate(matrix);
 
-  is_square_shape(shape);
-  calculate(shape);
-
-  {
-    matrix_input           input(shape);
-    matrix_input_predicate predicate(no_edge_value());
-
-    fprint_matrix<long>(output_path, predicate, input);
-  }
+  // Print updated matrix to a file
+  fprint_matrix<long>(output_path, matrix_input_predicate(), matrix_input(matrix));
 
   return 0;
 }

@@ -160,11 +160,4 @@ public:
   }
 };
 
-template<typename T>
-bool
-is_square_shape(const rect_shape<T>& s)
-{
-  return s.w() == s.h();
-}
-
 } // namespace utilz
