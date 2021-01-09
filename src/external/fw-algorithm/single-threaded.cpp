@@ -1,8 +1,7 @@
 #include <algorithm>
-#include <array>
+#include <chrono>
 #include <iostream>
 #include <string>
-#include <tuple>
 
 #include "../../utilz/matrix_io.h"
 
@@ -11,15 +10,18 @@
 
 using namespace utilz;
 
-/* Constant value which indicates that there is no path between two vertexes.
-     Please note: this value can be used ONLY when input paths are >= 0.
- */
+// Constant value which indicates that there is no path between two vertexes.
+// Please note: this value can be used ONLY when input paths are >= 0.
+//
 constexpr long
 no_path_value()
 {
   return ((std::numeric_limits<long>::max)() / 2) - 1;
 };
 
+// A precondition for input matrix to ensure proper algorithm execution.
+// Ensures: matrix is a square matrix; all cell values are greater or equal to zero.
+//
 template<typename T, T V>
 class rect_shape_precondition
 {
@@ -101,23 +103,36 @@ main(int argc, char* argv[])
 
   // Load matrix from a file. All memory management is handed by "memory" object
   // (which will deallocate memory on destruction).
+  //
   matrix_memory memory;
 
   fscan_matrix<long>(input_path, matrix_output_predicate(), matrix_output(memory));
 
   rect_shape<long> matrix = memory();
 
-  // Ensure loaded matrix is a square matrix and every cell contains positive value
+  // Ensure input matrix matches algorithm precondition
+  //
   matrix_precondition precondition;
   if (!precondition(matrix)) {
     std::cerr << "Input should be a square matrix with values greater or equal to zero" << std::endl;
     return 1;
   }
 
-  // Calculate all shortest paths
+  // Calculate all shortest paths and measure execution time
+  //
+  auto wc_start = std::chrono::high_resolution_clock::now();
+
   calculate(matrix);
 
+  auto wc_stop     = std::chrono::high_resolution_clock::now();
+  auto wc_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(wc_stop - wc_start);
+
+  // Print calculation time to standard output
+  //
+  std::cout << wc_duration.count() << std::endl;
+
   // Print updated matrix to a file
+  //
   fprint_matrix<long>(output_path, matrix_input_predicate(), matrix_input(matrix));
 
   return 0;
