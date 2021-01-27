@@ -1,72 +1,156 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "type": "shell",
-            "label": "mkdir (debug)",
-            "command": "cmd.exe",
-            "args": [
-                "/C",
-                "if not exist \"${fileDirname}\\bin\\Debug\" mkdir \"${fileDirname}\\bin\\Debug\""
-            ]
-        },
-        {
-            "type": "shell",
-            "label": "mkdir (release)",
-            "command": "cmd.exe",
-            "args": [
-                "/C",
-                "if not exist \"${fileDirname}\\bin\\Release\" mkdir \"${fileDirname}\\bin\\Release\""
-            ]
-        },
-        {
-            "type": "shell",
-            "label": "build (debug)",
-            "detail": "compiler: cl.exe",
-            "command": "cl.exe",
-            "args": [
-                "/Zi",
-                "/EHsc",
-                "/Fo:",
-                "${fileDirname}\\bin\\Debug\\${fileBasenameNoExtension}.obj",
-                "/Fe:",
-                "${fileDirname}\\bin\\Debug\\${fileBasenameNoExtension}.exe",
-                "${file}"
-            ],
-            "problemMatcher": [
-                "$msCompile"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "dependsOn": [
-                "mkdir (debug)"
-            ]
-        },
-        {
-            "type": "shell",
-            "label": "build (release)",
-            "detail": "compiler: cl.exe",
-            "command": "cl.exe",
-            "args": [
-                "/Zi",
-                "/EHsc",
-                "/O2",
-                "/Fo:",
-                "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.obj",
-                "/Fe:",
-                "${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.exe",
-                "/FAs",
-                "/Fa\"${fileDirname}\\bin\\Release\\${fileBasenameNoExtension}.asm\"",
-                "${file}"
-            ],
-            "problemMatcher": [
-                "$msCompile"
-            ],
-            "dependsOn": [
-                "mkdir (release)"
-            ]
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "mkdir (debug)",
+      "command": "cmd.exe",
+      "args": [
+        "/C",
+        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Debug\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Debug\""
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "mkdir (release)",
+      "command": "cmd.exe",
+      "args": [
+        "/C",
+        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Release\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Release\""
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "mkdir (benchmark)",
+      "command": "cmd.exe",
+      "args": [
+        "/C",
+        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark\""
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "mkdir (test)",
+      "command": "cmd.exe",
+      "args": [
+        "/C",
+        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Test\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Test\""
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "build (debug)",
+      "detail": "compiler: cl.exe",
+      "command": "cl.exe",
+      "args": [
+        "/Zi",
+        "/EHsc",
+        "/Fo:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Debug${pathSeparator}${fileBasenameNoExtension}.obj",
+        "/Fe:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Debug${pathSeparator}${fileBasenameNoExtension}.exe",
+        "${file}"
+      ],
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": [
+        "mkdir (debug)"
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "build (release)",
+      "detail": "compiler: cl.exe",
+      "command": "cl.exe",
+      "args": [
+        "/Zi",
+        "/EHsc",
+        "/O2",
+        "/MT",
+        "/Fo:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Release${pathSeparator}${fileBasenameNoExtension}.obj",
+        "/Fe:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Release${pathSeparator}${fileBasenameNoExtension}.exe",
+        "/FAs",
+        "/Fa\"${fileDirname}${pathSeparator}bin${pathSeparator}Release${pathSeparator}${fileBasenameNoExtension}.asm\"",
+        "${file}"
+      ],
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "dependsOn": [
+        "mkdir (release)"
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "build (benchmark)",
+      "detail": "compiler: cl.exe",
+      "command": "cl.exe",
+      "args": [
+        "/Zi",
+        "/EHsc",
+        "/O2",
+        "/MD",
+        "/D_WIN32",
+        "/I",
+        "${workspaceFolder}${pathSeparator}libs${pathSeparator}benchmark${pathSeparator}includes",
+        "/Fo:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.obj",
+        "/Fe:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.exe",
+        "/FAs",
+        "/Fa\"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.asm\"",
+        "${file}",
+        "benchmark.lib",
+        "benchmark_main.lib",
+        "/link",
+        "/SUBSYSTEM:CONSOLE",
+        "/LIBPATH:\"${workspaceFolder}${pathSeparator}libs${pathSeparator}benchmark\""
+      ],
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "dependsOn": [
+        "mkdir (benchmark)"
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "build (test)",
+      "detail": "compiler: cl.exe",
+      "command": "cl.exe",
+      "args": [
+        "/Zi",
+        "/EHsc",
+        "/O2",
+        "/MT",
+        "/I",
+        "${workspaceFolder}${pathSeparator}libs${pathSeparator}test${pathSeparator}includes",
+        "/Fo:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.obj",
+        "/Fe:",
+        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.exe",
+        "/FAs",
+        "/Fa\"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.asm\"",
+        "${file}",
+        "gtest.lib",
+        "gtest_main.lib",
+        "/link",
+        "/SUBSYSTEM:CONSOLE",
+        "/LIBPATH:\"${workspaceFolder}${pathSeparator}libs${pathSeparator}test\""
+      ],
+      "problemMatcher": [
+        "$msCompile"
+      ],
+      "dependsOn": [
+        "mkdir (test)"
+      ]
+    }
+  ]
 }

@@ -56,6 +56,10 @@
       "xstddef": "cpp",
       "xtr1common": "cpp",
       "xtree": "cpp",
-      "array": "cpp"
+      "array": "cpp",
+      "iomanip": "cpp",
+      "xlocmon": "cpp",
+      "xloctime": "cpp",
+      "fstream": "cpp"
     }
 }
