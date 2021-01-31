@@ -1,5 +1,7 @@
 #pragma once
 
+#include <exception>
+
 namespace utilz {
 
 template<typename T>

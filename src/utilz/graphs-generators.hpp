@@ -11,10 +11,10 @@ template<typename T, typename O>
 void
 random_weighted_directed_acyclic_graph(size_t v, size_t e, T min, T max, O out)
 {
-  std::tr1::mt19937_64 distribution_engine;
+  std::mt19937_64 distribution_engine;
 
-  std::tr1::uniform_int_distribution<size_t> v_distribution(0, (v - 1));
-  std::tr1::uniform_int_distribution<long>   w_distribution(min, max);
+  std::uniform_int_distribution<size_t> v_distribution(0, (v - 1));
+  std::uniform_int_distribution<T>      w_distribution(min, max);
 
   distribution_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 

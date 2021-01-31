@@ -14,8 +14,8 @@ scan_graph(std::istream& s, O& out)
   //
   size_t v = 0, e = 0;
   if (!(s >> v >> e)) {
-    throw std::runtime_error("erro: the data is in invalid format, "
-                             "the expected format is <vertex> <edge>");
+    throw std::logic_error("erro: the data is in invalid format, "
+                           "the expected format is <vertex> <edge>");
   }
 
   // Initialize output
@@ -30,8 +30,8 @@ scan_graph(std::istream& s, O& out)
     out.set(f, t) = w;
 
   if (!s.eof()) {
-    throw std::runtime_error("erro: the data is in invalid format, "
-                             "the expected format is <from> <to> <weight>");
+    throw std::logic_error("erro: the data is in invalid format, "
+                           "the expected format is <from> <to> <weight>");
   }
 };
 
@@ -42,7 +42,7 @@ print_graph(std::ostream& s, I& in)
   // Write vertex and edge count information
   //
   if (!(s << in.v() << ' ' << in.e() << std::endl))
-    throw std::runtime_error("erro: can't write <vertex> and <edge> count");
+    throw std::logic_error("erro: can't write <vertex> and <edge> count");
 
   // Iterate over graph edges and write edge information
   // in form of `from vertex` `to vertex` `the weight`
@@ -50,7 +50,7 @@ print_graph(std::ostream& s, I& in)
   for (auto it = in.begin(); it != in.end(); ++it) {
     auto v = *it;
     if (!(s << v.f() << ' ' << v.t() << ' ' << v.w() << std::endl))
-      throw std::runtime_error("erro: can't write <from> <to> <weight>");
+      throw std::logic_error("erro: can't write <from> <to> <weight>");
   }
 }
 

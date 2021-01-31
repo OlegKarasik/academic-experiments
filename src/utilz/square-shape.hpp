@@ -1,5 +1,7 @@
 #pragma once
 
+#include <exception>
+
 namespace utilz {
 
 template<typename T>
@@ -26,24 +28,6 @@ public:
   size_t s() const noexcept
   {
     return this->m_s;
-  }
-
-  T* begin() noexcept
-  {
-    return this->m_m;
-  }
-  const T* begin() const noexcept
-  {
-    return this->m_m;
-  }
-
-  T* end() noexcept
-  {
-    return this->m_m + this->m_s * this->m_s;
-  }
-  const T* end() const noexcept
-  {
-    return this->m_m + this->m_s * this->m_s;
   }
 
   T* operator()(size_t i) noexcept

@@ -1,69 +1,64 @@
-#include "program.h"
-
 #include "benchmark/benchmark.h"
+
+#include "algorithm.hpp"
+
+#include "../../utilz/graphs-cio.hpp"
+#include "../../utilz/graphs-fio.hpp"
+
+#include "../../utilz/square-shape-io.hpp"
+#include "../../utilz/square-shape.hpp"
+
+#include <filesystem>
 
 #ifdef _WIN32
 #pragma comment(lib, "Shlwapi.lib")
 #endif
 
 using namespace utilz;
+using namespace graphs::io;
 
-// Constant value which indicates that there is no path between two vertexes.
-// Please note: this value can be used ONLY when input paths are >= 0.
-//
-constexpr long
-no_path_value()
-{
-  return ((std::numeric_limits<long>::max)() / 2) - 1;
-};
-
+template<typename T>
 class Fixture : public benchmark::Fixture
 {
+  // Constant value which indicates that there is no path between two vertexes.
+  // Please note: this value can be used ONLY when input paths are >= 0.
+  //
+  static constexpr T
+  no_path_value()
+  {
+    return ((std::numeric_limits<T>::max)() / 2) - 1;
+  };
+
+  using shape_memory       = square_shape_memory<T, no_path_value()>;
+  using shape_output_proxy = square_shape_io_proxy<T>;
+  using shape_output       = square_shape_graph_out<T, shape_memory, shape_output_proxy>;
+
+private:
+  shape_memory m_m;
+
 public:
-  void SetUp(const ::benchmark::State& state)
+  square_shape<T> shape;
+
+  Fixture()
   {
-    long* mem = (long*)malloc(7 * 7 * sizeof(long));
-    long  sz  = 7;
+    // Read graph used for benchmarking
+    //
+    shape_output output(m_m);
 
-    std::fill_n(mem, sz * sz, no_path_value());
+    fscan_graph<T, shape_output>("D:\\GitHub\\academic-experiments\\data\\_benchmarks\\direct-acyclic-graphs\\4800-4799.out.g", output);
 
-    rect_shape<long> shape(mem, sz, sz);
-    shape(1, 2) = 9;
-    shape(1, 3) = 2;
-    shape(1, 6) = 5;
-    shape(3, 4) = 3;
-    shape(3, 6) = 6;
-    shape(4, 2) = 1;
-    shape(4, 6) = 4;
-
-    this->shape = shape;
+    this->shape = (square_shape<T>)this->m_m;
   }
-
-  void TearDown(const ::benchmark::State& state)
+  ~Fixture()
   {
-    //free(this->m_value.first);
   }
-
-  rect_shape<long> shape;
 };
 
-BENCHMARK_F(Fixture, Base)
-(benchmark::State& st)
+BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
+(benchmark::State& state)
 {
-  for (auto _ : st)
-    base_impl(shape);
+  for (auto _ : state)
+    impl(this->shape);
 }
 
-BENCHMARK_F(Fixture, O1)
-(benchmark::State& st)
-{
-  for (auto _ : st)
-    o1_impl(shape);
-}
-
-BENCHMARK_F(Fixture, O2)
-(benchmark::State& st)
-{
-  for (auto _ : st)
-    o2_impl(shape);
-}
+BENCHMARK_REGISTER_F(Fixture, ExecuteInt)->UseRealTime()->Iterations(5);

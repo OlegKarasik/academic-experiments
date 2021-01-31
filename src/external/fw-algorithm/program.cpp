@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include "program.h"
+#include "algorithm.hpp"
 
 #include "../../utilz/graphs-generators.hpp"
 #include "../../utilz/graphs-fio.hpp"
@@ -17,10 +17,10 @@ using namespace utilz;
 // Constant value which indicates that there is no path between two vertexes.
 // Please note: this value can be used ONLY when input paths are >= 0.
 //
-constexpr long
+constexpr int
 no_path_value()
 {
-  return ((std::numeric_limits<long>::max)() / 2) - 1;
+  return ((std::numeric_limits<int>::max)() / 2) - 1;
 };
 
 // A precondition for input matrix to ensure proper algorithm execution.
@@ -73,25 +73,25 @@ public:
 int
 main(int argc, char* argv[])
 {
-  square_shape_memory<size_t, no_path_value()>                           memory;
-  square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>> out(memory);
+//   square_shape_memory<size_t, no_path_value()>                           memory;
+//   square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>> out(memory);
 
-  graphs::io::fscan_graph<size_t, square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/7-7.dimacs9", out);
+//   graphs::io::fscan_graph<size_t, square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/7-7.dimacs9", out);
 
-except_predicate<size_t, no_path_value()> p;
-square_shape<size_t> s = (square_shape<size_t>)memory;
-  square_shape_in<size_t, except_predicate<size_t, no_path_value()>> inzzz(s, p);
+ except_predicate<int, no_path_value()> p;
+// square_shape<size_t> s = (square_shape<size_t>)memory;
+//   square_shape_in<size_t, except_predicate<size_t, no_path_value()>> inzzz(s, p);
 
-  square_shape_memory<size_t, no_path_value()>                           memory2;
-  square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>> out2(memory2);
+  square_shape_memory<int, no_path_value()>                           memory2;
+  square_shape_graph_out<int, square_shape_memory<int, no_path_value()>, square_shape_io_proxy<int>> out2(memory2);
+//(252*252*4)/1024 (80%) density
+  graphs::random_weighted_directed_acyclic_graph<int, square_shape_graph_out<int, square_shape_memory<int, no_path_value()>, square_shape_io_proxy<int>>>(4800, 4799, 1, 500, out2);
 
-  graphs::random_weighted_directed_acyclic_graph<size_t, square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>>>(10, 10, 1, 2, out2);
+square_shape<int> s2 = (square_shape<int>)memory2;
+  square_shape_graph_in<int, except_predicate<int, no_path_value()>, square_shape_io_proxy<int>> inzzz2(s2, p);
 
-square_shape<size_t> s2 = (square_shape<size_t>)memory2;
-  square_shape_in<size_t, except_predicate<size_t, no_path_value()>> inzzz2(s2, p);
-
-  graphs::io::fprint_graph<size_t, square_shape_in<size_t, except_predicate<size_t, no_path_value()>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/7-7.dimacs9.out", inzzz);
-  graphs::io::cprint_graph<size_t, square_shape_in<size_t, except_predicate<size_t, no_path_value()>>>(inzzz2);
+  graphs::io::fprint_graph<int, square_shape_graph_in<int, except_predicate<int, no_path_value()>, square_shape_io_proxy<int>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/4800-4799.out.g", inzzz2);
+  //graphs::io::cprint_graph<size_t, square_shape_in<size_t, except_predicate<size_t, no_path_value()>>>(inzzz2);
 
   return 1;
   // if (argc < 3) {
