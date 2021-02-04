@@ -216,9 +216,18 @@ public:
 template<typename T>
 class square_shape_element_op
 {
+private:
+  void _throwif_exceeds_s(const square_shape<T>& s, size_t i, size_t j) const
+  {
+    if (i >= s.s() || j >= s.s())
+      throw std::out_of_range("The indeces are outside of square shape's size");
+  }
+
 public:
   T& operator()(square_shape<T>& s, size_t i, size_t j)
   {
+    this->_throwif_exceeds_s(s, i, j);
+
     return s(i, j);
   }
 };
@@ -226,9 +235,18 @@ public:
 template<typename T>
 class const_square_shape_element_op
 {
+private:
+  void _throwif_exceeds_s(const square_shape<T>& s, size_t i, size_t j) const
+  {
+    if (i >= s.s() || j >= s.s())
+      throw std::out_of_range("The indeces are outside of square shape's size");
+  }
+
 public:
   const T& operator()(const square_shape<T>& s, size_t i, size_t j)
   {
+    this->_throwif_exceeds_s(s, i, j);
+
     return s(i, j);
   }
 };
@@ -239,6 +257,13 @@ class square_shape_of_shapes_element_op
 private:
   size_t m_sz;
 
+  template<typename K>
+  void _throwif_exceeds_s(const K& s, size_t i, size_t j) const
+  {
+    if (i >= s.s() || j >= s.s())
+      throw std::out_of_range("The indeces are outside of square shape's size");
+  }
+
 public:
   square_shape_of_shapes_element_op(size_t sz)
     : m_sz(sz)
@@ -246,7 +271,16 @@ public:
 
   T& operator()(square_shape<square_shape<T>>& s, size_t i, size_t j)
   {
-    return s(i / this->m_sz, j / this->m_sz)(i % this->m_sz, j % this->m_sz);
+    size_t zi = i / this->m_sz, zj = j / this->m_sz;
+    size_t ri = i % this->m_sz, rj = j % this->m_sz;
+
+    this->_throwif_exceeds_s(s, zi, zj);
+
+    square_shape<T>& is = s(zi, zj);
+
+    this->_throwif_exceeds_s(is, ri, rj);
+
+    return is(ri, rj);
   }
 };
 
@@ -256,6 +290,13 @@ class const_square_shape_of_shapes_element_op
 private:
   size_t m_sz;
 
+  template<typename K>
+  void _throwif_exceeds_s(const K& s, size_t i, size_t j) const
+  {
+    if (i >= s.s() || j >= s.s())
+      throw std::out_of_range("The indeces are outside of square shape's size");
+  }
+
 public:
   const_square_shape_of_shapes_element_op(size_t sz)
     : m_sz(sz)
@@ -263,7 +304,16 @@ public:
 
   const T& operator()(const square_shape<square_shape<T>>& s, size_t i, size_t j)
   {
-    return s(i / this->m_sz, j / this->m_sz)(i % this->m_sz, j % this->m_sz);
+    size_t zi = i / this->m_sz, zj = j / this->m_sz;
+    size_t ri = i % this->m_sz, rj = j % this->m_sz;
+
+    this->_throwif_exceeds_s(s, zi, zj);
+
+    const square_shape<T>& is = s(zi, zj);
+
+    this->_throwif_exceeds_s(is, ri, rj);
+
+    return is(ri, rj);
   }
 };
 
