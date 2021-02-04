@@ -5,9 +5,9 @@
 
 #include "algorithm.hpp"
 
-#include "../../utilz/graphs-generators.hpp"
-#include "../../utilz/graphs-fio.hpp"
 #include "../../utilz/graphs-cio.hpp"
+#include "../../utilz/graphs-fio.hpp"
+#include "../../utilz/graphs-generators.hpp"
 
 #include "../../utilz/square-shape-io.hpp"
 #include "../../utilz/square-shape.hpp"
@@ -73,25 +73,129 @@ public:
 int
 main(int argc, char* argv[])
 {
-//   square_shape_memory<size_t, no_path_value()>                           memory;
-//   square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>> out(memory);
+  //   square_shape_memory<size_t, no_path_value()>                           memory;
+  //   square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>> out(memory);
 
-//   graphs::io::fscan_graph<size_t, square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/7-7.dimacs9", out);
+  //   graphs::io::fscan_graph<size_t, square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/7-7.dimacs9", out);
 
- except_predicate<int, no_path_value()> p;
-// square_shape<size_t> s = (square_shape<size_t>)memory;
-//   square_shape_in<size_t, except_predicate<size_t, no_path_value()>> inzzz(s, p);
+  except_predicate<int, no_path_value()> p;
+  // square_shape<size_t> s = (square_shape<size_t>)memory;
+  //   square_shape_in<size_t, except_predicate<size_t, no_path_value()>> inzzz(s, p);
 
-  square_shape_memory<int, no_path_value()>                           memory2;
-  square_shape_graph_out<int, square_shape_memory<int, no_path_value()>, square_shape_io_proxy<int>> out2(memory2);
-//(252*252*4)/1024 (80%) density
-  graphs::random_weighted_directed_acyclic_graph<int, square_shape_graph_out<int, square_shape_memory<int, no_path_value()>, square_shape_io_proxy<int>>>(4800, 4799, 1, 500, out2);
+  square_shape_resize_graph_op<int, no_path_value()> memory2;
+  square_shape_element_op<int>                       op;
+  const_square_shape_element_op<int>                       cop;
+  square_shape<int>                                  s2;
+  square_shape_size_op<int>                          op1SZ;
+  //(252*252*4)/1024 (80%) density
+  //graphs::random_weighted_directed_acyclic_graph<square_shape<int>, int, square_shape_resize_graph_op<int, no_path_value()>, square_shape_element_op<int>>(s2, 10, 9, 1, 10, memory2, op);
+  graphs::io::fscan_graph<square_shape<int>, int, square_shape_resize_graph_op<int, no_path_value()>, square_shape_element_op<int>>(
+    "D:/GitHub/academic-experiments/data/_benchmarks/direct-acyclic-graphs/10-14.out.g",
+    s2, memory2, op);
 
-square_shape<int> s2 = (square_shape<int>)memory2;
-  square_shape_graph_in<int, except_predicate<int, no_path_value()>, square_shape_io_proxy<int>> inzzz2(s2, p);
+    square_shape_graph_edges_transform<
+    square_shape<int>,
+    int,
+    square_shape_size_op<int>,
+    const_square_shape_element_op<int>,
+    except_predicate<int, no_path_value()>>
+    op1Trans(op1SZ, cop, p);
 
-  graphs::io::fprint_graph<int, square_shape_graph_in<int, except_predicate<int, no_path_value()>, square_shape_io_proxy<int>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/4800-4799.out.g", inzzz2);
-  //graphs::io::cprint_graph<size_t, square_shape_in<size_t, except_predicate<size_t, no_path_value()>>>(inzzz2);
+  square_shape_graph_count_op<
+    square_shape<int>,
+    int,
+
+    square_shape_size_op<int>,
+    square_shape_graph_edges_transform<
+      square_shape<int>,
+      int,
+      square_shape_size_op<int>,
+      const_square_shape_element_op<int>,
+      except_predicate<int, no_path_value()>>>
+    op1Count(op1SZ, op1Trans);
+
+  graphs::io::cprint_graph<
+    square_shape<int>,
+    int,
+    square_shape_graph_count_op<
+      square_shape<int>,
+      int,
+      square_shape_size_op<int>,
+      square_shape_graph_edges_transform<
+        square_shape<int>,
+        int,
+        square_shape_size_op<int>,
+        const_square_shape_element_op<int>,
+        except_predicate<int, no_path_value()>>>,
+    square_shape_graph_edges_transform<
+      square_shape<int>,
+      int,
+      square_shape_size_op<int>,
+      const_square_shape_element_op<int>,
+      except_predicate<int, no_path_value()>>>(s2, op1Count, op1Trans);
+
+  square_shape_of_shapes_resize_graph_op<int, no_path_value()> memorySS(2);
+  square_shape_of_shapes_element_op<int>                       opSS(2);
+  const_square_shape_of_shapes_element_op<int>                       const_opSS(2);
+  square_shape_of_shapes_size_op<int>                          opSZ(2);
+  square_shape<square_shape<int>>                              SS;
+  square_shape_graph_edges_transform<
+    square_shape<square_shape<int>>,
+    int,
+    square_shape_of_shapes_size_op<int>,
+    const_square_shape_of_shapes_element_op<int>,
+    except_predicate<int, no_path_value()>>
+    opTrans(opSZ, const_opSS, p);
+
+  square_shape_graph_count_op<
+    square_shape<square_shape<int>>,
+    int,
+
+    square_shape_of_shapes_size_op<int>,
+    square_shape_graph_edges_transform<
+      square_shape<square_shape<int>>,
+      int,
+      square_shape_of_shapes_size_op<int>,
+      const_square_shape_of_shapes_element_op<int>,
+      except_predicate<int, no_path_value()>>>
+    opCount(opSZ, opTrans);
+
+  //(252*252*4)/1024 (80%) density
+  // graphs::random_weighted_directed_acyclic_graph<
+  //   square_shape<square_shape<int>>,
+  //   int,
+  //   square_shape_of_shapes_resize_graph_op<int, no_path_value()>,
+  //   square_shape_of_shapes_element_op<int>>(SS, 10, 9, 1, 10, memorySS, opSS);
+
+  graphs::io::fscan_graph<
+  square_shape<square_shape<int>>,
+    int,
+    square_shape_of_shapes_resize_graph_op<int, no_path_value()>,
+    square_shape_of_shapes_element_op<int>>(
+
+    "D:/GitHub/academic-experiments/data/_benchmarks/direct-acyclic-graphs/10-14.out.g",
+    SS, memorySS, opSS);
+
+  //graphs::io::fprint_graph<int, square_shape_graph_in<int, except_predicate<int, no_path_value()>, square_shape_graph_io_proxy<int>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/4800-4799.out.g", inzzz2);
+  graphs::io::cprint_graph<
+    square_shape<square_shape<int>>,
+    int,
+    square_shape_graph_count_op<
+      square_shape<square_shape<int>>,
+      int,
+      square_shape_of_shapes_size_op<int>,
+      square_shape_graph_edges_transform<
+        square_shape<square_shape<int>>,
+        int,
+        square_shape_of_shapes_size_op<int>,
+        const_square_shape_of_shapes_element_op<int>,
+        except_predicate<int, no_path_value()>>>,
+    square_shape_graph_edges_transform<
+      square_shape<square_shape<int>>,
+      int,
+      square_shape_of_shapes_size_op<int>,
+      const_square_shape_of_shapes_element_op<int>,
+      except_predicate<int, no_path_value()>>>(SS, opCount, opTrans);
 
   return 1;
   // if (argc < 3) {

@@ -7,14 +7,14 @@
 namespace utilz {
 namespace graphs {
 
-template<typename T, typename O>
+template<typename GraphT, typename WeightT, typename ResizeOp, typename EdgeOp>
 void
-random_weighted_directed_acyclic_graph(size_t v, size_t e, T min, T max, O out)
+random_weighted_directed_acyclic_graph(GraphT& g, size_t v, size_t e, WeightT min, WeightT max, ResizeOp& resize, EdgeOp& edge)
 {
   std::mt19937_64 distribution_engine;
 
-  std::uniform_int_distribution<size_t> v_distribution(0, (v - 1));
-  std::uniform_int_distribution<T>      w_distribution(min, max);
+  std::uniform_int_distribution<size_t>  v_distribution(0, (v - 1));
+  std::uniform_int_distribution<WeightT> w_distribution(min, max);
 
   distribution_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
@@ -31,9 +31,9 @@ random_weighted_directed_acyclic_graph(size_t v, size_t e, T min, T max, O out)
   std::vector<bool> edges(v * v);
   std::fill(edges.begin(), edges.end(), false);
 
-  // Initialize output
+  // Resize Graph
   //
-  out.init(v, e);
+  resize(g, v, e);
 
   // Permutate vector of vertexes
   //
@@ -61,7 +61,7 @@ random_weighted_directed_acyclic_graph(size_t v, size_t e, T min, T max, O out)
     if (!edges[i * v + j]) {
       // If output has no i -> j edge
       //
-      out.set(i, j) = w_distribution(distribution_engine);
+      edge(g, i, j) = w_distribution(distribution_engine);
     } else if (attempt_count != e) {
       ++attempt_count;
       continue;
@@ -80,7 +80,7 @@ random_weighted_directed_acyclic_graph(size_t v, size_t e, T min, T max, O out)
             std::swap(i, j);
 
           if (!edges[i * v + j]) {
-            out.set(i, j) = w_distribution(distribution_engine);
+            edge(g, i, j) = w_distribution(distribution_engine);
 
             found = true;
           }

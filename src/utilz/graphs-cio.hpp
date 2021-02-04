@@ -8,18 +8,18 @@ namespace utilz {
 namespace graphs {
 namespace io {
 
-template<typename T, typename O>
+template<typename GraphT, typename WeightT, typename ResizeOp, typename EdgeOp>
 void
-cscan_graph(O& out)
+cscan_graph(GraphT& g, ResizeOp& resize, EdgeOp& edge)
 {
-  scan_graph<T, O>(std::cin, out);
+  scan_graph<GraphT, WeightT, ResizeOp, EdgeOp>(std::cin, g, resize, edge);
 }
 
-template<typename T, typename I>
+template<typename GraphT, typename WeighT, typename CountOp, typename EdgeOp>
 void
-cprint_graph(I& in)
+cprint_graph(GraphT& g, CountOp& count, EdgeOp& edge)
 {
-  print_graph<T, I>(std::cout, in);
+  print_graph<GraphT, WeighT, CountOp, EdgeOp>(std::cout, g, count, edge);
 };
 
 } // namespace io
