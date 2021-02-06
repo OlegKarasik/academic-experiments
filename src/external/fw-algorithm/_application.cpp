@@ -5,12 +5,12 @@
 
 #include "algorithm.hpp"
 
-#include "../../utilz/graphs-cio.hpp"
-#include "../../utilz/graphs-fio.hpp"
-#include "../../utilz/graphs-generators.hpp"
+#include "graphs-cio.hpp"
+#include "graphs-fio.hpp"
+#include "graphs-generators.hpp"
 
-#include "../../utilz/square-shape-io.hpp"
-#include "../../utilz/square-shape.hpp"
+#include "square-shape-io.hpp"
+#include "square-shape.hpp"
 
 using namespace utilz;
 

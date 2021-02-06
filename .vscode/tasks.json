@@ -1,155 +1,135 @@
 {
   "version": "2.0.0",
+  "windows": {
+    "options": {
+      "shell": {
+        "executable": "msys2_shell.cmd",
+        "args": [
+          "-defterm",
+          "-here",
+          "-no-start",
+          "-mingw64"
+        ]
+      }
+    }
+  },
   "tasks": [
     {
       "type": "shell",
-      "label": "mkdir (debug)",
-      "command": "cmd.exe",
+      "label": "prepare",
+      "detail": "prepares build environment",
+      "command": "-c",
       "args": [
-        "/C",
-        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Debug\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Debug\""
-      ]
-    },
-    {
-      "type": "shell",
-      "label": "mkdir (release)",
-      "command": "cmd.exe",
-      "args": [
-        "/C",
-        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Release\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Release\""
-      ]
-    },
-    {
-      "type": "shell",
-      "label": "mkdir (benchmark)",
-      "command": "cmd.exe",
-      "args": [
-        "/C",
-        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark\""
-      ]
-    },
-    {
-      "type": "shell",
-      "label": "mkdir (test)",
-      "command": "cmd.exe",
-      "args": [
-        "/C",
-        "if not exist \"${fileDirname}${pathSeparator}bin${pathSeparator}Test\" mkdir \"${fileDirname}${pathSeparator}bin${pathSeparator}Test\""
+        "'",
+        "mkdir",
+        "-p",
+        "\"${fileDirname}/bin\"",
+        "'"
       ]
     },
     {
       "type": "shell",
       "label": "build (debug)",
-      "detail": "compiler: cl.exe",
-      "command": "cl.exe",
+      "detail": "compiler: g++",
+      "command": "-c",
       "args": [
-        "/Zi",
-        "/EHsc",
-        "/Fo:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Debug${pathSeparator}${fileBasenameNoExtension}.obj",
-        "/Fe:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Debug${pathSeparator}${fileBasenameNoExtension}.exe",
-        "${file}"
+        "'",
+        "g++",
+        "\"${file}\"",
+        "-I\"${workspaceFolder}/src/utilz\"",
+        "-std=c++17",
+        "-g",
+        "-ggdb",
+        "-O0",
+        "-o",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "'"
       ],
+      "group": "build",
       "problemMatcher": [
-        "$msCompile"
+        "$gcc"
       ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
       "dependsOn": [
-        "mkdir (debug)"
+        "prepare"
       ]
     },
     {
       "type": "shell",
       "label": "build (release)",
-      "detail": "compiler: cl.exe",
-      "command": "cl.exe",
+      "detail": "compiler: g++",
+      "command": "-c",
       "args": [
-        "/Zi",
-        "/EHsc",
-        "/O2",
-        "/MT",
-        "/Fo:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Release${pathSeparator}${fileBasenameNoExtension}.obj",
-        "/Fe:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Release${pathSeparator}${fileBasenameNoExtension}.exe",
-        "/FAs",
-        "/Fa\"${fileDirname}${pathSeparator}bin${pathSeparator}Release${pathSeparator}${fileBasenameNoExtension}.asm\"",
-        "${file}"
+        "'",
+        "g++",
+        "\"${file}\"",
+        "-I\"${workspaceFolder}/src/utilz\"",
+        "-std=c++17",
+        "-o",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "'"
       ],
+      "group": "build",
       "problemMatcher": [
-        "$msCompile"
+        "$gcc"
       ],
       "dependsOn": [
-        "mkdir (release)"
+        "prepare"
       ]
     },
     {
       "type": "shell",
       "label": "build (benchmark)",
-      "detail": "compiler: cl.exe",
-      "command": "cl.exe",
+      "detail": "compiler: g++ / google benchmarks",
+      "command": "-c",
       "args": [
-        "/Zi",
-        "/EHsc",
-        "/O2",
-        "/MD",
-        "/D_WIN32",
-        "/I",
-        "${workspaceFolder}${pathSeparator}libs${pathSeparator}benchmark${pathSeparator}includes",
-        "/Fo:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.obj",
-        "/Fe:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.exe",
-        "/FAs",
-        "/Fa\"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.asm\"",
-        "${file}",
-        "benchmark.lib",
-        "benchmark_main.lib",
-        "/link",
-        "/SUBSYSTEM:CONSOLE",
-        "/LIBPATH:\"${workspaceFolder}${pathSeparator}libs${pathSeparator}benchmark\""
+        "'",
+        "g++",
+        "\"${file}\"",
+        "-I\"${workspaceFolder}/src/utilz\"",
+        "-I\"${workspaceFolder}/libs/benchmark/includes\"",
+        "-L\"${workspaceFolder}/libs/benchmark\"",
+        "-L\"C:/Program Files (x86)/Windows Kits/10/lib/10.0.17763.0/um/x64\"",
+        "-std=c++17",
+        "-o",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "-lbenchmark",
+        "-lbenchmark_main",
+        "-lShlwapi",
+        "'"
       ],
+      "group": "build",
       "problemMatcher": [
-        "$msCompile"
+        "$gcc"
       ],
       "dependsOn": [
-        "mkdir (benchmark)"
+        "prepare"
       ]
     },
     {
       "type": "shell",
       "label": "build (test)",
-      "detail": "compiler: cl.exe",
-      "command": "cl.exe",
+      "detail": "compiler: g++ / google tests",
+      "command": "-c",
       "args": [
-        "/Zi",
-        "/EHsc",
-        "/O2",
-        "/MT",
-        "/I",
-        "${workspaceFolder}${pathSeparator}libs${pathSeparator}test${pathSeparator}includes",
-        "/Fo:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.obj",
-        "/Fe:",
-        "${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.exe",
-        "/FAs",
-        "/Fa\"${fileDirname}${pathSeparator}bin${pathSeparator}Benchmark${pathSeparator}${fileBasenameNoExtension}.asm\"",
-        "${file}",
-        "gtest.lib",
-        "gtest_main.lib",
-        "/link",
-        "/SUBSYSTEM:CONSOLE",
-        "/LIBPATH:\"${workspaceFolder}${pathSeparator}libs${pathSeparator}test\""
+        "'",
+        "g++",
+        "\"${file}\"",
+        "-I\"${workspaceFolder}/src/utilz\"",
+        "-I\"${workspaceFolder}/libs/test/includes\"",
+        "-L\"${workspaceFolder}/libs/test\"",
+        "-std=c++17",
+        "-o",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "-lgtest",
+        "-lgtest_main",
+        "'"
       ],
+      "group": "build",
       "problemMatcher": [
-        "$msCompile"
+        "$gcc"
       ],
       "dependsOn": [
-        "mkdir (test)"
+        "prepare"
       ]
     }
   ]

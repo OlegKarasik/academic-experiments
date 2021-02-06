@@ -1,17 +1,26 @@
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "build and debug (g++)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${fileDirname}/bin/${fileBasenameNoExtension}.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:/Program Files/msys2/mingw64/bin/gdb.exe",
+      "setupCommands": [
         {
-            "name": "debug",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${fileDirname}\\bin\\Debug\\${fileBasenameNoExtension}.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "preLaunchTask": "build (debug)"
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
         }
-    ]
+      ],
+      "preLaunchTask": "build (debug)"
+    }
+  ]
 }
