@@ -4,8 +4,6 @@
   },
   "C_Cpp.clang_format_fallbackStyle": "LLVM",
   "terminal.integrated.cwd": "${fileDirname}",
-  "terminal.integrated.shell.windows": "C:/Program Files/msys2/msys2_shell.cmd",
-  "terminal.integrated.shellArgs.windows": ["-defterm", "-here", "-no-start", "-mingw64"],
   "files.associations": {
     "cstdint": "cpp",
     "ios": "cpp",
