@@ -29,8 +29,8 @@ class Fixture : public ::testing::Test
   using element_op = square_shape_element_op<T>;
 
 private:
-  const std::filesystem::path _s = "../../../../../data/_test/direct-acyclic-graphs/10-14.source.g";
-  const std::filesystem::path _r = "../../../../../data/_test/direct-acyclic-graphs/10-14.result.g";
+  const std::filesystem::path _s = "../../../../data/_test/direct-acyclic-graphs/10-14.source.g";
+  const std::filesystem::path _r = "../../../../data/_test/direct-acyclic-graphs/10-14.result.g";
 
   resize_op m_resize;
 
@@ -46,7 +46,7 @@ public:
     element_op op;
 
     graphs::io::fscan_graph<shape, T, resize_op, element_op>(source, this->m_source, this->m_resize, op);
-    graphs::io::fscan_graph<shape, T, resize_op, element_op>(result, this->m_source, this->m_resize, op);
+    graphs::io::fscan_graph<shape, T, resize_op, element_op>(result, this->m_result, this->m_resize, op);
   };
   ~Fixture(){};
 };
@@ -58,7 +58,6 @@ TEST_F(FixtureT, Execute)
   impl(this->m_source);
 
   for (size_t i = 0; i < this->m_source.s() && this->m_result.s(); ++i)
-    for (size_t j = 0; j < this->m_source.s() && this->m_result.s(); ++j) {
-      ASSERT_EQ(this->m_source(j, j), this->m_result(i, j));
-    }
+    for (size_t j = 0; j < this->m_source.s() && this->m_result.s(); ++j)
+      ASSERT_EQ(this->m_source(i, j), this->m_result(i, j));
 };
