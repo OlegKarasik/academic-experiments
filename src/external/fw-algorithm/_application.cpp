@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iostream>
 #include <string>
+#include <random>
 
 #include "algorithm.hpp"
 
@@ -10,6 +11,7 @@
 #include "graphs-generators.hpp"
 
 #include "square-shape-io.hpp"
+#include "square-shape-graphs.hpp"
 #include "square-shape.hpp"
 
 using namespace utilz;
@@ -73,194 +75,19 @@ public:
 int
 main(int argc, char* argv[])
 {
-  //   square_shape_memory<size_t, no_path_value()>                           memory;
-  //   square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>> out(memory);
+  std::mt19937_64 distribution_engine;
+  std::uniform_int_distribution<int> w_distribution(0, 10);
 
-  //   graphs::io::fscan_graph<size_t, square_shape_out<size_t, square_shape_memory<size_t, no_path_value()>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/7-7.dimacs9", out);
+  square_shape<int> s(10);
+  graphs::square_shape_at_assign_random_weight_operation<int, std::mt19937_64, std::uniform_int_distribution<int>> op(distribution_engine, w_distribution);
 
-  except_predicate<int, no_path_value()> p;
-  // square_shape<size_t> s = (square_shape<size_t>)memory;
-  //   square_shape_in<size_t, except_predicate<size_t, no_path_value()>> inzzz(s, p);
+  graphs::random_dag(10, 15, s, op);
 
-  square_shape_resize_graph_op<int, no_path_value()> memory2;
-  square_shape_element_op<int>                       op;
-  const_square_shape_element_op<int>                       cop;
-  square_shape<int>                                  s2;
-  square_shape_size_op<int>                          op1SZ;
-  //(252*252*4)/1024 (80%) density
-  //graphs::random_weighted_directed_acyclic_graph<square_shape<int>, int, square_shape_resize_graph_op<int, no_path_value()>, square_shape_element_op<int>>(s2, 10, 9, 1, 10, memory2, op);
-  graphs::io::fscan_graph<square_shape<int>, int, square_shape_resize_graph_op<int, no_path_value()>, square_shape_element_op<int>>(
-    "D:/GitHub/academic-experiments/data/_benchmarks/direct-acyclic-graphs/10-14.out.g",
-    s2, memory2, op);
-
-    square_shape_graph_edges_transform<
-    square_shape<int>,
-    int,
-    square_shape_size_op<int>,
-    const_square_shape_element_op<int>,
-    except_predicate<int, no_path_value()>>
-    op1Trans(op1SZ, cop, p);
-
-  square_shape_graph_count_op<
-    square_shape<int>,
-    int,
-
-    square_shape_size_op<int>,
-    square_shape_graph_edges_transform<
-      square_shape<int>,
-      int,
-      square_shape_size_op<int>,
-      const_square_shape_element_op<int>,
-      except_predicate<int, no_path_value()>>>
-    op1Count(op1SZ, op1Trans);
-
-  graphs::io::cprint_graph<
-    square_shape<int>,
-    int,
-    square_shape_graph_count_op<
-      square_shape<int>,
-      int,
-      square_shape_size_op<int>,
-      square_shape_graph_edges_transform<
-        square_shape<int>,
-        int,
-        square_shape_size_op<int>,
-        const_square_shape_element_op<int>,
-        except_predicate<int, no_path_value()>>>,
-    square_shape_graph_edges_transform<
-      square_shape<int>,
-      int,
-      square_shape_size_op<int>,
-      const_square_shape_element_op<int>,
-      except_predicate<int, no_path_value()>>>(s2, op1Count, op1Trans);
-
-  square_shape_of_shapes_resize_graph_op<int, no_path_value()> memorySS(2);
-  square_shape_of_shapes_element_op<int>                       opSS(2);
-  const_square_shape_of_shapes_element_op<int>                       const_opSS(2);
-  square_shape_of_shapes_size_op<int>                          opSZ(2);
-  square_shape<square_shape<int>>                              SS;
-  square_shape_graph_edges_transform<
-    square_shape<square_shape<int>>,
-    int,
-    square_shape_of_shapes_size_op<int>,
-    const_square_shape_of_shapes_element_op<int>,
-    except_predicate<int, no_path_value()>>
-    opTrans(opSZ, const_opSS, p);
-
-  square_shape_graph_count_op<
-    square_shape<square_shape<int>>,
-    int,
-
-    square_shape_of_shapes_size_op<int>,
-    square_shape_graph_edges_transform<
-      square_shape<square_shape<int>>,
-      int,
-      square_shape_of_shapes_size_op<int>,
-      const_square_shape_of_shapes_element_op<int>,
-      except_predicate<int, no_path_value()>>>
-    opCount(opSZ, opTrans);
-
-  //(252*252*4)/1024 (80%) density
-  // graphs::random_weighted_directed_acyclic_graph<
-  //   square_shape<square_shape<int>>,
-  //   int,
-  //   square_shape_of_shapes_resize_graph_op<int, no_path_value()>,
-  //   square_shape_of_shapes_element_op<int>>(SS, 10, 9, 1, 10, memorySS, opSS);
-
-  graphs::io::fscan_graph<
-  square_shape<square_shape<int>>,
-    int,
-    square_shape_of_shapes_resize_graph_op<int, no_path_value()>,
-    square_shape_of_shapes_element_op<int>>(
-
-    "D:/GitHub/academic-experiments/data/_benchmarks/direct-acyclic-graphs/10-14.out.g",
-    SS, memorySS, opSS);
-
-  //graphs::io::fprint_graph<int, square_shape_graph_in<int, except_predicate<int, no_path_value()>, square_shape_graph_io_proxy<int>>>("D:/GitHub/academic-experiments/data/direct-acyclic-graphs/4800-4799.out.g", inzzz2);
-  graphs::io::cprint_graph<
-    square_shape<square_shape<int>>,
-    int,
-    square_shape_graph_count_op<
-      square_shape<square_shape<int>>,
-      int,
-      square_shape_of_shapes_size_op<int>,
-      square_shape_graph_edges_transform<
-        square_shape<square_shape<int>>,
-        int,
-        square_shape_of_shapes_size_op<int>,
-        const_square_shape_of_shapes_element_op<int>,
-        except_predicate<int, no_path_value()>>>,
-    square_shape_graph_edges_transform<
-      square_shape<square_shape<int>>,
-      int,
-      square_shape_of_shapes_size_op<int>,
-      const_square_shape_of_shapes_element_op<int>,
-      except_predicate<int, no_path_value()>>>(SS, opCount, opTrans);
-
-  return 1;
-  // if (argc < 3) {
-  //   std::cerr << "Usage: " << argv[0] << "\n"
-  //             << "Options:\n"
-  //             << "\t-i,--input\t\tFull path to input file in dimacs9 format\n"
-  //             << "\t-o,--output\t\tFull path to output file in dimacs9 format"
-  //             << std::endl;
-  //   return 1;
-  // }
-
-  // std::string input_path, output_path;
-  // for (int i = 1; i < argc; ++i) {
-  //   std::string arg = argv[i];
-  //   if (arg == "-i" || arg == "--input") {
-  //     if (i == (argc - 1)) {
-  //       std::cerr << "No path has been specified for '-i' command" << std::endl;
-  //       return 1;
-  //     }
-  //     input_path = argv[i + 1];
-  //   }
-  //   if (arg == "-o" || arg == "--output") {
-  //     if (i == (argc - 1)) {
-  //       std::cerr << "No path has been specified for '-o' command" << std::endl;
-  //       return 1;
-  //     }
-  //     output_path = argv[i + 1];
-  //   }
-  // }
-
-  // graphs::random_weighted_directed_acyclic_graph<long, matrix_output_predicate>(10, 5, 1, 2, matrix_output_predicate());
-
-  // // Load matrix from a file. All memory management is handed by "memory" object
-  // // (which will deallocate memory on destruction).
-  // //
-  // matrix_memory memory;
-
-  // fscan_matrix<long>(input_path, matrix_output_predicate(), matrix_output(memory));
-
-  // rect_shape<long> matrix = memory();
-
-  // // Ensure input matrix matches algorithm precondition
-  // //
-  // matrix_precondition precondition;
-  // if (!precondition(matrix)) {
-  //   std::cerr << "Input should be a square matrix with values greater or equal to zero" << std::endl;
-  //   return 1;
-  // }
-
-  // // Calculate all shortest paths and measure execution time
-  // //
-  // auto wc_start = std::chrono::high_resolution_clock::now();
-  // for (auto i = 0; i < 1000; ++i)
-  //   o2_impl(matrix);
-
-  // auto wc_stop     = std::chrono::high_resolution_clock::now();
-  // auto wc_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(wc_stop - wc_start);
-
-  // // Print calculation time to standard output
-  // //
-  // std::cout << wc_duration.count() << std::endl;
-
-  // // Print updated matrix to a file
-  // //
-  // fprint_matrix<long>(output_path, matrix_input_predicate(), matrix_input(matrix));
-
-  // return 0;
+  for (size_t i = 0; i < s.side(); ++i)
+  {
+    for (size_t j = 0; j < s.side(); ++j)
+    {
+      std::cout << "(" << i << "," << j << ") = " << s.at(i, j) << std::endl;
+    }
+  }
 }
