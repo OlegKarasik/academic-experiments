@@ -1,17 +1,19 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
-#include <string>
 #include <random>
+#include <string>
 
 #include "algorithm.hpp"
+
+#include "operations.hpp"
 
 #include "graphs-cio.hpp"
 #include "graphs-fio.hpp"
 #include "graphs-generators.hpp"
 
-#include "square-shape-io.hpp"
 #include "square-shape-graphs.hpp"
+#include "square-shape-io.hpp"
 #include "square-shape.hpp"
 
 using namespace utilz;
@@ -75,18 +77,20 @@ public:
 int
 main(int argc, char* argv[])
 {
-  std::mt19937_64 distribution_engine;
-  std::uniform_int_distribution<int> w_distribution(0, 10);
+
+  std::mt19937_64               distribution_engine;
+  std::uniform_int_distribution distribution(1, 10);
+
+  operations::random_value          rv(distribution_engine, distribution);
+  transforms::square_shape_at       at(rv);
+  transforms::square_shape_drill_at drill_at(at, 5);
 
   square_shape<int> s(10);
-  graphs::square_shape_at_assign_random_weight_operation<int, std::mt19937_64, std::uniform_int_distribution<int>> op(distribution_engine, w_distribution);
 
-  graphs::random_dag(10, 15, s, op);
+  graphs::random_dag(10, 15, s, at);
 
-  for (size_t i = 0; i < s.side(); ++i)
-  {
-    for (size_t j = 0; j < s.side(); ++j)
-    {
+  for (size_t i = 0; i < s.width(); ++i) {
+    for (size_t j = 0; j < s.width(); ++j) {
       std::cout << "(" << i << "," << j << ") = " << s.at(i, j) << std::endl;
     }
   }
