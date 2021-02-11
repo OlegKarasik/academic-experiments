@@ -7,9 +7,9 @@
 namespace utilz {
 namespace graphs {
 
-template<typename AdjacencyMatrix, typename AdjacencyMatrixSetEdgeOperation>
+template<typename AdjacencyMatrix, typename AdjacencyMatrixValueOperation>
 void
-random_dag(size_t v, size_t e, AdjacencyMatrix& m, AdjacencyMatrixSetEdgeOperation& o)
+random_dag(size_t v, size_t e, AdjacencyMatrix& m, AdjacencyMatrixValueOperation& o)
 {
   if (e >= (v * (v - 1) / 2))
     throw std::logic_error(
@@ -36,7 +36,7 @@ random_dag(size_t v, size_t e, AdjacencyMatrix& m, AdjacencyMatrixSetEdgeOperati
   // Permutate vector of vertexes
   //
   for (size_t i = 0; i < (v - 1); ++i)
-    std::swap(vertexes[v_distribution(distribution_engine)], vertexes[i]);
+    std::swap(vertexes[distribution(distribution_engine)], vertexes[i]);
 
   // Pick two random vertexts indexes and create an edge between them.
   // Repeat until required number of edges.
@@ -44,7 +44,7 @@ random_dag(size_t v, size_t e, AdjacencyMatrix& m, AdjacencyMatrixSetEdgeOperati
   for (size_t c = 0, i = 0, j = 0, attempt_count = 0; c < e;) {
     // Don't create self-cycles
     //
-    if ((i = v_distribution(distribution_engine)) == (j = v_distribution(distribution_engine)))
+    if ((i = distribution(distribution_engine)) == (j = distribution(distribution_engine)))
       continue;
 
     i = vertexes[i];
