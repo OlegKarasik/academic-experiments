@@ -6,6 +6,34 @@
 
 namespace utilz {
 
+// ---
+// Forward declarations
+//
+
+template<typename T, typename A>
+class square_shape;
+
+namespace traits {
+
+template<typename>
+struct is_square_shape;
+
+template<typename T, typename A>
+struct is_square_shape<square_shape<T, A>>;
+
+} // namespace traits
+
+namespace procedures {
+
+template<typename Shape>
+class square_shape_size;
+
+} // namespace procedures
+
+//
+// Forward declarations
+// ---
+
 template<typename T, typename A = std::allocator<T>>
 class square_shape
 {
@@ -22,6 +50,7 @@ private:
   allocator_type m_a;
 
   size_type m_size;
+  size_type m_ssize;
 
   size_type m_msize;
   pointer   m_m;
@@ -82,21 +111,44 @@ private:
 public:
   square_shape()
     : m_m(nullptr)
+    , m_msize(0)
+    , m_size(0)
+    , m_ssize(0)
     , m_a(allocator_type())
-    , m_size(size_type())
-    , m_msize(size_type())
   {}
   square_shape(const allocator_type& a)
     : m_m(nullptr)
+    , m_msize(0)
+    , m_size(0)
+    , m_ssize(0)
     , m_a(a)
-    , m_size(size_type())
-    , m_msize(size_type())
   {}
-  square_shape(size_t s, const allocator_type& a = std::allocator<T>())
+
+  template<typename U = T, typename V = A>
+  square_shape(std::enable_if_t<!traits::is_square_shape<U>::value, size_type> s, const allocator_type& a = std::allocator<T>())
     : m_m(nullptr)
-    , m_a(a)
-    , m_size(s)
     , m_msize(s * s)
+    , m_size(s)
+    , m_ssize(1)
+    , m_a(a)
+  {
+    if (s > 0) {
+      this->allocate_resources();
+      this->construct_default();
+    }
+  }
+
+  // The `ss` size should be equal to the size of the internal shape as whole i.e.
+  // the `s * ss` should be equal to the total number of
+  // elements stored in a single row of flat shape (i.e. a shape without inner shapes)
+  //
+  template<typename U = T, typename V = A>
+  square_shape(std::enable_if_t<traits::is_square_shape<U>::value, size_type> s, size_type ss, const allocator_type& a = std::allocator<T>())
+    : m_m(nullptr)
+    , m_msize(s * s)
+    , m_size(s)
+    , m_ssize(ss)
+    , m_a(a)
   {
     if (s > 0) {
       this->allocate_resources();
@@ -106,24 +158,27 @@ public:
 
   square_shape(const square_shape& o)
     : m_m(nullptr)
-    , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
-    , m_size(o.m_size)
     , m_msize(o.m_msize)
+    , m_size(o.m_size)
+    , m_ssize(o.m_ssize)
+    , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
   {
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
   square_shape(square_shape&& o) noexcept
     : m_m(std::move(o.m_m))
+    , m_msize(std::exchange(o.m_msize, 0))
+    , m_size(std::exchange(o.m_size, 0))
+    , m_ssize(std::exchange(o.m_ssize, 0))
     , m_a(std::move(o.m_a))
-    , m_size(std::exchange(o.m_size, size_type()))
-    , m_msize(std::exchange(o.m_msize, size_type()))
   {}
   square_shape(square_shape&& o, const allocator_type& a = std::allocator<T>())
     : m_m(nullptr)
-    , m_a(a)
-    , m_size(o.m_size)
     , m_msize(o.m_msize)
+    , m_size(o.m_size)
+    , m_ssize(o.m_ssize)
+    , m_a(a)
   {
     if (this->m_msize > 0) {
       if (this->m_a == o.m_a) {
@@ -152,6 +207,12 @@ public:
   size_type size() const
   {
     return this->m_size;
+  }
+
+  template<typename U = T, typename V = A>
+  std::enable_if_t<traits::is_square_shape<U>::value, size_type> ssize() const
+  {
+    return this->m_ssize;
   }
 
   pointer at(size_type i) noexcept
@@ -257,21 +318,24 @@ public:
 
 private:
   template<typename Q = Shape>
-  result_type proc(const std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, Q>& s)
-  {
-    square_shape_size<typename Q::value_type> in_proc;
-    return s.size() * in_proc(s.at(0,0));
-  };
-  template<typename Q = Shape>
-  result_type proc(const std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, Q>& s)
+  result_type invoke(const std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, Q>& s)
   {
     return s.size();
+  }
+
+  template<typename Q = Shape>
+  result_type invoke(const std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, Q>& s)
+  {
+    return s.size() * s.ssize();
   }
 
 public:
   result_type operator()(const Shape& s)
   {
-    return proc(s);
+    if (s.size() == 0)
+      return 0;
+
+    return invoke(s);
   }
 };
 
