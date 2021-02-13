@@ -21,11 +21,17 @@ struct is_square_shape;
 template<typename T, typename A>
 struct is_square_shape<square_shape<T, A>>;
 
+template<typename>
+struct square_shape_value_type;
+
+template<typename T, typename A>
+struct square_shape_value_type<square_shape<T, A>>;
+
 } // namespace traits
 
 namespace procedures {
 
-template<typename Shape>
+template<typename S>
 class square_shape_size;
 
 } // namespace procedures
@@ -50,7 +56,6 @@ private:
   allocator_type m_a;
 
   size_type m_size;
-  size_type m_ssize;
 
   size_type m_msize;
   pointer   m_m;
@@ -113,41 +118,19 @@ public:
     : m_m(nullptr)
     , m_msize(0)
     , m_size(0)
-    , m_ssize(0)
     , m_a(allocator_type())
   {}
   square_shape(const allocator_type& a)
     : m_m(nullptr)
     , m_msize(0)
     , m_size(0)
-    , m_ssize(0)
     , m_a(a)
   {}
 
-  template<typename U = T, typename V = A>
-  square_shape(std::enable_if_t<!traits::is_square_shape<U>::value, size_type> s, const allocator_type& a = std::allocator<T>())
+  square_shape(size_type s, const allocator_type& a = std::allocator<T>())
     : m_m(nullptr)
     , m_msize(s * s)
     , m_size(s)
-    , m_ssize(1)
-    , m_a(a)
-  {
-    if (s > 0) {
-      this->allocate_resources();
-      this->construct_default();
-    }
-  }
-
-  // The `ss` size should be equal to the size of the internal shape as whole i.e.
-  // the `s * ss` should be equal to the total number of
-  // elements stored in a single row of flat shape (i.e. a shape without inner shapes)
-  //
-  template<typename U = T, typename V = A>
-  square_shape(std::enable_if_t<traits::is_square_shape<U>::value, size_type> s, size_type ss, const allocator_type& a = std::allocator<T>())
-    : m_m(nullptr)
-    , m_msize(s * s)
-    , m_size(s)
-    , m_ssize(ss)
     , m_a(a)
   {
     if (s > 0) {
@@ -160,7 +143,6 @@ public:
     : m_m(nullptr)
     , m_msize(o.m_msize)
     , m_size(o.m_size)
-    , m_ssize(o.m_ssize)
     , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
   {
     this->allocate_resources();
@@ -170,14 +152,12 @@ public:
     : m_m(std::move(o.m_m))
     , m_msize(std::exchange(o.m_msize, 0))
     , m_size(std::exchange(o.m_size, 0))
-    , m_ssize(std::exchange(o.m_ssize, 0))
     , m_a(std::move(o.m_a))
   {}
   square_shape(square_shape&& o, const allocator_type& a = std::allocator<T>())
     : m_m(nullptr)
     , m_msize(o.m_msize)
     , m_size(o.m_size)
-    , m_ssize(o.m_ssize)
     , m_a(a)
   {
     if (this->m_msize > 0) {
@@ -304,33 +284,49 @@ template<typename T, typename A>
 struct is_square_shape<square_shape<T, A>> : public std::true_type
 {};
 
+template<typename T>
+struct square_shape_value_type
+{
+public:
+  using type = T;
+};
+
+template<typename T, typename A>
+struct square_shape_value_type<square_shape<T, A>>
+{
+public:
+  using type = typename square_shape_value_type<typename square_shape<T, A>::value_type>::type;
+};
+
 } // namespace traits
 
 namespace procedures {
 
-template<typename Shape>
-class square_shape_size
+template<typename S>
+struct square_shape_size
 {
-  static_assert(traits::is_square_shape<Shape>::value, "Operation requires square_shape");
+  static_assert(traits::is_square_shape<S>::value, "Procedure requires square_shape with elements or equal size.");
 
 public:
-  using result_type = typename Shape::size_type;
+  using result_type = typename S::size_type;
 
 private:
-  template<typename Q = Shape>
-  result_type invoke(const std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, Q>& s)
+  template<typename Q = S, std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  result_type invoke(const Q& s)
   {
     return s.size();
   }
 
-  template<typename Q = Shape>
-  result_type invoke(const std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, Q>& s)
+  template<typename Q = S, std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  result_type invoke(const Q& s)
   {
-    return s.size() * s.ssize();
+    square_shape_size<typename Q::value_type> procedure;
+
+    return s.size() * procedure(s.at(0, 0));
   }
 
 public:
-  result_type operator()(const Shape& s)
+  result_type operator()(const S& s)
   {
     if (s.size() == 0)
       return 0;
@@ -339,61 +335,54 @@ public:
   }
 };
 
-template<typename Operation, typename Shape>
-class square_shape_at
+template<typename S>
+struct square_shape_at
 {
+  static_assert(traits::is_square_shape<S>::value, "Procedure requires square_shape with elements or equal size.");
+
 public:
-  using shape_type = Shape;
+  using size_type   = typename S::size_type;
+  using result_type = typename traits::square_shape_value_type<S>::type;
 
 private:
-  Operation& m_t;
+  template<typename Q = S, std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  result_type& invoke(Q& s, size_type i, size_type j)
+  {
+    return s.at(i, j);
+  }
+
+  template<typename Q = S, std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  result_type& invoke(Q& s, size_type i, size_type j)
+  {
+    square_shape_at<typename Q::value_type> procedure;
+
+    return procedure(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
+  }
+
+  template<typename Q = S, std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  const result_type& invoke(const Q& s, size_type i, size_type j)
+  {
+    return s.at(i, j);
+  }
+
+  template<typename Q = S, std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  const result_type& invoke(const Q& s, size_type i, size_type j)
+  {
+    square_shape_at<typename Q::value_type> procedure;
+
+    return procedure(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
+  }
 
 public:
-  square_shape_at(Operation& t)
-    : m_t(t)
-  {}
-
-  void operator()(shape_type& s, typename Shape::size_type i, typename Shape::size_type j)
+  result_type& operator()(S& s, size_type i, size_type j)
   {
-    return this->m_t(s.at(i, j));
+    return invoke(s, i, j);
+  }
+  const result_type& operator()(const S& s, size_type i, size_type j)
+  {
+    return invoke(s, i, j);
   }
 };
-
-template<typename Operation>
-square_shape_at(Operation& t)
-  -> square_shape_at<Operation, square_shape<typename Operation::result_type>>;
-
-// This transform is intended to be used with
-// nested square_shapes i.e. when T is not a type but
-// a square_shape<U>
-//
-template<typename Transform, typename Shape>
-class square_shape_drill_at
-{
-public:
-  using shape_type = Shape;
-
-private:
-  Transform& m_t;
-
-  typename Shape::size_type m_s;
-
-public:
-  square_shape_drill_at(Transform& t, typename Shape::size_type s)
-    : m_t(t)
-    , m_s(s)
-  {
-  }
-
-  void operator()(Shape& s, typename Shape::size_type i, typename Shape::size_type j)
-  {
-    this->m_t(s.at(i / this->m_s, j / this->m_s), i % this->m_s, j % this->m_s);
-  }
-};
-
-template<typename Transform>
-square_shape_drill_at(Transform& t, typename Transform::shape_type::size_type s)
-  -> square_shape_drill_at<Transform, square_shape<typename Transform::shape_type>>;
 
 } // namespace procedures
 
