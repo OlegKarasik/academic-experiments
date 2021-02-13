@@ -77,20 +77,40 @@ public:
 int
 main(int argc, char* argv[])
 {
-
   std::mt19937_64               distribution_engine;
   std::uniform_int_distribution distribution(1, 10);
 
   operations::random_value          rv(distribution_engine, distribution);
-  transforms::square_shape_at       at(rv);
-  transforms::square_shape_drill_at drill_at(at, 5);
+  procedures::square_shape_at       at(rv);
+  procedures::square_shape_drill_at drill_at(at, 5);
 
   square_shape<int> s(10);
 
+  square_shape<square_shape<int>> bs(10, 5);
+  for (auto i = 0; i < 10; ++i)
+    for (auto j = 0; j < 10; ++j)
+      bs.at(i, j) = square_shape<int>(bs.ssize());
+
+  bs.at(0, 1).at(0, 2) = 10;
+
+  procedures::square_shape_size<square_shape<int>> a;
+  procedures::square_shape_size<square_shape<square_shape<int>>> b;
+
+
+  size_t r1 = a(s);
+  size_t r2 = b(bs);
+
+
+  bool b1 = traits::is_square_shape<int>::value;
+  bool b2 = traits::is_square_shape<square_shape<int>>::value;
+  bool b3 = traits::is_square_shape<square_shape<square_shape<int>>>::value;
+  bool b4 = traits::is_square_shape<square_shape<int>::value_type>::value;
+
+
   graphs::random_dag(10, 15, s, at);
 
-  for (size_t i = 0; i < s.width(); ++i) {
-    for (size_t j = 0; j < s.width(); ++j) {
+  for (size_t i = 0; i < s.size(); ++i) {
+    for (size_t j = 0; j < s.size(); ++j) {
       std::cout << "(" << i << "," << j << ") = " << s.at(i, j) << std::endl;
     }
   }
