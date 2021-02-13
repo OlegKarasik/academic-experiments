@@ -15,24 +15,21 @@ class square_shape;
 
 namespace traits {
 
-template<typename>
-struct is_square_shape;
+template<typename S>
+struct square_shape_traits;
 
 template<typename T, typename A>
-struct is_square_shape<square_shape<T, A>>;
-
-template<typename>
-struct square_shape_value_type;
-
-template<typename T, typename A>
-struct square_shape_value_type<square_shape<T, A>>;
+struct square_shape_traits<square_shape<T, A>>;
 
 } // namespace traits
 
 namespace procedures {
 
 template<typename S>
-class square_shape_size;
+struct square_shape_size;
+
+template<typename S>
+struct square_shape_at;
 
 } // namespace procedures
 
@@ -189,12 +186,6 @@ public:
     return this->m_size;
   }
 
-  template<typename U = T, typename V = A>
-  std::enable_if_t<traits::is_square_shape<U>::value, size_type> ssize() const
-  {
-    return this->m_ssize;
-  }
-
   pointer at(size_type i) noexcept
   {
     return &this->m_m[i * this->m_size];
@@ -276,51 +267,49 @@ public:
 
 namespace traits {
 
-template<typename>
-struct is_square_shape : public std::false_type
-{};
-
-template<typename T, typename A>
-struct is_square_shape<square_shape<T, A>> : public std::true_type
-{};
-
 template<typename T>
-struct square_shape_value_type
+struct square_shape_traits
 {
 public:
-  using type = T;
+  using is         = std::bool_constant<false>;
+  using value_type = T;
 };
 
 template<typename T, typename A>
-struct square_shape_value_type<square_shape<T, A>>
+struct square_shape_traits<square_shape<T, A>>
 {
 public:
-  using type = typename square_shape_value_type<typename square_shape<T, A>::value_type>::type;
+  using is         = std::bool_constant<true>;
+  using item_type  = typename square_shape<T, A>::value_type;
+  using value_type = typename square_shape_traits<typename square_shape<T, A>::value_type>::value_type;
+  using size_type  = typename square_shape<T, A>::size_type;
 };
 
 } // namespace traits
 
 namespace procedures {
 
+using namespace traits;
+
 template<typename S>
 struct square_shape_size
 {
-  static_assert(traits::is_square_shape<S>::value, "Procedure requires square_shape with elements or equal size.");
+  static_assert(square_shape_traits<S>::is::value, "erro: `square_shape_size` requires `square_shape`.");
 
 public:
-  using result_type = typename S::size_type;
+  using result_type = typename square_shape_traits<S>::size_type;
 
 private:
-  template<typename Q = S, std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  template<typename Q = S, std::enable_if_t<!square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
   result_type invoke(const Q& s)
   {
     return s.size();
   }
 
-  template<typename Q = S, std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  template<typename Q = S, std::enable_if_t<square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
   result_type invoke(const Q& s)
   {
-    square_shape_size<typename Q::value_type> procedure;
+    square_shape_size<typename square_shape_traits<Q>::item_type> procedure;
 
     return s.size() * procedure(s.at(0, 0));
   }
@@ -338,37 +327,39 @@ public:
 template<typename S>
 struct square_shape_at
 {
-  static_assert(traits::is_square_shape<S>::value, "Procedure requires square_shape with elements or equal size.");
-
-public:
-  using size_type   = typename S::size_type;
-  using result_type = typename traits::square_shape_value_type<S>::type;
+  static_assert(square_shape_traits<S>::is::value, "erro: `square_shape_size` requires `square_shape`.");
 
 private:
-  template<typename Q = S, std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  using size_type = typename square_shape_traits<S>::size_type;
+
+public:
+  using result_type = typename square_shape_traits<S>::value_type;
+
+private:
+  template<typename Q = S, std::enable_if_t<!square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
   result_type& invoke(Q& s, size_type i, size_type j)
   {
     return s.at(i, j);
   }
 
-  template<typename Q = S, std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  template<typename Q = S, std::enable_if_t<square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
   result_type& invoke(Q& s, size_type i, size_type j)
   {
-    square_shape_at<typename Q::value_type> procedure;
+    square_shape_at<typename square_shape_traits<Q>::item_type> procedure;
 
     return procedure(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
   }
 
-  template<typename Q = S, std::enable_if_t<!traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  template<typename Q = S, std::enable_if_t<!square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
   const result_type& invoke(const Q& s, size_type i, size_type j)
   {
     return s.at(i, j);
   }
 
-  template<typename Q = S, std::enable_if_t<traits::is_square_shape<typename Q::value_type>::value, bool> = true>
+  template<typename Q = S, std::enable_if_t<square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
   const result_type& invoke(const Q& s, size_type i, size_type j)
   {
-    square_shape_at<typename Q::value_type> procedure;
+    square_shape_at<typename square_shape_traits<Q>::item_type> procedure;
 
     return procedure(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
   }
