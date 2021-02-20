@@ -10,7 +10,6 @@
 
 #include "graphs-generators.hpp"
 
-#include "square-shape-graphs.hpp"
 #include "square-shape.hpp"
 
 using namespace utilz;
@@ -72,61 +71,6 @@ public:
   }
 };
 
-template<typename S>
-class set_value
-{
-  static_assert(traits::square_shape_traits<S>::is::value, "not a square shape");
-
-public:
-  using result_type = typename traits::square_shape_traits<S>::value_type;
-
-public:
-  void
-  operator()(
-    S&                                                  s,
-    typename traits::square_shape_traits<S>::size_type  i,
-    typename traits::square_shape_traits<S>::size_type  j,
-    typename traits::square_shape_traits<S>::value_type v)
-  {
-    s.at(i, j) = v;
-  }
-};
-
-template<typename S>
-class get_size
-{
-  static_assert(traits::square_shape_traits<S>::is::value, "not a square shape");
-
-public:
-  using result_type = typename traits::square_shape_traits<S>::size_type;
-
-public:
-  typename traits::square_shape_traits<S>::size_type
-  operator()(S& s)
-  {
-    return s.size();
-  }
-};
-
-template<typename S>
-class get_value
-{
-  static_assert(traits::square_shape_traits<S>::is::value, "not a square shape");
-
-public:
-  using result_type = typename traits::square_shape_traits<S>::value_type;
-
-public:
-  typename traits::square_shape_traits<S>::value_type
-  operator()(
-    S&                                                 s,
-    typename traits::square_shape_traits<S>::size_type i,
-    typename traits::square_shape_traits<S>::size_type j)
-  {
-    return s.at(i, j);
-  }
-};
-
 int
 main(int argc, char* argv[])
 {
@@ -147,8 +91,8 @@ main(int argc, char* argv[])
 
   bs.at(0, 1).at(0, 2) = 10;
 
-  procedures::square_shape_size<square_shape<int>>               a;
-  procedures::square_shape_size<square_shape<square_shape<int>>> b;
+  procedures::square_shape_get_size<square_shape<int>>               a;
+  procedures::square_shape_get_size<square_shape<square_shape<int>>> b;
 
   procedures::square_shape_at<square_shape<int>>               aa;
   procedures::square_shape_at<square_shape<square_shape<int>>> bb;
@@ -177,18 +121,24 @@ main(int argc, char* argv[])
   //graphs::random_dag(10, 15, random_adj, s_size, s_value);
 
 
-utilz::graphs::square_shape_set_size<int> tuple_trivial;
-utilz::graphs::square_shape_set_size<square_shape<int>> tuple_simple;
-utilz::graphs::square_shape_set_size<square_shape<square_shape<int>>> tuple_max(5);
-utilz::graphs::square_shape_set_size<square_shape<square_shape<square_shape<int>>>> tuple_huge(50, 5);
+  procedures::square_shape_set_size<int> tuple_trivial;
+  procedures::square_shape_set_size<square_shape<int>> tuple_simple;
+  procedures::square_shape_set_size<square_shape<square_shape<int>>> tuple_max(5);
+  procedures::square_shape_set_size<square_shape<square_shape<square_shape<int>>>> tuple_huge(50, 5);
 
   tuple_simple(simple, 50);
   tuple_max(max, 500);
   tuple_huge(huge, 500);
 
 
-  get_size<square_shape<int>>  g_size;
-  get_value<square_shape<int>> g_value;
+
+  procedures::square_shape_get_size<square_shape<square_shape<square_shape<int>>>>  g_size;
+  procedures::square_shape_get_at<square_shape<square_shape<square_shape<int>>>> g_value;
+  procedures::square_shape_set_at<square_shape<square_shape<square_shape<int>>>> s_value;
+
+  s_value(huge, 1, 300, 5);
+  auto l = g_value(huge, 1, 300);
+  l = 0;
 
   //graphs::io::cprint_adj_matrix(random_adj, g_size, g_value);
 
