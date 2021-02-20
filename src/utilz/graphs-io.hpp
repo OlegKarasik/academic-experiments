@@ -1,70 +1,70 @@
 #pragma once
 
 #include <iostream>
+#include <stdexcept>
 
 namespace utilz {
 namespace graphs {
 namespace io {
 
-template<typename GraphT, typename WeightT, typename ResizeOp, typename EdgeOp>
+template<typename Matrix, typename MatrixSetSizeOperation, typename MatrixSetValueOperation>
 void
-scan_graph(std::istream& s, GraphT& g, ResizeOp& resize, EdgeOp& edge)
+scan_matrix(std::istream& s, Matrix& g, MatrixSetSizeOperation& set_size, MatrixSetValueOperation& set_value)
 {
+  using size_type  = typename MatrixSetSizeOperation::result_type;
+  using value_type = typename MatrixSetValueOperation::result_type;
+
   // Read vertex and edge count
   //
-  size_t v = 0, e = 0;
-  if (!(s >> v >> e)) {
-    throw std::logic_error("erro: the data is in invalid format, "
-                           "the expected format is <vertex> <edge>");
-  }
+  size_type sz = size_type(0);
+  if (!(s >> sz))
+    throw std::logic_error("erro: can't read adjacency matrix size, expected format: <size>");
 
   // Resize graph
   //
-  resize(g, v, e);
+  set_size(g, sz);
 
   // While we can, keep reading edges (`from vertex` `to vertex` `the weight`)
   //
-  WeightT w;
-  size_t  f, t;
-  while (s >> f >> t >> w)
-    edge(g, f, t) = w;
+  value_type v;
+  size_type  f, t;
+  while (s >> f >> t >> v)
+    if (v != value_type())
+      set_value(g, f, t, v);
 
   if (!s.eof()) {
-    throw std::logic_error("erro: the data is in invalid format, "
-                           "the expected format is <from> <to> <weight>");
+    throw std::logic_error("erro: can't read adjacency matrix cell value, expected format: <from> <to> <weight>");
   }
 };
 
-template<typename GraphT, typename WeightT, typename CountOp, typename EdgeOp>
+template<typename Matrix, typename MatrixGetSizeOperation, typename MatrixGetValueOperation>
 void
-print_graph(std::ostream& s, GraphT& g, CountOp& count, EdgeOp& edge)
+print_matrix(std::ostream& s, Matrix& m, MatrixGetSizeOperation& get_size, MatrixGetValueOperation& get_value)
 {
-  // Retrieve vertex and edges counts
+  using size_type  = typename MatrixGetSizeOperation::result_type;
+  using value_type = typename MatrixGetValueOperation::result_type;
+
+  // Obtain size of the adjacency matrix
   //
-  size_t v, e;
-  count(g, v, e);
+  size_type sz = get_size(m);
+  if (sz == size_type(0))
+    return;
 
-  // Write vertex and edge count information
+  // Write size information
   //
-  if (!(s << v << ' ' << e << std::endl))
-    throw std::logic_error("erro: can't write <vertex> and <edge> count");
+  if (!(s << sz << '\n'))
+    throw std::logic_error("erro: can't write adjacency matrix size");
 
-  // Iterate over graph edges and write edge information
-  // in form of `from vertex` `to vertex` `the weight`
-  //
+  for (size_type i = size_type(0); i < sz; ++i)
+    for (size_type j = size_type(0); j < sz; ++j) {
+      value_type v = get_value(m, i, j);
+      if (v != value_type())
+        if (!(s << i << ' ' << j << ' ' << v << '\n'))
+          throw std::logic_error("erro: can't write adjacency matrix cell value");
+    }
 
-  WeightT w;
-  bool    r = false;
-  size_t  f = 0, t = 0;
-
-  r = edge(g, f, t, w, r);
-  while (r) {
-    if (!(s << f << ' ' << t << ' ' << w << std::endl))
-      throw std::logic_error("erro: can't write <from> <to> <weight>");
-
-    r = edge(g, f, t, w, r);
-  }
-};
+  s.flush();
+}
 
 } // namespace io
 } // namespace graphs

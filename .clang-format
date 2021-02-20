@@ -4,5 +4,10 @@ ColumnLimit: 0
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: true
+AlignOperands: AlignAfterOperator
 AllowShortFunctionsOnASingleLine: false
+AlwaysBreakAfterReturnType: All
+AlwaysBreakTemplateDeclarations: Yes
+BinPackParameters: false
+BreakInheritanceList: BeforeComma
 

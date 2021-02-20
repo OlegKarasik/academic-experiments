@@ -57,11 +57,13 @@ private:
   size_type m_msize;
   pointer   m_m;
 
-  void allocate_resources()
+  void
+  allocate_resources()
   {
     this->m_m = std::allocator_traits<allocator_type>::allocate(this->m_a, this->m_msize);
   }
-  void construct_default()
+  void
+  construct_default()
   {
     pointer   t = this->m_m;
     size_type n = this->m_msize;
@@ -69,35 +71,40 @@ private:
     for (auto i = 0; i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++);
   }
-  void copy_insert_resources_n(pointer f, size_type n)
+  void
+  copy_insert_resources_n(pointer f, size_type n)
   {
     pointer t = this->m_m;
 
     for (auto i = 0; i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++, *(f++));
   }
-  void copy_assign_resources_n(pointer f, size_type n)
+  void
+  copy_assign_resources_n(pointer f, size_type n)
   {
     pointer t = this->m_m;
 
     for (auto i = 0; i < n; ++i)
       *(t++) = *(f++);
   }
-  void move_insert_resources_n(pointer f, size_type n)
+  void
+  move_insert_resources_n(pointer f, size_type n)
   {
     pointer t = this->m_m;
 
     for (auto i = 0; i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++, std::move(*(f++)));
   }
-  void move_assign_resources_n(pointer f, size_type n)
+  void
+  move_assign_resources_n(pointer f, size_type n)
   {
     pointer t = this->m_m;
 
     for (auto i = 0; i < n; ++i)
       *(t++) = std::move(*(f++));
   }
-  void destroy_resources()
+  void
+  destroy_resources()
   {
     pointer   p = this->m_m;
     size_type n = this->m_msize;
@@ -105,7 +112,8 @@ private:
     for (auto i = 0; i < n; ++i)
       std::allocator_traits<A>::destroy(this->m_a, p++);
   }
-  void free_resources()
+  void
+  free_resources()
   {
     std::allocator_traits<allocator_type>::deallocate(this->m_a, this->m_m, this->m_msize);
   }
@@ -176,44 +184,53 @@ public:
     }
   }
 
-  bool empty() const
+  bool
+  empty() const
   {
     return this->m_msize == 0;
   }
 
-  size_type size() const
+  size_type
+  size() const
   {
     return this->m_size;
   }
 
-  pointer at(size_type i) noexcept
+  pointer
+  at(size_type i) noexcept
   {
     return &this->m_m[i * this->m_size];
   }
-  const_pointer at(size_type i) const noexcept
+  const_pointer
+  at(size_type i) const noexcept
   {
     return &this->m_m[i * this->m_size];
   }
 
-  reference at(size_type i, size_type j) noexcept
+  reference
+  at(size_type i, size_type j) noexcept
   {
     return this->m_m[i * this->m_size + j];
   }
-  const_reference at(size_type i, size_type j) const noexcept
+  const_reference
+  at(size_type i, size_type j) const noexcept
   {
     return this->m_m[i * this->m_size + j];
   }
 
-  bool operator==(const square_shape& o) const noexcept
+  bool
+  operator==(const square_shape& o) const noexcept
   {
     return this == &o || (this->m_msize == o.m_msize && std::equal(this->m_m, this->m_m + this->m_msize, o.m_m));
   };
-  bool operator!=(const square_shape& o) const noexcept
+  bool
+  operator!=(const square_shape& o) const noexcept
   {
     return !(*this == o);
   };
 
-  square_shape& operator=(const square_shape& o)
+  square_shape&
+  operator=(const square_shape& o)
   {
     if (this != &o) {
       this->destroy_resources();
@@ -230,7 +247,8 @@ public:
     }
     return *this;
   }
-  square_shape& operator=(square_shape&& o) noexcept(
+  square_shape&
+  operator=(square_shape&& o) noexcept(
     std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value&& std::is_nothrow_move_assignable<allocator_type>::value)
   {
     if (this != &o) {
@@ -289,33 +307,42 @@ public:
 
 namespace procedures {
 
-using namespace traits;
-
 template<typename S>
 struct square_shape_size
 {
-  static_assert(square_shape_traits<S>::is::value, "erro: `square_shape_size` requires `square_shape`.");
+private:
+  template<typename T>
+  using _traits = traits::square_shape_traits<T>;
 
-public:
-  using result_type = typename square_shape_traits<S>::size_type;
+  static_assert(_traits<S>::is::value, "erro: input type has to be a `square_shape<T>`");
 
 private:
-  template<typename Q = S, std::enable_if_t<!square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
-  result_type invoke(const Q& s)
+  template<typename T>
+  using _item_type = typename _traits<T>::item_type;
+
+public:
+  using result_type = typename _traits<S>::size_type;
+
+private:
+  template<typename Q = S, std::enable_if_t<!_traits<_item_type<Q>>::is::value, bool> = true>
+  result_type
+  invoke(const Q& s)
   {
     return s.size();
   }
 
-  template<typename Q = S, std::enable_if_t<square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
-  result_type invoke(const Q& s)
+  template<typename Q = S, std::enable_if_t<_traits<_item_type<Q>>::is::value, bool> = true>
+  result_type
+  invoke(const Q& s)
   {
-    square_shape_size<typename square_shape_traits<Q>::item_type> procedure;
+    square_shape_size<_item_type<Q>> procedure;
 
     return s.size() * procedure(s.at(0, 0));
   }
 
 public:
-  result_type operator()(const S& s)
+  result_type
+  operator()(const S& s)
   {
     if (s.size() == 0)
       return 0;
@@ -327,49 +354,63 @@ public:
 template<typename S>
 struct square_shape_at
 {
-  static_assert(square_shape_traits<S>::is::value, "erro: `square_shape_size` requires `square_shape`.");
+private:
+  template<typename __S>
+  using __traits = traits::square_shape_traits<__S>;
+
+  static_assert(__traits<S>::is::value, "erro: input type has to be a `square_shape<T>`");
 
 private:
-  using size_type = typename square_shape_traits<S>::size_type;
+  template<typename T>
+  using _item_type = typename __traits<T>::item_type;
+
+  template<typename T>
+  using _size_type = typename __traits<T>::size_type;
 
 public:
-  using result_type = typename square_shape_traits<S>::value_type;
+  using result_type = typename __traits<S>::value_type;
 
 private:
-  template<typename Q = S, std::enable_if_t<!square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
-  result_type& invoke(Q& s, size_type i, size_type j)
+  template<typename Q = S, std::enable_if_t<!__traits<_item_type<Q>>::is::value, bool> = true>
+  result_type&
+  invoke(Q& s, _size_type<Q> i, _size_type<Q> j)
   {
     return s.at(i, j);
   }
 
-  template<typename Q = S, std::enable_if_t<square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
-  result_type& invoke(Q& s, size_type i, size_type j)
+  template<typename Q = S, std::enable_if_t<__traits<_item_type<Q>>::is::value, bool> = true>
+  result_type&
+  invoke(Q& s, _size_type<Q> i, _size_type<Q> j)
   {
-    square_shape_at<typename square_shape_traits<Q>::item_type> procedure;
+    square_shape_at<_item_type<Q>> procedure;
 
     return procedure(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
   }
 
-  template<typename Q = S, std::enable_if_t<!square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
-  const result_type& invoke(const Q& s, size_type i, size_type j)
+  template<typename Q = S, std::enable_if_t<!__traits<_item_type<Q>>::is::value, bool> = true>
+  const result_type&
+  invoke(const Q& s, _size_type<Q> i, _size_type<Q> j)
   {
     return s.at(i, j);
   }
 
-  template<typename Q = S, std::enable_if_t<square_shape_traits<typename square_shape_traits<Q>::item_type>::is::value, bool> = true>
-  const result_type& invoke(const Q& s, size_type i, size_type j)
+  template<typename Q = S, std::enable_if_t<__traits<_item_type<Q>>::is::value, bool> = true>
+  const result_type&
+  invoke(const Q& s, _size_type<Q> i, _size_type<Q> j)
   {
-    square_shape_at<typename square_shape_traits<Q>::item_type> procedure;
+    square_shape_at<_item_type<Q>> procedure;
 
     return procedure(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
   }
 
 public:
-  result_type& operator()(S& s, size_type i, size_type j)
+  result_type&
+  operator()(S& s, _size_type<S> i, _size_type<S> j)
   {
     return invoke(s, i, j);
   }
-  const result_type& operator()(const S& s, size_type i, size_type j)
+  const result_type&
+  operator()(const S& s, _size_type<S> i, _size_type<S> j)
   {
     return invoke(s, i, j);
   }

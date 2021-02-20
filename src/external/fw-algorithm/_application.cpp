@@ -8,12 +8,9 @@
 
 #include "operations.hpp"
 
-#include "graphs-cio.hpp"
-#include "graphs-fio.hpp"
 #include "graphs-generators.hpp"
 
 #include "square-shape-graphs.hpp"
-#include "square-shape-io.hpp"
 #include "square-shape.hpp"
 
 using namespace utilz;
@@ -68,9 +65,65 @@ public:
   except_predicate()
   {}
 
-  bool operator()(const T& v) const
+  bool
+  operator()(const T& v) const
   {
     return v != this->m_v;
+  }
+};
+
+template<typename S>
+class set_value
+{
+  static_assert(traits::square_shape_traits<S>::is::value, "not a square shape");
+
+public:
+  using result_type = typename traits::square_shape_traits<S>::value_type;
+
+public:
+  void
+  operator()(
+    S&                                                  s,
+    typename traits::square_shape_traits<S>::size_type  i,
+    typename traits::square_shape_traits<S>::size_type  j,
+    typename traits::square_shape_traits<S>::value_type v)
+  {
+    s.at(i, j) = v;
+  }
+};
+
+template<typename S>
+class get_size
+{
+  static_assert(traits::square_shape_traits<S>::is::value, "not a square shape");
+
+public:
+  using result_type = typename traits::square_shape_traits<S>::size_type;
+
+public:
+  typename traits::square_shape_traits<S>::size_type
+  operator()(S& s)
+  {
+    return s.size();
+  }
+};
+
+template<typename S>
+class get_value
+{
+  static_assert(traits::square_shape_traits<S>::is::value, "not a square shape");
+
+public:
+  using result_type = typename traits::square_shape_traits<S>::value_type;
+
+public:
+  typename traits::square_shape_traits<S>::value_type
+  operator()(
+    S&                                                 s,
+    typename traits::square_shape_traits<S>::size_type i,
+    typename traits::square_shape_traits<S>::size_type j)
+  {
+    return s.at(i, j);
   }
 };
 
@@ -80,38 +133,68 @@ main(int argc, char* argv[])
   std::mt19937_64               distribution_engine;
   std::uniform_int_distribution distribution(1, 10);
 
-  operations::random_value          rv(distribution_engine, distribution);
-  procedures::square_shape_at       at(rv);
-  procedures::square_shape_drill_at drill_at(at, 5);
+  //operations::random_value          rv(distribution_engine, distribution);
+  //procedures::square_shape_at       at(rv);
 
   square_shape<int> s(10);
 
-  square_shape<square_shape<int>> bs(10, 5);
+  s.at(0, 5) = 11;
+
+  square_shape<square_shape<int>> bs(10);
   for (auto i = 0; i < 10; ++i)
     for (auto j = 0; j < 10; ++j)
-      bs.at(i, j) = square_shape<int>(bs.ssize());
+      bs.at(i, j) = square_shape<int>(5);
 
   bs.at(0, 1).at(0, 2) = 10;
 
-  procedures::square_shape_size<square_shape<int>> a;
+  procedures::square_shape_size<square_shape<int>>               a;
   procedures::square_shape_size<square_shape<square_shape<int>>> b;
 
+  procedures::square_shape_at<square_shape<int>>               aa;
+  procedures::square_shape_at<square_shape<square_shape<int>>> bb;
 
   size_t r1 = a(s);
   size_t r2 = b(bs);
 
+  int r3 = aa(s, 0, 5);
+  int r4 = bb(bs, 0, 12);
 
-  bool b1 = traits::is_square_shape<int>::value;
-  bool b2 = traits::is_square_shape<square_shape<int>>::value;
-  bool b3 = traits::is_square_shape<square_shape<square_shape<int>>>::value;
-  bool b4 = traits::is_square_shape<square_shape<int>::value_type>::value;
+  bool b1 = traits::square_shape_traits<int>::is::value;
+  bool b2 = traits::square_shape_traits<square_shape<int>>::is::value;
+  bool b3 = traits::square_shape_traits<square_shape<square_shape<int>>>::is::value;
+  bool b4 = traits::square_shape_traits<square_shape<square_shape<square_shape<int>>>>::is::value;
+  bool b5 = traits::square_shape_traits<square_shape<int>::value_type>::is::value;
+
+  auto b6 = typeid(traits::square_shape_traits<square_shape<int>>::value_type).name();
+  auto b7 = typeid(traits::square_shape_traits<square_shape<square_shape<int>>>::value_type).name();
+  auto b8 = typeid(traits::square_shape_traits<square_shape<square_shape<square_shape<long>>>>::value_type).name();
+
+  square_shape<int>            simple;
+  square_shape<square_shape<int>>            max;
+  square_shape<square_shape<square_shape<int>>>            huge;
+  // set_size<square_shape<int>>  s_size;
+  // set_value<square_shape<int>> s_value;
+  //graphs::random_dag(10, 15, random_adj, s_size, s_value);
 
 
-  graphs::random_dag(10, 15, s, at);
+utilz::graphs::square_shape_set_size<int> tuple_trivial;
+utilz::graphs::square_shape_set_size<square_shape<int>> tuple_simple;
+utilz::graphs::square_shape_set_size<square_shape<square_shape<int>>> tuple_max(5);
+utilz::graphs::square_shape_set_size<square_shape<square_shape<square_shape<int>>>> tuple_huge(50, 5);
 
-  for (size_t i = 0; i < s.size(); ++i) {
-    for (size_t j = 0; j < s.size(); ++j) {
-      std::cout << "(" << i << "," << j << ") = " << s.at(i, j) << std::endl;
-    }
-  }
+  tuple_simple(simple, 50);
+  tuple_max(max, 500);
+  tuple_huge(huge, 500);
+
+
+  get_size<square_shape<int>>  g_size;
+  get_value<square_shape<int>> g_value;
+
+  //graphs::io::cprint_adj_matrix(random_adj, g_size, g_value);
+
+  // for (size_t i = 0; i < random_adj.size(); ++i) {
+  //   for (size_t j = 0; j < random_adj.size(); ++j) {
+  //     std::cout << "(" << i << "," << j << ") = " << random_adj.at(i, j) << std::endl;
+  //   }
+  // }
 }
