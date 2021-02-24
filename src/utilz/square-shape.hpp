@@ -383,12 +383,14 @@ private:
   using _traits = traits::square_shape_traits<__S>;
 
 private:
-  using type      = square_shape<T, A>;
-  using size_type = typename _traits<type>::size_type;
+  using type = square_shape<T, A>;
+
+public:
+  using result_type = typename _traits<type>::size_type;
 
 public:
   void
-  operator()(type& s, size_type sz)
+  operator()(type& s, result_type sz)
   {
     s = type(sz);
   }
@@ -406,10 +408,12 @@ private:
 private:
   using type      = square_shape<square_shape<T, A>, U>;
   using item_type = typename _traits<type>::item_type;
-  using size_type = typename _traits<type>::size_type;
 
 public:
-  template<typename Q = size_type, typename... TArgs>
+  using result_type = typename _traits<type>::size_type;
+
+public:
+  template<typename Q = result_type, typename... TArgs>
   __impl(Q sz, TArgs... args)
     : __impl<I + 1, item_type>(args...)
   {
@@ -417,18 +421,18 @@ public:
   }
 
   void
-  operator()(type& s, size_type sz)
+  operator()(type& s, result_type sz)
   {
-    size_type in_sz = this->__value<I, type>::value;
-    size_type os_sz = sz / in_sz;
+    result_type in_sz = this->__value<I, type>::value;
+    result_type os_sz = sz / in_sz;
 
-    if (sz % in_sz != size_type(0))
+    if (sz % in_sz != result_type(0))
       ++os_sz;
 
     s = type(os_sz);
 
-    for (size_type i = size_type(0); i < os_sz; ++i)
-      for (size_type j = size_type(0); j < os_sz; ++j)
+    for (result_type i = result_type(0); i < os_sz; ++i)
+      for (result_type j = result_type(0); j < os_sz; ++j)
         this->__impl<I + 1, item_type>::operator()(s.at(i, j), in_sz);
   }
 };

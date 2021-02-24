@@ -6,13 +6,9 @@
 
 #include "algorithm.hpp"
 
-#include "operations.hpp"
-
-#include "graphs-generators.hpp"
+#include "graphs-io.hpp"
 
 #include "square-shape.hpp"
-
-using namespace utilz;
 
 // Constant value which indicates that there is no path between two vertexes.
 // Please note: this value can be used ONLY when input paths are >= 0.
@@ -23,128 +19,63 @@ no_path_value()
   return ((std::numeric_limits<int>::max)() / 2) - 1;
 };
 
-// A precondition for input matrix to ensure proper algorithm execution.
-// Ensures: matrix is a square matrix; all cell values are greater or equal to zero.
-//
-// template<typename T, T V>
-// class rect_shape_precondition
-// {
-// private:
-//   const T m_s = V;
-
-// public:
-//   rect_shape_precondition()
-//   {}
-
-//   bool operator()(const rect_shape<T>& s)
-//   {
-//     for (size_t i = 0; i < s.w(); ++i)
-//       for (size_t j = 0; j < s.h(); ++j)
-//         if (s(i, j) < this->m_s)
-//           return false;
-
-//     return s.w() == s.h();
-//   }
-// };
-
-// using matrix_precondition     = rect_shape_precondition<long, 0>;
-// using matrix_memory           = rect_shape_matrix_memory<long, no_path_value()>;
-// using matrix_output           = rect_shape_matrix_output<long, matrix_memory>;
-// using matrix_output_predicate = matrix_all_predicate<long>;
-// using matrix_input            = rect_shape_matrix_input<long>;
-// using matrix_input_predicate  = matrix_except_predicate<long, no_path_value()>;
-
-template<typename T, T V>
-class except_predicate
-{
-private:
-  const T m_v = V;
-
-public:
-  except_predicate()
-  {}
-
-  bool
-  operator()(const T& v) const
-  {
-    return v != this->m_v;
-  }
-};
+using matrix          = utilz::square_shape<int>;
+using matrix_sz       = typename utilz::traits::square_shape_traits<matrix>::size_type;
+using matrix_set_size = utilz::procedures::square_shape_set_size<matrix>;
+using matrix_set_at   = utilz::procedures::square_shape_set_at<matrix>;
+using matrix_get_size = utilz::procedures::square_shape_get_size<matrix>;
+using matrix_get_at   = utilz::procedures::square_shape_get_at<matrix>;
 
 int
-main(int argc, char* argv[])
+main(int argc, char* argv[]) noexcept
 {
-  std::mt19937_64               distribution_engine;
-  std::uniform_int_distribution distribution(1, 10);
+  if (!std::cin) {
+    std::cerr << "erro: no input; expected a stream which represents "
+                 "a matrix in the following format: "
+                 "<size> / <from> <to> <count> ... <from> <to> <count>";
+    return 1;
+  }
 
-  //operations::random_value          rv(distribution_engine, distribution);
-  //procedures::square_shape_at       at(rv);
+  matrix m;
 
-  square_shape<int> s(10);
+  matrix_set_size set_sz;
+  matrix_set_at   set_at;
 
-  s.at(0, 5) = 11;
+  auto r_start = std::chrono::high_resolution_clock::now();
 
-  square_shape<square_shape<int>> bs(10);
-  for (auto i = 0; i < 10; ++i)
-    for (auto j = 0; j < 10; ++j)
-      bs.at(i, j) = square_shape<int>(5);
+  utilz::graphs::io::scan_matrix(std::cin, m, set_sz, set_at);
 
-  bs.at(0, 1).at(0, 2) = 10;
+  auto r_stop     = std::chrono::high_resolution_clock::now();
+  auto r_duration = std::chrono::duration_cast<std::chrono::milliseconds>(r_stop - r_start);
 
-  procedures::square_shape_get_size<square_shape<int>>               a;
-  procedures::square_shape_get_size<square_shape<square_shape<int>>> b;
+  // Replace zeroes in matrix with 'no_path_value'
+  //
+  for (matrix_sz i = matrix_sz(0); i < m.size(); ++i)
+    for (matrix_sz j = matrix_sz(0); j < m.size(); ++j)
+      if (m.at(i, j) == 0)
+        m.at(i, j) = no_path_value();
 
-  procedures::square_shape_at<square_shape<int>>               aa;
-  procedures::square_shape_at<square_shape<square_shape<int>>> bb;
+  auto w_start = std::chrono::high_resolution_clock::now();
 
-  size_t r1 = a(s);
-  size_t r2 = b(bs);
+  implementation(m);
 
-  int r3 = aa(s, 0, 5);
-  int r4 = bb(bs, 0, 12);
+  auto w_stop     = std::chrono::high_resolution_clock::now();
+  auto w_duration = std::chrono::duration_cast<std::chrono::milliseconds>(w_stop - w_start);
 
-  bool b1 = traits::square_shape_traits<int>::is::value;
-  bool b2 = traits::square_shape_traits<square_shape<int>>::is::value;
-  bool b3 = traits::square_shape_traits<square_shape<square_shape<int>>>::is::value;
-  bool b4 = traits::square_shape_traits<square_shape<square_shape<square_shape<int>>>>::is::value;
-  bool b5 = traits::square_shape_traits<square_shape<int>::value_type>::is::value;
+  std::cerr << "Scan:\t\t" << r_duration.count() << "ms\n"
+            << "Execution:\t" << w_duration.count() << "ms" << std::endl;
 
-  auto b6 = typeid(traits::square_shape_traits<square_shape<int>>::value_type).name();
-  auto b7 = typeid(traits::square_shape_traits<square_shape<square_shape<int>>>::value_type).name();
-  auto b8 = typeid(traits::square_shape_traits<square_shape<square_shape<square_shape<long>>>>::value_type).name();
+  // Replace 'no_path_value' with zeroes to reduce output
+  //
+  for (matrix_sz i = matrix_sz(0); i < m.size(); ++i)
+    for (matrix_sz j = matrix_sz(0); j < m.size(); ++j)
+      if (m.at(i, j) == no_path_value())
+        m.at(i, j) = 0;
 
-  square_shape<int>            simple;
-  square_shape<square_shape<int>>            max;
-  square_shape<square_shape<square_shape<int>>>            huge;
-  // set_size<square_shape<int>>  s_size;
-  // set_value<square_shape<int>> s_value;
-  //graphs::random_dag(10, 15, random_adj, s_size, s_value);
+  // Output all matrix values
+  //
+  matrix_get_size get_sz;
+  matrix_get_at   get_at;
 
-
-  procedures::square_shape_set_size<int> tuple_trivial;
-  procedures::square_shape_set_size<square_shape<int>> tuple_simple;
-  procedures::square_shape_set_size<square_shape<square_shape<int>>> tuple_max(5);
-  procedures::square_shape_set_size<square_shape<square_shape<square_shape<int>>>> tuple_huge(50, 5);
-
-  tuple_simple(simple, 50);
-  tuple_max(max, 500);
-  tuple_huge(huge, 500);
-
-
-
-  procedures::square_shape_get_size<square_shape<square_shape<square_shape<int>>>>  g_size;
-  procedures::square_shape_get_at<square_shape<square_shape<square_shape<int>>>> g_value;
-  procedures::square_shape_set_at<square_shape<square_shape<square_shape<int>>>> s_value;
-
-  s_value(huge, 1, 300, 5);
-  auto l = g_value(huge, 1, 300);
-  l = 0;
-
-  //graphs::io::cprint_adj_matrix(random_adj, g_size, g_value);
-
-  // for (size_t i = 0; i < random_adj.size(); ++i) {
-  //   for (size_t j = 0; j < random_adj.size(); ++j) {
-  //     std::cout << "(" << i << "," << j << ") = " << random_adj.at(i, j) << std::endl;
-  //   }
-  // }
+  utilz::graphs::io::print_matrix(std::cout, m, get_sz, get_at);
 }

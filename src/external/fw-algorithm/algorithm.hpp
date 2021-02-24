@@ -1,23 +1,15 @@
 #pragma once
 
-#include "../../utilz/square-shape.hpp"
+#include "square-shape.hpp"
 
 template<typename T>
 void
-impl(utilz::square_shape<T>& matrix)
+implementation(utilz::square_shape<T>& m)
 {
-  for (auto k = 0; k < matrix.s(); ++k) {
-    auto k_row = matrix(k);
+  using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
 
-    for (auto i = 0; i < matrix.s(); ++i) {
-      auto i_row = matrix(i);
-
-      auto ik = i_row[k];
-      for (auto j = 0; j < matrix.s(); ++j) {
-        auto distance = ik + k_row[j];
-        if (i_row[j] > distance)
-          i_row[j] = distance;
-      };
-    };
-  };
+  for (size_type k = size_type(0); k < m.size(); ++k)
+    for (size_type i = size_type(0); i < m.size(); ++i)
+      for (size_type j = size_type(0); j < m.size(); ++j)
+        m.at(i, j) = std::min(m.at(i, j), m.at(i, k) + m.at(k, j));
 };

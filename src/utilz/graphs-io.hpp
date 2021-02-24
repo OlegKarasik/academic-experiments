@@ -18,7 +18,7 @@ scan_matrix(std::istream& s, Matrix& g, MatrixSetSizeOperation& set_size, Matrix
   //
   size_type sz = size_type(0);
   if (!(s >> sz))
-    throw std::logic_error("erro: can't read adjacency matrix size, expected format: <size>");
+    throw std::logic_error("erro: can't scan adjacency matrix size; expected format: <size>");
 
   // Resize graph
   //
@@ -32,9 +32,8 @@ scan_matrix(std::istream& s, Matrix& g, MatrixSetSizeOperation& set_size, Matrix
     if (v != value_type())
       set_value(g, f, t, v);
 
-  if (!s.eof()) {
-    throw std::logic_error("erro: can't read adjacency matrix cell value, expected format: <from> <to> <weight>");
-  }
+  if (!s.eof())
+    throw std::logic_error("erro: can't scan adjacency matrix cell value; expected format: <from> <to> <count>");
 };
 
 template<typename Matrix, typename MatrixGetSizeOperation, typename MatrixGetValueOperation>
@@ -53,14 +52,14 @@ print_matrix(std::ostream& s, Matrix& m, MatrixGetSizeOperation& get_size, Matri
   // Write size information
   //
   if (!(s << sz << '\n'))
-    throw std::logic_error("erro: can't write adjacency matrix size");
+    throw std::logic_error("erro: can't print adjacency matrix size");
 
   for (size_type i = size_type(0); i < sz; ++i)
     for (size_type j = size_type(0); j < sz; ++j) {
       value_type v = get_value(m, i, j);
       if (v != value_type())
         if (!(s << i << ' ' << j << ' ' << v << '\n'))
-          throw std::logic_error("erro: can't write adjacency matrix cell value");
+          throw std::logic_error("erro: can't print adjacency matrix cell value");
     }
 
   s.flush();
