@@ -69,7 +69,27 @@
     "filesystem": "cpp",
     "locale": "cpp",
     "xlocbuf": "cpp",
-    "xlocmes": "cpp"
+    "xlocmes": "cpp",
+    "*.tcc": "cpp",
+    "codecvt": "cpp",
+    "cstdarg": "cpp",
+    "cwctype": "cpp",
+    "deque": "cpp",
+    "memory_resource": "cpp",
+    "numeric": "cpp",
+    "optional": "cpp",
+    "string_view": "cpp",
+    "ranges": "cpp",
+    "cinttypes": "cpp"
   },
-  "cmake.configureOnOpen": false
+  "cmake.configureOnOpen": false,
+  "spellright.language": [
+    "en",
+    "ru"
+  ],
+  "spellright.documentTypes": [
+    "markdown",
+    "latex",
+    "plaintext"
+  ]
 }

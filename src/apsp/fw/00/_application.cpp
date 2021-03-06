@@ -4,7 +4,7 @@
 #include <random>
 #include <string>
 
-#include "algorithm.hpp"
+#include "algorithms.hpp"
 
 #include "graphs-io.hpp"
 
@@ -57,7 +57,7 @@ main(int argc, char* argv[]) noexcept
 
   auto w_start = std::chrono::high_resolution_clock::now();
 
-  implementation(m);
+  calculate_apsp(m);
 
   auto w_stop     = std::chrono::high_resolution_clock::now();
   auto w_duration = std::chrono::duration_cast<std::chrono::milliseconds>(w_stop - w_start);
