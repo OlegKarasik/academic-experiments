@@ -32,9 +32,9 @@ class Fixture : public benchmark::Fixture
   using matrix          = utilz::square_shape<int>;
   using matrix_sz       = typename utilz::traits::square_shape_traits<matrix>::size_type;
   using matrix_set_size = utilz::procedures::square_shape_set_size<matrix>;
-  using matrix_set_at   = utilz::procedures::square_shape_set_at<matrix>;
+  using matrix_set_at   = utilz::procedures::square_shape_set<matrix>;
   using matrix_get_size = utilz::procedures::square_shape_get_size<matrix>;
-  using matrix_get_at   = utilz::procedures::square_shape_get_at<matrix>;
+  using matrix_get_at   = utilz::procedures::square_shape_get<matrix>;
 
 public:
   matrix m_src_matrix;

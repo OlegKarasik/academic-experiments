@@ -54,6 +54,15 @@ using square_shape_set_size = ___set_size::__impl<std::size_t(0), S>;
 template<typename S>
 struct square_shape_at;
 
+template<typename S>
+struct square_shape_get;
+
+template<typename S>
+struct square_shape_set;
+
+template<typename S>
+struct square_shape_replace;
+
 } // namespace procedures
 
 //
@@ -498,7 +507,7 @@ public:
 };
 
 template<typename S>
-class square_shape_get_at
+struct square_shape_get
 {
 private:
   static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
@@ -519,7 +528,7 @@ public:
 };
 
 template<typename S>
-class square_shape_set_at
+struct square_shape_set
 {
 private:
   static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
@@ -536,6 +545,35 @@ public:
   {
     square_shape_at<S> at;
     at(s, i, j) = v;
+  }
+};
+
+template<typename S>
+struct square_shape_replace
+{
+private:
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+
+private:
+  using size_type  = typename traits::square_shape_traits<S>::size_type;
+  using value_type = typename traits::square_shape_traits<S>::value_type;
+
+public:
+  using result_type = typename traits::square_shape_traits<S>::value_type;
+
+public:
+  void
+  operator()(S& s, value_type f, value_type t)
+  {
+    square_shape_get_size<S> sz;
+    square_shape_at<S>       at;
+
+    size_type size = sz(s);
+
+    for (size_type i = size_type(0); i < size; ++i)
+      for (size_type j = size_type(0); j < size; ++j)
+        if (at(s, i, j) == f)
+          at(s, i, j) = t;
   }
 };
 

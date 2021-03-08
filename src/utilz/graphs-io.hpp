@@ -63,7 +63,7 @@ print_matrix(std::ostream& s, Matrix& m, MatrixGetSizeOperation& get_size, Matri
     }
 
   s.flush();
-}
+};
 
 } // namespace io
 } // namespace graphs
