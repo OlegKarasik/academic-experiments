@@ -4,15 +4,15 @@
 #include <random>
 #include <string>
 
-#include "algorithms.hpp"
-
-#include "graphs-io.hpp"
-
+// global utilz
+#include "measure.hpp"
 #include "square-shape.hpp"
 
-#include "measure.hpp"
-
+// local utilz
 #include "../utilz/io.hpp"
+
+// algorithm
+#include "algorithms.hpp"
 
 namespace lutilz = ::fw::utilz;
 namespace gutilz = ::utilz;
