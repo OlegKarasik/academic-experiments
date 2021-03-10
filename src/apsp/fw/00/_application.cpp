@@ -10,6 +10,8 @@
 
 #include "square-shape.hpp"
 
+#include "measure.hpp"
+
 #include "../utilz/io.hpp"
 
 namespace lutilz = ::fw::utilz;
@@ -31,28 +33,17 @@ main(int argc, char* argv[]) noexcept
 
   matrix m;
 
-  matrix_set_size set_sz;
+  std::cerr
+    << "Scan: "
+    << gutilz::measure_milliseconds([&m]() -> void { lutilz::io::scan_matrix(std::cin, m); })
+    << "ms" << std::endl;
 
-  auto r_start = std::chrono::high_resolution_clock::now();
+  std::cerr
+    << "Exec: "
+    << gutilz::measure_milliseconds([&m]() -> void { calculate_apsp(m); })
+    << "ms" << std::endl;
 
-  lutilz::io::scan_matrix(std::cin, m, set_sz);
-
-  auto r_stop     = std::chrono::high_resolution_clock::now();
-  auto r_duration = std::chrono::duration_cast<std::chrono::milliseconds>(r_stop - r_start);
-
-  auto w_start = std::chrono::high_resolution_clock::now();
-
-  calculate_apsp(m);
-
-  auto w_stop     = std::chrono::high_resolution_clock::now();
-  auto w_duration = std::chrono::duration_cast<std::chrono::milliseconds>(w_stop - w_start);
-
-  std::cerr << "Scan:\t\t" << r_duration.count() << "ms\n"
-            << "Execution:\t" << w_duration.count() << "ms" << std::endl;
-
-  // Output all matrix values
-  //
-  matrix_get_size get_sz;
-
-  lutilz::io::print_matrix(std::cout, m, get_sz);
+  std::cerr << "Prnt"
+    << gutilz::measure_milliseconds([&m]() -> void { lutilz::io::print_matrix(std::cout, m); })
+    << "ms" << std::endl;
 }

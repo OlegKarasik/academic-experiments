@@ -9,18 +9,19 @@ namespace fw {
 namespace utilz {
 namespace io {
 
-template<typename T, typename A>
+template<typename S, typename... TArgs>
 void
-scan_matrix(
-  std::istream&                                                           s,
-  ::utilz::square_shape<T, A>&                                            m,
-  ::utilz::procedures::square_shape_set_size<::utilz::square_shape<T, A>> sz)
+scan_matrix(std::istream& s, S& m, TArgs... args)
 {
-  using set_fn = ::utilz::procedures::square_shape_set<::utilz::square_shape<T, A>>;
-  using rep_fn = ::utilz::procedures::square_shape_replace<::utilz::square_shape<T, A>>;
+  static_assert(::utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
 
-  using valut_type = typename ::utilz::traits::square_shape_traits<::utilz::square_shape<T, A>>::value_type;
+  using sz_fn  = ::utilz::procedures::square_shape_set_size<S>;
+  using set_fn = ::utilz::procedures::square_shape_set<S>;
+  using rep_fn = ::utilz::procedures::square_shape_replace<S>;
 
+  using valut_type = typename ::utilz::traits::square_shape_traits<S>::value_type;
+
+  sz_fn  sz(args...);
   set_fn set;
   rep_fn rep;
 
@@ -32,18 +33,21 @@ scan_matrix(
   rep(m, valut_type(0), utilz::constants::infinity<valut_type>());
 };
 
-template<typename T, typename A>
+template<typename S>
 void
 print_matrix(
-  std::ostream&                                                            s,
-  ::utilz::square_shape<T, A>&                                             m,
-  ::utilz::procedures::square_shape_get_size<::utilz::square_shape<T, A>>& sz)
+  std::ostream& s,
+  S&            m)
 {
-  using get_fn = ::utilz::procedures::square_shape_get<::utilz::square_shape<T, A>>;
-  using rep_fn = ::utilz::procedures::square_shape_replace<::utilz::square_shape<T, A>>;
+  static_assert(::utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
 
-  using value_type = typename ::utilz::traits::square_shape_traits<::utilz::square_shape<T, A>>::value_type;
+  using sz_fn  = ::utilz::procedures::square_shape_get_size<S>;
+  using get_fn = ::utilz::procedures::square_shape_get<S>;
+  using rep_fn = ::utilz::procedures::square_shape_replace<S>;
 
+  using value_type = typename ::utilz::traits::square_shape_traits<S>::value_type;
+
+  sz_fn  sz;
   get_fn get;
   rep_fn rep;
 
