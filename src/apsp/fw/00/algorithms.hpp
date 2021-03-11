@@ -4,6 +4,7 @@
 
 template<typename T>
 void
+__attribute__ ((noinline))
 calculate_apsp(utilz::square_shape<T>& m)
 {
   using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
