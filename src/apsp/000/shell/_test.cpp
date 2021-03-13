@@ -13,7 +13,13 @@
 #include "../../io.hpp"
 
 // algorithm
-#include "algorithm.hpp"
+#if (ALG_VARIATION == 0)
+#include "../00.hpp"
+#endif
+
+#if (ALG_VARIATION == 1)
+#include "../01.hpp"
+#endif
 
 namespace apsp  = ::apsp;
 namespace utilz = ::utilz;

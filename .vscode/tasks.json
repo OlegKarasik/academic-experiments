@@ -25,7 +25,8 @@
         "-p",
         "\"${fileDirname}/bin\"",
         "'"
-      ]
+      ],
+      "problemMatcher": []
     },
     {
       "type": "shell",
@@ -126,11 +127,13 @@
         "-std=c++17",
         "--static",
         "${input:compileOptions}",
+        "-D",
+        "ALG_VARIATION=${input:compileVariation}",
         "-g",
         "-ggdb",
         "-O0",
         "-o",
-        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.exe\"",
         "-lgtest",
         "-lgtest_main",
         "'"
