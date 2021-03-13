@@ -2,6 +2,10 @@
 
 #include "square-shape.hpp"
 
+#ifndef _OPENMP
+static_assert(false, "erro: selected algorithm requires openMP support, please select appropriate compile options");
+#endif
+
 template<typename T>
 __attribute__((noinline)) void
 calculate_apsp(utilz::square_shape<T>& m)
