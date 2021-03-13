@@ -5,8 +5,7 @@
 
 #include "constants.hpp"
 
-namespace fw {
-namespace utilz {
+namespace apsp {
 namespace io {
 
 template<typename S, typename... TArgs>
@@ -30,7 +29,7 @@ scan_matrix(std::istream& s, S& m, TArgs... args)
   // Replace 'zero' values with corresponding 'infinity' value to ensure correct
   // execution of APSP Floyd-Warshall algorithm
   //
-  rep(m, valut_type(0), utilz::constants::infinity<valut_type>());
+  rep(m, valut_type(0), apsp::constants::infinity<valut_type>());
 };
 
 template<typename S>
@@ -54,11 +53,10 @@ print_matrix(
   // Replace 'infinity' values with corresponding 'zero' values to minimize
   // output size (i.e. 'zero' values aren't send to output stream)
   //
-  rep(m, utilz::constants::infinity<value_type>(), value_type(0));
+  rep(m, apsp::constants::infinity<value_type>(), value_type(0));
 
   ::utilz::graphs::io::print_matrix(s, m, sz, get);
 };
 
 } // namespace io
-} // namespace utilz
-} // namespace fw
+} // namespace apsp

@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-namespace _internal {
+namespace workspace {
 
 std::filesystem::path
 root()
@@ -21,4 +21,4 @@ root()
 
 
 
-} // namespace _internal
+} // namespace workspace

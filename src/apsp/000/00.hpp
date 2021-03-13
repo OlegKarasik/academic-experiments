@@ -3,8 +3,7 @@
 #include "square-shape.hpp"
 
 template<typename T>
-void
-__attribute__ ((noinline))
+__attribute__((noinline)) void
 calculate_apsp(utilz::square_shape<T>& m)
 {
   using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;

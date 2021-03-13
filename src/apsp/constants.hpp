@@ -2,8 +2,7 @@
 
 #include <limits>
 
-namespace fw {
-namespace utilz {
+namespace apsp {
 namespace constants {
 
 template<typename T>
@@ -14,5 +13,4 @@ infinity()
 };
 
 } // namespace constants
-} // namespace utilz
-} // namespace fw
+} // namespace apsp

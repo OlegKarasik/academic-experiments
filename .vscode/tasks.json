@@ -39,19 +39,19 @@
         "-I\"${workspaceFolder}/src/utilz\"",
         "-std=c++17",
         "--static",
+        "${input:compileOptions}",
+        "-D",
+        "ALG_VARIATION=${input:compileVariation}",
         "-g",
         "-ggdb",
         "-O0",
         "-o",
-        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.exe\"",
         "'"
       ],
       "group": "build",
       "problemMatcher": [
         "$gcc"
-      ],
-      "dependsOn": [
-        "prepare"
       ]
     },
     {
@@ -66,17 +66,18 @@
         "-I\"${workspaceFolder}/src/utilz\"",
         "-std=c++17",
         "--static",
+        "-fopt-info-optimized-missed-loop-omp-vec=\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.opt.all\"",
+        "${input:compileOptions}",
+        "-D",
+        "ALG_VARIATION=${input:compileVariation}",
         "-O3",
         "-o",
-        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.exe\"",
         "'"
       ],
       "group": "build",
       "problemMatcher": [
         "$gcc"
-      ],
-      "dependsOn": [
-        "prepare"
       ]
     },
     {
@@ -94,9 +95,12 @@
         "-L\"C:/Program Files (x86)/Windows Kits/10/lib/10.0.17763.0/um/x64\"",
         "-std=c++17",
         "--static",
+        "${input:compileOptions}",
+        "-D",
+        "ALG_VARIATION=${input:compileVariation}",
         "-O3",
         "-o",
-        "\"${fileDirname}/bin/${fileBasenameNoExtension}.exe\"",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.exe\"",
         "-lbenchmark",
         "-lbenchmark_main",
         "-lShlwapi",
@@ -105,9 +109,6 @@
       "group": "build",
       "problemMatcher": [
         "$gcc"
-      ],
-      "dependsOn": [
-        "prepare"
       ]
     },
     {
@@ -124,6 +125,7 @@
         "-L\"${workspaceFolder}/libs/test\"",
         "-std=c++17",
         "--static",
+        "${input:compileOptions}",
         "-g",
         "-ggdb",
         "-O0",
@@ -136,10 +138,29 @@
       "group": "build",
       "problemMatcher": [
         "$gcc"
-      ],
-      "dependsOn": [
-        "prepare"
       ]
+    }
+  ],
+  "inputs": [
+    {
+      "type": "pickString",
+      "id": "compileOptions",
+      "description": "Select advanced g++ options",
+      "options": [
+        "",
+        "-fopenmp",
+      ],
+      "default": ""
+    },
+    {
+      "type": "pickString",
+      "id": "compileVariation",
+      "description": "Select algorithm variation",
+      "options": [
+        "0",
+        "1",
+      ],
+      "default": ""
     }
   ]
 }

@@ -4,23 +4,23 @@
 #include "benchmark/benchmark.h"
 
 // internals
-#include "_internal.hpp"
+#include "workspace.hpp"
 
 // global utilz
 #include "square-shape.hpp"
 
 // local utilz
-#include "../utilz/io.hpp"
+#include "../../io.hpp"
 
 // algorithm
-#include "algorithms.hpp"
+#include "algorithm.hpp"
 
 #ifdef _WIN32
 #pragma comment(lib, "Shlwapi.lib")
 #endif
 
-namespace lutilz = ::fw::utilz;
-namespace gutilz = ::utilz;
+namespace apsp  = ::apsp;
+namespace utilz = ::utilz;
 
 template<typename T>
 class Fixture : public benchmark::Fixture
@@ -33,14 +33,14 @@ public:
 
   Fixture()
   {
-    std::filesystem::path root_path = _internal::root();
+    std::filesystem::path root_path = workspace::root();
     std::filesystem::path src_path  = root_path / "data/_test/direct-acyclic-graphs/10-14.source.g";
 
     std::ifstream src_fs(src_path);
     if (!src_fs.is_open())
       throw std::logic_error("erro: the file '" + src_path.generic_string() + "' doesn't exist.");
 
-    lutilz::io::scan_matrix(src_fs, this->m_src);
+    apsp::io::scan_matrix(src_fs, this->m_src);
   }
   ~Fixture()
   {
