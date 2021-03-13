@@ -10,4 +10,6 @@ AlwaysBreakAfterReturnType: All
 AlwaysBreakTemplateDeclarations: Yes
 BinPackParameters: false
 BreakInheritanceList: BeforeComma
+AlignEscapedNewlines: Left
+
 
