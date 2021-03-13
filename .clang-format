@@ -11,5 +11,6 @@ AlwaysBreakTemplateDeclarations: Yes
 BinPackParameters: false
 BreakInheritanceList: BeforeComma
 AlignEscapedNewlines: Left
+IndentPPDirectives: BeforeHash
 
 

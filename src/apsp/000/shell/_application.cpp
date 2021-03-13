@@ -9,11 +9,11 @@
 
 // algorithm
 #if (ALG_VARIATION == 0)
-#include "../00.hpp"
+  #include "../00.hpp"
 #endif
 
 #if (ALG_VARIATION == 1)
-#include "../01.hpp"
+  #include "../01.hpp"
 #endif
 
 namespace apsp  = ::apsp;
