@@ -47,7 +47,38 @@
         "-ggdb",
         "-O0",
         "-o",
-        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.exe\"",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-debug.exe\"",
+        "'"
+      ],
+      "group": "build",
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "build (debug-tests)",
+      "detail": "compiler: g++ / google tests",
+      "command": "-c",
+      "args": [
+        "'",
+        "g++",
+        "\"${file}\"",
+        "-I\"${workspaceFolder}/src/utilz\"",
+        "-I\"${workspaceFolder}/libs/test/includes\"",
+        "-L\"${workspaceFolder}/libs/test\"",
+        "-std=c++17",
+        "--static",
+        "${input:compileOptions}",
+        "-D",
+        "ALG_VARIATION=${input:compileVariation}",
+        "-g",
+        "-ggdb",
+        "-O0",
+        "-o",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-debug-tests.exe\"",
+        "-lgtest",
+        "-lgtest_main",
         "'"
       ],
       "group": "build",

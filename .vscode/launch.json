@@ -5,8 +5,7 @@
       "name": "build and debug (g++)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${fileDirname}/bin/${fileBasenameNoExtension}.exe",
-      "args": [],
+      "program": "${fileDirname}/bin/${fileBasenameNoExtension}-debug.exe",
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -26,6 +25,31 @@
         }
       ],
       "preLaunchTask": "build (debug)"
+    },
+    {
+      "name": "build and debug tests (g++ / gtest)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${fileDirname}/bin/${fileBasenameNoExtension}-debug-tests.exe",
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:/Program Files/msys2/mingw64/bin/gdb.exe",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-catch-exception -u",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "build (debug-tests)"
     }
   ]
 }
