@@ -6,11 +6,11 @@
 static_assert(false, "erro: selected algorithm requires openMP support, please select appropriate compile options");
 #endif
 
-template<typename T>
+template<typename T, typename A>
 __attribute__((noinline)) void
-calculate_apsp(utilz::square_shape<T>& m)
+calculate_apsp(utilz::square_shape<T, A>& m)
 {
-  using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
+  using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
 
   for (size_type k = size_type(0); k < m.size(); ++k)
 #pragma omp parallel for
