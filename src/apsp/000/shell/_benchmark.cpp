@@ -32,7 +32,7 @@ template<typename T>
 class Fixture : public benchmark::Fixture
 {
   using matrix    = utilz::square_shape<int>;
-  using matrix_st = typename utilz::traits::square_shape_traits<matrix>::size_type;
+  using matrix_size_type = typename utilz::traits::square_shape_traits<matrix>::size_type;
 
 public:
   matrix m_src;

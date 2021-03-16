@@ -29,7 +29,9 @@ class Fixture : public ::testing::Test
 {
 public:
   using matrix    = utilz::square_shape<int>;
-  using matrix_st = typename utilz::traits::square_shape_traits<utilz::square_shape<int>>::size_type;
+  using matrix_at = utilz::procedures::square_shape_at<utilz::square_shape<int>>;
+
+  using matrix_size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<int>>::size_type;
 
 public:
   matrix m_src;
@@ -61,7 +63,9 @@ TEST_F(FixtureT, Execute)
 {
   calculate_apsp(this->m_src);
 
-  for (matrix_st i = matrix_st(0); i < this->m_src.size() && this->m_res.size(); ++i)
-    for (matrix_st j = matrix_st(0); j < this->m_src.size() && this->m_res.size(); ++j)
-      ASSERT_EQ(this->m_src.at(i, j), this->m_res.at(i, j));
+  matrix_at at;
+
+  for (matrix_size_type i = matrix_size_type(0); i < this->m_src.size() && this->m_res.size(); ++i)
+    for (matrix_size_type j = matrix_size_type(0); j < this->m_src.size() && this->m_res.size(); ++j)
+      ASSERT_EQ(at(this->m_src, i, j), at(this->m_res, i, j));
 };
