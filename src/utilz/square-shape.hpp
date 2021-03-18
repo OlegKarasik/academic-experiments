@@ -486,20 +486,24 @@ private:
 public:
   using result_type = typename traits::square_shape_traits<square_shape<square_shape<T, A>, U>>::value_type;
 
+private:
+  square_shape_get_size<square_shape<T, A>> m_size;
+  square_shape_at<square_shape<T, A>>       m_at;
+
 public:
   result_type&
   operator()(square_shape<square_shape<T, A>, U>& s, size_type i, size_type j)
   {
-    square_shape_at<square_shape<T, A>> proc;
+    size_type size = this->m_size(s.at(0, 0));
 
-    return proc(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
+    return this->m_at(s.at(i / size, j / size), i % size, j % size);
   }
   const result_type&
   operator()(const square_shape<square_shape<T, A>, U>& s, size_type i, size_type j)
   {
-    square_shape_at<square_shape<T, A>> proc;
+    size_type size = this->m_size(s.at(0, 0));
 
-    return proc(s.at(i / s.size(), j / s.size()), i % s.size(), j % s.size());
+    return this->m_at(s.at(i / size, j / size), i % size, j % size);
   }
 };
 
@@ -515,12 +519,14 @@ private:
 public:
   using result_type = typename traits::square_shape_traits<S>::value_type;
 
+private:
+  square_shape_at<S> m_at;
+
 public:
   result_type
   operator()(const S& s, size_type i, size_type j)
   {
-    square_shape_at<S> at;
-    return at(s, i, j);
+    return this->m_at(s, i, j);
   }
 };
 
@@ -536,12 +542,14 @@ private:
 public:
   using result_type = typename traits::square_shape_traits<S>::value_type;
 
+private:
+  square_shape_at<S> m_at;
+
 public:
   void
   operator()(S& s, size_type i, size_type j, result_type v)
   {
-    square_shape_at<S> at;
-    at(s, i, j) = v;
+    this->m_at(s, i, j) = v;
   }
 };
 
@@ -558,19 +566,20 @@ private:
 public:
   using result_type = typename traits::square_shape_traits<S>::value_type;
 
+private:
+  square_shape_get_size<S> m_size;
+  square_shape_at<S>       m_at;
+
 public:
   void
   operator()(S& s, value_type f, value_type t)
   {
-    square_shape_get_size<S> sz;
-    square_shape_at<S>       at;
-
-    size_type size = sz(s);
+    size_type size = this->m_size(s);
 
     for (size_type i = size_type(0); i < size; ++i)
       for (size_type j = size_type(0); j < size; ++j)
-        if (at(s, i, j) == f)
-          at(s, i, j) = t;
+        if (this->m_at(s, i, j) == f)
+          this->m_at(s, i, j) = t;
   }
 };
 
