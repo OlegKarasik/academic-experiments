@@ -43,7 +43,11 @@ random_graph(
   // Verify size of promised paths not exceeds maximum number of edges
   //
   if (!p.empty()) {
-    size_type h = size_type(0);
+    // We initialize it to number of promised path because
+    // as part of promised path generation we exclude a direct path between
+    // vertexes of promised path, we have to ensure we still have enough free space for edges
+    //
+    size_type h = size_type(p.size());
     for (size_t i = size_t(0); i < p.size(); ++i) {
       auto& path = p[i];
       if (path.f >= path.t)
@@ -96,9 +100,12 @@ random_graph(
   for (size_t i = size_t(0); i < p.size(); ++i) {
     auto& path = p[i];
 
-    // Initialize an empty vectors of intermediate points
+    // Initialize an empty vector of intermediate vertexes
     //
     std::vector<size_type> points;
+
+    // Insert start of promised path
+    //
     points.push_back(path.f);
     
     for (size_type j = size_type(0); j < path.h - size_type(1);) {
@@ -110,23 +117,35 @@ random_graph(
       }
     }
 
+    // Insert end of promised path
+    //
     points.push_back(path.t);
 
-    // Sort points to ensure they are from "lower" to "higher"
+    // Sort points within promised path to ensure 
+    // they are ordered from "lower" to "higher"
     //
     std::sort(points.begin(), points.end());
 
-    auto it_from = points.begin();
-    auto it_to   = std::next(it_from);
-    while (it_to != points.end()) {
-      set_value(m, *it_from, *it_to, value_type(1));
+    auto it_from = points.begin(), 
+         it_to   = std::next(it_from);
 
-      edges[*it_from * v + *it_to] = true;
+    while (it_to != points.end()) {
+      auto f = *it_from, 
+           t = *it_to;
+
+      set_value(m, f, t, value_type(1));
+
+      edges[f * v + t] = true;
 
       it_from = it_to;
       it_to   = std::next(it_to);
     }
     e -= path.h;
+
+    // Ensure there won't be a direct path between vertexes
+    // of promised path
+    //
+    edges[path.f * v + path.t] = true;
   }
 
   // Pick two random vertexts indexes and create an edge between them.
