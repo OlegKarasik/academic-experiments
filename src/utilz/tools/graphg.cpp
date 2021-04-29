@@ -77,15 +77,25 @@ public:
 int
 main(int argc, char* argv[])
 {
-  size_t v = 4800;
+  size_t v = 50;
   size_t e = size_t(((v * (v - 1)) / 2) * 0.8);
 
   std::cout << e << std::endl;
 
   utilz::square_shape<int>            random_adj;
+  std::vector<utilz::graphs::generators::graph_path<size_t>> vec;
+
+  utilz::graphs::generators::graph_path<size_t> gp;
+  gp.f = 5;
+  gp.t = 15;
+  gp.h = 4;
+
+  vec.push_back(gp);
+
   set_size<utilz::square_shape<int>>  s_size;
   set_value<utilz::square_shape<int>> s_value;
-  utilz::graphs::generators::random_graph(v, e, random_adj, s_size, s_value, utilz::graphs::generators::directed_acyclic_graph_tag());
+  utilz::graphs::generators::random_graph(
+    v, e, vec, random_adj, s_size, s_value, utilz::graphs::generators::directed_acyclic_graph_tag());
 
   std::mt19937_64                    distribution_engine;
   std::uniform_int_distribution<int> vertex_distribution(1, 100);

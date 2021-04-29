@@ -13,23 +13,54 @@ namespace generators {
 struct directed_acyclic_graph_tag
 {};
 
+template<typename size_type>
+struct graph_path
+{
+  size_type f;
+  size_type t;
+  size_type h;
+};
+
 template<
   typename Matrix,
   typename MatrixSetSizeOperation,
   typename MatrixSetValueOperation>
 void
 random_graph(
-  typename MatrixSetSizeOperation::result_type v,
-  typename MatrixSetSizeOperation::result_type e,
-  Matrix&                                      m,
-  MatrixSetSizeOperation&                      set_size,
-  MatrixSetValueOperation&                     set_value,
+  typename MatrixSetSizeOperation::result_type                           v,
+  typename MatrixSetSizeOperation::result_type                           e,
+  std::vector<graph_path<typename MatrixSetSizeOperation::result_type>>& p,
+  Matrix&                                                                m,
+  MatrixSetSizeOperation&                                                set_size,
+  MatrixSetValueOperation&                                               set_value,
   directed_acyclic_graph_tag)
 {
   using size_type  = typename MatrixSetSizeOperation::result_type;
   using value_type = typename MatrixSetValueOperation::result_type;
 
   static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
+
+  // Verify size of promised paths not exceeds maximum number of edges
+  //
+  if (!p.empty()) {
+    size_type h = size_type(0);
+    for (size_t i = size_t(0); i < p.size(); ++i) {
+      auto& path = p[i];
+      if (path.f >= path.t)
+        throw std::logic_error(
+          "erro: promised paths from 'higher' vertexes to 'lower' is not supported");
+
+      if (path.h >= path.t - path.f)
+        throw std::logic_error(
+          "erro: promised paths can't contain more hoops than natural distance between vertex indexes");
+
+      h += path.h;
+    }
+
+    if (h > e)
+      throw std::logic_error(
+        "erro: hoops count of promised paths is greater than edges count.");
+  }
 
   if (e >= (v * (v - 1) / 2))
     throw std::logic_error(
@@ -61,6 +92,42 @@ random_graph(
   // Set output matrix size and start writing edges
   //
   set_size(m, size_type(v));
+
+  for (size_t i = size_t(0); i < p.size(); ++i) {
+    auto& path = p[i];
+
+    // Initialize an empty vectors of intermediate points
+    //
+    std::vector<size_type> points;
+    points.push_back(path.f);
+    
+    for (size_type j = size_type(0); j < path.h - size_type(1);) {
+      auto z = vertexes[distribution(distribution_engine)];
+      if (path.f < z && path.t > z && std::find(points.begin(), points.end(), z) == points.end()) {
+        points.push_back(z);
+
+        ++j;
+      }
+    }
+
+    points.push_back(path.t);
+
+    // Sort points to ensure they are from "lower" to "higher"
+    //
+    std::sort(points.begin(), points.end());
+
+    auto it_from = points.begin();
+    auto it_to   = std::next(it_from);
+    while (it_to != points.end()) {
+      set_value(m, *it_from, *it_to, value_type(1));
+
+      edges[*it_from * v + *it_to] = true;
+
+      it_from = it_to;
+      it_to   = std::next(it_to);
+    }
+    e -= path.h;
+  }
 
   // Pick two random vertexts indexes and create an edge between them.
   // Repeat until required number of edges.
@@ -114,7 +181,7 @@ random_graph(
     // Indicate that we have created an edge between `i` -> `j`
     //
     ++c;
-    edges[i * v + j] = true;
+    edges[i * v + j]  = true;
   };
 };
 
