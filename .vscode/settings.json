@@ -91,5 +91,6 @@
     "markdown",
     "latex",
     "plaintext"
-  ]
+],
+"editor.tabSize": 2
 }
