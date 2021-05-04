@@ -14,11 +14,18 @@ struct directed_acyclic_graph_tag
 {};
 
 template<typename size_type>
-struct graph_path
+struct promised_path
 {
-  size_type f;
-  size_type t;
-  size_type h;
+  const size_type f;
+  const size_type t;
+  const size_type h;
+
+  promised_path(size_type f, size_type t, size_type h)
+    : f(f)
+    , t(t)
+    , h(h)
+  {
+  }
 };
 
 template<
@@ -27,12 +34,12 @@ template<
   typename MatrixSetValueOperation>
 void
 random_graph(
-  typename MatrixSetSizeOperation::result_type                           v,
-  typename MatrixSetSizeOperation::result_type                           e,
-  std::vector<graph_path<typename MatrixSetSizeOperation::result_type>>& p,
-  Matrix&                                                                m,
-  MatrixSetSizeOperation&                                                set_size,
-  MatrixSetValueOperation&                                               set_value,
+  typename MatrixSetSizeOperation::result_type                              v,
+  typename MatrixSetSizeOperation::result_type                              e,
+  std::vector<promised_path<typename MatrixSetSizeOperation::result_type>>& p,
+  Matrix&                                                                   m,
+  MatrixSetSizeOperation&                                                   set_size,
+  MatrixSetValueOperation&                                                  set_value,
   directed_acyclic_graph_tag)
 {
   using size_type  = typename MatrixSetSizeOperation::result_type;
@@ -107,7 +114,7 @@ random_graph(
     // Insert start of promised path
     //
     points.push_back(path.f);
-    
+
     for (size_type j = size_type(0); j < path.h - size_type(1);) {
       auto z = vertexes[distribution(distribution_engine)];
       if (path.f < z && path.t > z && std::find(points.begin(), points.end(), z) == points.end()) {
@@ -121,16 +128,16 @@ random_graph(
     //
     points.push_back(path.t);
 
-    // Sort points within promised path to ensure 
+    // Sort points within promised path to ensure
     // they are ordered from "lower" to "higher"
     //
     std::sort(points.begin(), points.end());
 
-    auto it_from = points.begin(), 
+    auto it_from = points.begin(),
          it_to   = std::next(it_from);
 
     while (it_to != points.end()) {
-      auto f = *it_from, 
+      auto f = *it_from,
            t = *it_to;
 
       set_value(m, f, t, value_type(1));
@@ -200,7 +207,7 @@ random_graph(
     // Indicate that we have created an edge between `i` -> `j`
     //
     ++c;
-    edges[i * v + j]  = true;
+    edges[i * v + j] = true;
   };
 };
 
