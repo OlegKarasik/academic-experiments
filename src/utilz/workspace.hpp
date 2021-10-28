@@ -16,7 +16,7 @@ root()
     if (std::filesystem::exists(path / ".root"))
       return path;
   }
-  throw std::logic_error("erro: imposible to determin project root; ensure '.root' file exist in the directory path.");
+  throw std::logic_error("erro: imposible to determine project root; ensure '.root' file exist in the directory path.");
 }
 
 
