@@ -1,4 +1,6 @@
 #include "square-shape.hpp"
+
+#include <iostream>
 #include <random>
 #include <algorithm>
 
