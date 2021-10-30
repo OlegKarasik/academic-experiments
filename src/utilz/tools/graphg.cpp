@@ -1,8 +1,11 @@
 #include "square-shape.hpp"
 
-#include <iostream>
-#include <random>
+#include <string>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <random>
 
 #include "graphs-generators.hpp"
 #include "graphs-io.hpp"
@@ -81,41 +84,11 @@ public:
 int
 main(int argc, char* argv[])
 {
-  size_t v = 250;
-  size_t e = size_t(((v * (v - 1)) / 2) * 0.5);
-  size_t h = 30;
+  size_t v;
+  size_t e = size_t(((v * (v - 1)) / 2) * 0.8);
 
-  utilz::square_shape<int>            random_adj;
+  utilz::square_shape<int>                                      random_adj;
   std::vector<utilz::graphs::generators::promised_path<size_t>> vec;
-
-  std::mt19937_64                       home_engine;
-  std::uniform_int_distribution<size_t> home_distribution(size_t(0), (v / 2) - h);
-  home_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-
-  std::mt19937_64                       flag_engine;
-  std::uniform_int_distribution<size_t> flag_distribution((v / 2), v - 1);
-  flag_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-
-  std::mt19937_64                       hops_engine;
-  std::uniform_int_distribution<size_t> hops_distribution(25, h);
-  flag_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-
-  std::mt19937_64                       amount_engine;
-  std::uniform_int_distribution<size_t> amount_distribution(20, 30);
-  amount_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-
-  std::mt19937_64                       limit_engine;
-  std::uniform_int_distribution<size_t> limit_distribution(20, 40);
-  limit_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-
-  size_t amount = amount_distribution(amount_engine);
-  size_t home = home_distribution(home_engine);
-  size_t limit = limit_distribution(limit_engine);
-
-  for (size_t i = 0; i < amount; ++i)
-  {
-    vec.emplace_back(home, flag_distribution(flag_engine), hops_distribution(hops_engine));
-  }
 
   set_size<utilz::square_shape<int>>  s_size;
   set_value<utilz::square_shape<int>> s_value;
@@ -133,12 +106,7 @@ main(int argc, char* argv[])
   get_size<utilz::square_shape<int>>  g_size;
   get_value<utilz::square_shape<int>> g_value;
 
-  std::cout << limit << std::endl;
-  std::cout << home << std::endl;
-  for (size_t i = 0; i < vec.size() - 1; ++i)
-    std::cout << vec[i].t << " ";
+  std::ofstream output("D:\\myfile.g");
 
-  std::cout << vec[vec.size() - 1].t << std::endl;
-
-  utilz::graphs::io::print_matrix(std::cout, random_adj, g_size, g_value);
+  utilz::graphs::io::print_matrix(output, random_adj, g_size, g_value);
 }
