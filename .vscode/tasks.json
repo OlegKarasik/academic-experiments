@@ -100,6 +100,7 @@
         "--static",
         "-fopt-info-optimized-missed-loop-omp-vec=\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}.opt.all\"",
         "${input:compileOptions}",
+        "-gdwarf-3",
         "-D",
         "ALG_VARIATION=${input:compileVariation}",
         "-O3",
