@@ -1,8 +1,12 @@
 #pragma once
 
+// global utilz
+//
 #include "graphs-io.hpp"
 #include "square-shape.hpp"
 
+// local utilz
+//
 #include "constants.hpp"
 
 namespace apsp {
