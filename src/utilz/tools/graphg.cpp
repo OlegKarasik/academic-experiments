@@ -88,7 +88,7 @@ main(int argc, char* argv[])
   size_t e = size_t(((v * (v - 1)) / 2) * 0.8);
 
   utilz::square_shape<int>                                      random_adj;
-  std::vector<utilz::graphs::generators::promised_path<size_t>> vec;
+  std::vector<utilz::graphs::generators::promised_path<utilz::square_shape<int>::size_type>> vec;
 
   set_size<utilz::square_shape<int>>  s_size;
   set_value<utilz::square_shape<int>> s_value;
@@ -108,5 +108,5 @@ main(int argc, char* argv[])
 
   std::ofstream output("D:\\myfile.g", std::ios_base::binary);
 
-  utilz::graphs::io::print_matrix(output, random_adj, g_size, g_value);
+  utilz::graphs::io::print_matrix(output, true, random_adj, g_size, g_value);
 }
