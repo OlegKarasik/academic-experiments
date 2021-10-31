@@ -10,7 +10,7 @@ namespace io {
 
 template<typename Matrix, typename MatrixSetSizeOperation, typename MatrixSetValueOperation>
 void
-scan_matrix(std::istream& s, Matrix& g, MatrixSetSizeOperation& set_size, MatrixSetValueOperation& set_value)
+scan_matrix(std::istream& s, bool binary, Matrix& g, MatrixSetSizeOperation& set_size, MatrixSetValueOperation& set_value)
 {
   using size_type  = typename MatrixSetSizeOperation::result_type;
   using value_type = typename MatrixSetValueOperation::result_type;
@@ -25,21 +25,32 @@ scan_matrix(std::istream& s, Matrix& g, MatrixSetSizeOperation& set_size, Matrix
   //
   set_size(g, sz);
 
-  // While we can, keep reading edges (`from vertex` `to vertex` `the weight`)
-  //
-  value_type v;
-  size_type  f, t;
-  while (s >> f >> t >> v)
-    if (v != value_type())
-      set_value(g, f, t, v);
+  if (binary) {
+    // Read exact number of items from stream
+    //
+    for (size_type i = size_type(0); i < sz; ++i)
+      for (size_type j = size_type(0); j < sz; ++j) {
+        value_type v;
+        if (!s.read(reinterpret_cast<char*>(&v), sizeof(value_type)))
+          throw std::logic_error("erro: can't read matrix from binary file - the stream ended unexpectadly.");
 
-  if (!s.eof())
-    throw std::logic_error("erro: can't scan adjacency matrix cell value; expected format: <from> <to> <count>");
+        set_value(g, i, j, v);
+      }
+  } else {
+    // Keep reading edges (`from vertex` `to vertex` `the weight`)
+    // as many as possible
+    //
+    value_type v;
+    size_type  f, t;
+    while (s >> f >> t >> v)
+      if (v != value_type())
+        set_value(g, f, t, v);
+  }
 };
 
 template<typename Matrix, typename MatrixGetSizeOperation, typename MatrixGetValueOperation>
 void
-print_matrix(std::ostream& s, Matrix& m, MatrixGetSizeOperation& get_size, MatrixGetValueOperation& get_value)
+print_matrix(std::ostream& s, bool binary, Matrix& m, MatrixGetSizeOperation& get_size, MatrixGetValueOperation& get_value)
 {
   using size_type  = typename MatrixGetSizeOperation::result_type;
   using value_type = typename MatrixGetValueOperation::result_type;
@@ -55,13 +66,22 @@ print_matrix(std::ostream& s, Matrix& m, MatrixGetSizeOperation& get_size, Matri
   if (!(s << sz << '\n'))
     throw std::logic_error("erro: can't print adjacency matrix size");
 
-  for (size_type i = size_type(0); i < sz; ++i)
-    for (size_type j = size_type(0); j < sz; ++j) {
-      value_type v = get_value(m, i, j);
-      if (v != value_type())
-        if (!(s << i << ' ' << j << ' ' << v << '\n'))
+  if (binary) {
+    for (size_type i = size_type(0); i < sz; ++i)
+      for (size_type j = size_type(0); j < sz; ++j) {
+        value_type v = get_value(m, i, j);
+        if (!s.write(reinterpret_cast<char*>(&v), sizeof(value_type)))
           throw std::logic_error("erro: can't print adjacency matrix cell value");
-    }
+      }
+  } else {
+    for (size_type i = size_type(0); i < sz; ++i)
+      for (size_type j = size_type(0); j < sz; ++j) {
+        value_type v = get_value(m, i, j);
+        if (v != value_type())
+          if (!(s << i << ' ' << j << ' ' << v << '\n'))
+            throw std::logic_error("erro: can't print adjacency matrix cell value");
+      }
+  }
 
   s.flush();
 };

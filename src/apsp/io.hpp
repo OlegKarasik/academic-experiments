@@ -14,7 +14,7 @@ namespace io {
 
 template<typename S, typename... TArgs>
 void
-scan_matrix(std::istream& s, S& m, TArgs... args)
+scan_matrix(std::istream& s, bool binary, S& m, TArgs... args)
 {
   static_assert(::utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
 
@@ -28,7 +28,7 @@ scan_matrix(std::istream& s, S& m, TArgs... args)
   set_fn set;
   rep_fn rep;
 
-  ::utilz::graphs::io::scan_matrix(s, m, sz, set);
+  ::utilz::graphs::io::scan_matrix(s, binary, m, sz, set);
 
   // Replace 'zero' values with corresponding 'infinity' value to ensure correct
   // execution of APSP Floyd-Warshall algorithm
@@ -38,9 +38,7 @@ scan_matrix(std::istream& s, S& m, TArgs... args)
 
 template<typename S>
 void
-print_matrix(
-  std::ostream& s,
-  S&            m)
+print_matrix(std::ostream& s, bool binary, S& m)
 {
   static_assert(::utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
 
@@ -54,12 +52,12 @@ print_matrix(
   get_fn get;
   rep_fn rep;
 
-  // Replace 'infinity' values with corresponding 'zero' values to minimize
-  // output size (i.e. 'zero' values aren't send to output stream)
+  // Replace 'infinity' values with corresponding 'zero' values to
+  // correctly send them to output
   //
   rep(m, apsp::constants::infinity<value_type>(), value_type(0));
 
-  ::utilz::graphs::io::print_matrix(s, m, sz, get);
+  ::utilz::graphs::io::print_matrix(s, binary, m, sz, get);
 };
 
 } // namespace io

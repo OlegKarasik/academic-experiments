@@ -46,15 +46,17 @@ main(int argc, char* argv[]) noexcept
   char ins_buf[buf_sz];
   char outs_buf[buf_sz];
 
+  bool binary = false;
+
   std::ifstream ins;
   std::ofstream outs;
 
 #ifdef APSP_ALG_BLOCKED
   matrix::size_type s;
 
-  const char* options = "i:o:s:";
+  const char* options = "i:o:s:b";
 #else
-  const char* options = "i:o";
+  const char* options = "i:o:b";
 #endif
 
   int opt;
@@ -67,6 +69,9 @@ main(int argc, char* argv[]) noexcept
       case 'o':
         outs.rdbuf()->pubsetbuf(outs_buf, buf_sz);
         outs.open(optarg);
+        break;
+      case 'b':
+        binary = true;
         break;
 #ifdef APSP_ALG_BLOCKED
       case 's':
@@ -91,9 +96,9 @@ main(int argc, char* argv[]) noexcept
   matrix m;
 
 #ifdef APSP_ALG_BLOCKED
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, s]() -> void { ::apsp::io::scan_matrix(in, m, s); });
+  auto scan_ms = utilz::measure_milliseconds([&m, &in, s, binary]() -> void { ::apsp::io::scan_matrix(in, binary, m, s); });
 #else
-  auto scan_ms = utilz::measure_milliseconds([&m, &in]() -> void { ::apsp::io::scan_matrix(in, m); });
+  auto scan_ms = utilz::measure_milliseconds([&m, &in, binary]() -> void { ::apsp::io::scan_matrix(in, binary, m); });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
@@ -101,6 +106,6 @@ main(int argc, char* argv[]) noexcept
   auto exec_ms = utilz::measure_milliseconds([&m]() -> void { calculate_apsp(m); });
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
-  auto prnt_ms = utilz::measure_milliseconds([&m, &out]() -> void { ::apsp::io::print_matrix(out, m); });
+  auto prnt_ms = utilz::measure_milliseconds([&m, &out, binary]() -> void { ::apsp::io::print_matrix(out, binary, m); });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 }
