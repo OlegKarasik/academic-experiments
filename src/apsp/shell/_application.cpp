@@ -41,28 +41,35 @@ using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type>;
 int
 main(int argc, char* argv[]) noexcept
 {
+  const int buf_sz = 1024*64;
+
+  char ins_buf[buf_sz];
+  char outs_buf[buf_sz];
+
   std::ifstream ins;
   std::ofstream outs;
 
 #ifdef APSP_ALG_BLOCKED
   matrix::size_type s;
 
-  const char* options = "i:o:b:";
+  const char* options = "i:o:s:";
 #else
-  const char* options = "i:o:";
+  const char* options = "i:o";
 #endif
 
   int opt;
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
       case 'i':
-        ins = std::ifstream(optarg);
+        ins.rdbuf()->pubsetbuf(ins_buf, buf_sz);
+        ins.open(optarg);
         break;
       case 'o':
-        outs = std::ofstream(optarg);
+        outs.rdbuf()->pubsetbuf(outs_buf, buf_sz);
+        outs.open(optarg);
         break;
 #ifdef APSP_ALG_BLOCKED
-      case 'b':
+      case 's':
         s = atoi(optarg);
         break;
 #endif
@@ -71,6 +78,13 @@ main(int argc, char* argv[]) noexcept
 
   std::istream& in  = ins.is_open() ? ins : std::cin;
   std::ostream& out = outs.is_open() ? outs : std::cout;
+
+#ifdef APSP_ALG_BLOCKED
+  if (s == matrix::size_type()) {
+    std::cout << "Please use '-s' and specify block size";
+    return 1;
+  }
+#endif
 
   // Define matrix and execute algorithm specific overloads of methods
   //

@@ -84,7 +84,7 @@ public:
 int
 main(int argc, char* argv[])
 {
-  size_t v;
+  size_t v = 4800;
   size_t e = size_t(((v * (v - 1)) / 2) * 0.8);
 
   utilz::square_shape<int>                                      random_adj;
@@ -106,7 +106,7 @@ main(int argc, char* argv[])
   get_size<utilz::square_shape<int>>  g_size;
   get_value<utilz::square_shape<int>> g_value;
 
-  std::ofstream output("D:\\myfile.g");
+  std::ofstream output("D:\\myfile.g", std::ios_base::binary);
 
   utilz::graphs::io::print_matrix(output, random_adj, g_size, g_value);
 }
