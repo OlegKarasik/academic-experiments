@@ -19,6 +19,4 @@ root()
   throw std::logic_error("erro: imposible to determine project root; ensure '.root' file exist in the directory path.");
 }
 
-
-
 } // namespace workspace
