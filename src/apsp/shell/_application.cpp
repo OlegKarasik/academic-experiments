@@ -22,30 +22,40 @@
 //
 #include "measure.hpp"
 
+#if (ALG_LARGE_PAGES == 1)
+  #include "win-memory.hpp"
+#endif
+
 // local utilz
 //
 #include "../io.hpp"
 
+// large pages integration
+//
+#if (ALG_LARGE_PAGES == 1)
+template<typename T>
+using g_allocator_type = typename ::utilz::memory::large_pages_allocator<T>;
+#else
+template<typename T>
+using g_allocator_type = typename std::allocator<T>;
+#endif
+
 // define global types
+//
 using g_calculation_type = int;
-using g_allocator_type   = std::allocator<g_calculation_type>;
 
 // aliasing
 //
 #ifdef APSP_ALG_BLOCKED
-using matrix = ::utilz::square_shape<::utilz::square_shape<g_calculation_type, g_allocator_type>>;
+using matrix_block = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix       = ::utilz::square_shape<matrix_block,       g_allocator_type<matrix_block>>;
 #else
-using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type>;
+using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
 
 int
 main(int argc, char* argv[]) noexcept
 {
-  const int buf_sz = 1024*64;
-
-  char ins_buf[buf_sz];
-  char outs_buf[buf_sz];
-
   bool binary = false;
 
   std::ifstream ins;
@@ -63,11 +73,9 @@ main(int argc, char* argv[]) noexcept
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
       case 'i':
-        ins.rdbuf()->pubsetbuf(ins_buf, buf_sz);
         ins.open(optarg);
         break;
       case 'o':
-        outs.rdbuf()->pubsetbuf(outs_buf, buf_sz);
         outs.open(optarg);
         break;
       case 'b':
@@ -89,6 +97,13 @@ main(int argc, char* argv[]) noexcept
     std::cout << "Please use '-s' and specify block size";
     return 1;
   }
+#endif
+
+#if (ALG_LARGE_PAGES == 1)
+  // Initialize large pages support from application side
+  // this might require different actions in different operating systems
+  //
+  ::utilz::memory::initialize_large_pages();
 #endif
 
   // Define matrix and execute algorithm specific overloads of methods
