@@ -87,15 +87,16 @@ public:
   allocate(size_type size, typename std::allocator<void>::const_pointer = nullptr)
   {
     size_t granularity = ::GetLargePageMinimum();
-    size_t pages = size * sizeof(T) / granularity;
-    if (size * sizeof(T) < granularity)
+    size_t bytes = size * sizeof(T);
+    size_t pages = bytes / granularity;
+    if ((bytes < granularity) || (bytes % granularity != 0))
       pages++;
 
     pointer p = reinterpret_cast<pointer>(
       ::VirtualAlloc(NULL, pages * granularity, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE));
-      
+
     if (p == nullptr)
-      throw std::bad_alloc();
+      throw std::runtime_error("erro: can't allocate large page memory (" + std::to_string(size) + ") - code: " + std::to_string(::GetLastError()));
 
     return p;
   };

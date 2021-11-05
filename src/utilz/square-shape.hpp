@@ -142,7 +142,8 @@ private:
   void
   free_resources()
   {
-    std::allocator_traits<allocator_type>::deallocate(this->m_a, this->m_m, this->m_msize);
+    if (this->m_msize > 0)
+      std::allocator_traits<allocator_type>::deallocate(this->m_a, this->m_m, this->m_msize);
   }
 
 public:
