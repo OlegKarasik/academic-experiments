@@ -67,6 +67,9 @@ struct square_shape_replace;
 template<typename T, typename A = std::allocator<T>>
 class square_shape
 {
+  template<std::size_t I, T, A>
+  friend struct ::utilz::procedures::___set_size::__impl;
+
 public:
   using value_type      = T;
   using size_type       = size_t;
@@ -409,7 +412,7 @@ public:
   void
   operator()(square_shape<T, A>& s, result_type sz)
   {
-    s = square_shape<T, A>(sz);
+    s = square_shape<T, A>(sz, s.m_a);
   }
 };
 
@@ -438,11 +441,18 @@ public:
     if (sz % in_sz != result_type(0))
       ++os_sz;
 
-    s = square_shape<square_shape<T, A>, U>(os_sz);
+    s = square_shape<square_shape<T, A>, U>(os_sz, s.m_a);
 
     for (result_type i = result_type(0); i < os_sz; ++i)
-      for (result_type j = result_type(0); j < os_sz; ++j)
-        this->__impl<I + 1, square_shape<T, A>>::operator()(s.at(i, j), in_sz);
+      for (result_type j = result_type(0); j < os_sz; ++j) {
+        typename U::rebind<A>::other in_a(s.m_a);
+        
+        auto in_s = square_shape<T, A>(in_a);
+
+        this->__impl<I + 1, square_shape<T, A>>::operator()(in_s, in_sz);
+        
+        s.at(i, j) = std::move(in_s);
+      }
   }
 };
 
