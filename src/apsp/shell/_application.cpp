@@ -16,39 +16,34 @@
 
 // global C includes
 //
+#include <stdlib.h>
 #include <unistd.h>
 
 // global utilz
 //
 #include "measure.hpp"
+#include "memory.hpp"
 
-#if (ALG_LARGE_PAGES == 1)
-  #include "win-memory.hpp"
-#endif
+// operating system level includes, manage if going cross-platform
+//
+#include "win-memory.hpp"
 
 // local utilz
 //
 #include "../io.hpp"
 
-// large pages integration
-//
-#if (ALG_LARGE_PAGES == 1)
-template<typename T>
-using g_allocator_type = typename ::utilz::memory::large_pages_allocator<T>;
-#else
-template<typename T>
-using g_allocator_type = typename std::allocator<T>;
-#endif
-
 // define global types
 //
 using g_calculation_type = int;
+
+template<typename T>
+using g_allocator_type = typename ::utilz::memory::buff_allocator<T>;
 
 // aliasing
 //
 #ifdef APSP_ALG_BLOCKED
 using matrix_block = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = ::utilz::square_shape<matrix_block,       g_allocator_type<matrix_block>>;
+using matrix       = ::utilz::square_shape<matrix_block, g_allocator_type<matrix_block>>;
 #else
 using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
@@ -56,64 +51,109 @@ using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calc
 int
 main(int argc, char* argv[]) noexcept
 {
-  bool binary = false;
+  bool   opt_binary    = false;
+  bool   opt_pages     = false;
+  size_t opt_reserve   = 0;
 
   std::ifstream ins;
   std::ofstream outs;
 
 #ifdef APSP_ALG_BLOCKED
-  matrix::size_type s;
+  matrix::size_type s = 0;
 
-  const char* options = "i:o:s:b";
+  const char* options = "i:o:bpr:s:";
 #else
-  const char* options = "i:o:b";
+  const char* options = "i:o:bpr:";
 #endif
+
+  std::cerr << "Options:\n";
 
   int opt;
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
       case 'i':
+        std::cerr << "-i: " << optarg << "\n";
+
         ins.open(optarg);
         break;
       case 'o':
+        std::cerr << "-o: " << optarg << "\n";
+
         outs.open(optarg);
         break;
       case 'b':
-        binary = true;
+        std::cerr << "-b: true\n";
+
+        opt_binary = true;
+        break;
+      case 'p':
+        std::cerr << "-p: true\n";
+
+        opt_pages = true;
+        break;
+      case 'r':
+        std::cerr << "-r: " << optarg << "\n";
+
+        opt_reserve = atoi(optarg) * 1024 * 1024;
+
+        if (opt_reserve == 0) {
+          std::cerr << "erro: missing value after '-r' option";
+          return 1;
+        }
         break;
 #ifdef APSP_ALG_BLOCKED
       case 's':
+        std::cerr << "-s: " << optarg << "\n";
+
         s = atoi(optarg);
+
+        if (s == matrix::size_type()) {
+          std::cerr << "erro: missing value after '-s' option";
+          return 1;
+        }
         break;
 #endif
     }
   }
 
+  std::cerr << std::endl;
+
   std::istream& in  = ins.is_open() ? ins : std::cin;
   std::ostream& out = outs.is_open() ? outs : std::cout;
 
-#ifdef APSP_ALG_BLOCKED
-  if (s == matrix::size_type()) {
-    std::cout << "Please use '-s' and specify block size";
+  std::shared_ptr<char> memory;
+  if (opt_pages) {
+    // Initialize large pages support from application side
+    // this might require different actions in different operating systems
+    //
+    ::utilz::memory::__largepages_init();
+
+    memory = std::shared_ptr<char>(
+      reinterpret_cast<char*>(::utilz::memory::__largepages_malloc(opt_reserve)),
+      ::utilz::memory::__largepages_free);
+
+  } else {
+    memory = std::shared_ptr<char>(
+      reinterpret_cast<char*>(::malloc(opt_reserve)),
+      free);
+  }
+
+  if (memory == nullptr) {
+    std::cerr << "erro: can't allocate memory (size: " << opt_reserve << ")" << std::endl;
     return 1;
   }
-#endif
 
-#if (ALG_LARGE_PAGES == 1)
-  // Initialize large pages support from application side
-  // this might require different actions in different operating systems
-  //
-  ::utilz::memory::initialize_large_pages();
-#endif
+  ::utilz::memory::buff_buf                           buff_buf(memory, opt_reserve);
+  ::utilz::memory::buff_allocator<matrix::value_type> buff_allocator(&buff_buf);
 
   // Define matrix and execute algorithm specific overloads of methods
   //
-  matrix m;
+  matrix m(buff_allocator);
 
 #ifdef APSP_ALG_BLOCKED
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, s, binary]() -> void { ::apsp::io::scan_matrix(in, binary, m, s); });
+  auto scan_ms = utilz::measure_milliseconds([&m, &in, s, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m, s); });
 #else
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, binary]() -> void { ::apsp::io::scan_matrix(in, binary, m); });
+  auto        scan_ms = utilz::measure_milliseconds([&m, &in, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m); });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
@@ -121,6 +161,6 @@ main(int argc, char* argv[]) noexcept
   auto exec_ms = utilz::measure_milliseconds([&m]() -> void { calculate_apsp(m); });
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
-  auto prnt_ms = utilz::measure_milliseconds([&m, &out, binary]() -> void { ::apsp::io::print_matrix(out, binary, m); });
+  auto prnt_ms = utilz::measure_milliseconds([&m, &out, opt_binary]() -> void { ::apsp::io::print_matrix(out, opt_binary, m); });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 }

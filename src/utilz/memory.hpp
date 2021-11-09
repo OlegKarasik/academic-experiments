@@ -18,17 +18,23 @@ public:
   using difference_type = std::ptrdiff_t;
 
 private:
-  size_type m_size;
-  pointer   m_memory;
+  const long long m_alignment = 16;
+
+  size_type                   m_size;
+  std::shared_ptr<value_type> m_mem;
+
+  pointer m_cmem;
 
 public:
   buff_buf()
-    : m_memory(nullptr)
+    : m_mem(nullptr)
+    , m_cmem(nullptr)
     , m_size(size_type())
   {
   }
-  buff_buf(pointer memory, size_type size)
-    : m_memory(memory)
+  buff_buf(std::shared_ptr<value_type> memory, size_type size)
+    : m_mem(memory)
+    , m_cmem(memory.get())
     , m_size(size)
   {
   }
@@ -36,13 +42,16 @@ public:
   inline pointer
   allocate(size_type size)
   {
+    auto p = (pointer)((*(__int64*)(&this->m_cmem) + sizeof(pointer) + this->m_alignment - 1) &
+                       (~(((__int64)(this->m_alignment)) - 1)));
+
+    size = size + (p - this->m_cmem);
+
     if (size > this->m_size)
       throw std::runtime_error("erro: not enough memory in buffer");
 
-    pointer p = this->m_memory;
-
-    this->m_size   = this->m_size - size;
-    this->m_memory = this->m_memory + size;
+    this->m_size = this->m_size - size;
+    this->m_cmem = this->m_cmem + size;
 
     return p;
   };
@@ -56,7 +65,7 @@ public:
   inline bool
   operator==(buff_buf const& a)
   {
-    return *this == a || this->m_memory == a.m_memory && this->m_size == a.m_size;
+    return this == &a || this->m_mem == a.m_mem && this->m_size == a.m_size;
   };
   inline bool
   operator!=(buff_buf const& a)
@@ -68,6 +77,9 @@ public:
 template<typename T>
 class buff_allocator
 {
+  template<typename U>
+  friend class buff_allocator;
+
 public:
   using value_type      = T;
   using pointer         = value_type*;
@@ -77,29 +89,35 @@ public:
   using size_type       = std::size_t;
   using difference_type = std::ptrdiff_t;
 
+  using propagate_on_container_move_assignment = std::true_type;
+
 private:
-  buff_buf m_a;
+  buff_buf* m_buff;
 
 public:
   template<typename U>
   struct rebind
   {
-    using other = buff_allocator<U>;
+    typedef buff_allocator<U> other;
   };
 
 public:
   buff_allocator()
-    : m_a(buff_buf())
-  {
-  }
-  buff_allocator(const buff_buf& a)
-    : m_a(a)
-  {
-  }
+    : m_buff(nullptr)
+  {}
+  buff_allocator(buff_buf* buff)
+    : m_buff(buff)
+  {}
+  buff_allocator(const buff_allocator& o)
+    : m_buff(o.m_buff)
+  {}
+  buff_allocator(buff_allocator&& o)
+    : m_buff(std::exchange(o.m_buff, nullptr))
+  {}
 
   template<typename U>
-  inline buff_allocator(buff_allocator<U>& o)
-    : m_a(o.m_a)
+  buff_allocator(buff_allocator<U>& o)
+    : m_buff(o.m_buff)
   {
   }
 
@@ -117,12 +135,18 @@ public:
   inline pointer
   allocate(size_type size)
   {
-    return static_cast<pointer>(this->m_a.allocate(size * sizeof(value_type)));
+    if (this->m_buff == nullptr)
+      throw std::logic_error("erro: the allocator wasn't initialized with memory buffer");
+
+    return reinterpret_cast<pointer>(this->m_buff->allocate(size * sizeof(value_type)));
   };
   inline void
   deallocate(pointer p, size_type sz)
   {
-    this->m_a.deallocate(p, sz);
+    if (this->m_buff == nullptr)
+      throw std::logic_error("erro: the allocator wasn't initialized with memory buffer");
+
+    this->m_buff->deallocate(reinterpret_cast<char*>(p), sz);
   };
 
   inline size_type
@@ -145,12 +169,21 @@ public:
   inline bool
   operator==(buff_allocator const& a)
   {
-    return this == a || this->m_a == a.m_a;
+    return this == &a || this->m_buff == a.m_buff;
   };
   inline bool
   operator!=(buff_allocator const& a)
   {
     return !operator==(a);
+  };
+  buff_allocator&
+  operator=(buff_allocator&& o)
+  {
+    if (this != &o) {
+      this->m_buff = std::exchange(o.m_buff, nullptr);
+    };
+
+    return *this;
   };
 };
 
