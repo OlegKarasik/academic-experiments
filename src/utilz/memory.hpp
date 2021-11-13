@@ -18,8 +18,7 @@ public:
   using difference_type = std::ptrdiff_t;
 
 private:
-  const long long m_alignment = 16;
-
+  size_type                   m_alignment;
   size_type                   m_size;
   std::shared_ptr<value_type> m_mem;
 
@@ -30,22 +29,34 @@ public:
     : m_mem(nullptr)
     , m_cmem(nullptr)
     , m_size(size_type())
+    , m_alignment(size_type())
   {
   }
-  buff_buf(std::shared_ptr<value_type> memory, size_type size)
+  buff_buf(std::shared_ptr<value_type> memory, size_type size, size_type alignment)
     : m_mem(memory)
     , m_cmem(memory.get())
     , m_size(size)
+    , m_alignment(alignment)
   {
+    if (alignment % 2 != 0)
+      throw std::invalid_argument("erro: the alignment value has to be a power of 2");
   }
 
   inline pointer
   allocate(size_type size)
   {
-    auto p = (pointer)((*(__int64*)(&this->m_cmem) + sizeof(pointer) + this->m_alignment - 1) &
-                       (~(((__int64)(this->m_alignment)) - 1)));
+    void* p;
+    if (this->m_alignment != 0) {
+      p = reinterpret_cast<void*>(this->m_cmem);
+      if (!std::align(this->m_alignment, size, p, this->m_size))
+        throw std::runtime_error("erro: not enough memory in buffer");
 
-    size = size + (p - this->m_cmem);
+      // Update current to aligned value, which is going to be returned
+      //
+      this->m_cmem = reinterpret_cast<pointer>(p);
+    } else {
+      p = this->m_cmem;
+    }
 
     if (size > this->m_size)
       throw std::runtime_error("erro: not enough memory in buffer");
@@ -53,7 +64,7 @@ public:
     this->m_size = this->m_size - size;
     this->m_cmem = this->m_cmem + size;
 
-    return p;
+    return reinterpret_cast<pointer>(p);
   };
   inline void
     deallocate(pointer, size_type){

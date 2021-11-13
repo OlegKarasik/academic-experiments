@@ -54,6 +54,7 @@ main(int argc, char* argv[]) noexcept
   bool   opt_binary    = false;
   bool   opt_pages     = false;
   size_t opt_reserve   = 0;
+  size_t opt_alignment = 0;
 
   std::ifstream ins;
   std::ofstream outs;
@@ -61,9 +62,9 @@ main(int argc, char* argv[]) noexcept
 #ifdef APSP_ALG_BLOCKED
   matrix::size_type s = 0;
 
-  const char* options = "i:o:bpr:s:";
+  const char* options = "i:o:bpr:a:s:";
 #else
-  const char* options = "i:o:bpr:";
+  const char* options = "i:o:bpr:a:";
 #endif
 
   std::cerr << "Options:\n";
@@ -98,6 +99,16 @@ main(int argc, char* argv[]) noexcept
 
         if (opt_reserve == 0) {
           std::cerr << "erro: missing value after '-r' option";
+          return 1;
+        }
+        break;
+      case 'a':
+        std::cerr << "-a: " << optarg << "\n";
+
+        opt_alignment = atoi(optarg);
+
+        if (opt_alignment == 0 || opt_alignment % 2 != 0) {
+          std::cerr << "erro: missing value after '-a' option or value isn't power of 2";
           return 1;
         }
         break;
@@ -143,7 +154,7 @@ main(int argc, char* argv[]) noexcept
     return 1;
   }
 
-  ::utilz::memory::buff_buf                           buff_buf(memory, opt_reserve);
+  ::utilz::memory::buff_buf                           buff_buf(memory, opt_reserve, opt_alignment);
   ::utilz::memory::buff_allocator<matrix::value_type> buff_allocator(&buff_buf);
 
   // Define matrix and execute algorithm specific overloads of methods
