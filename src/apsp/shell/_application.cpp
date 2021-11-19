@@ -178,7 +178,7 @@ main(int argc, char* argv[]) noexcept
     [&m]() -> void {
 #ifdef ITT_TRACE
       __itt_domain*        domain      = __itt_domain_create("apsp.shell");
-      __itt_string_handle* handle_exec = __itt_string_handle_create("exec");
+      __itt_string_handle* handle_exec = __itt_string_handle_create("apsp.shell.exec");
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
