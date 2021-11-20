@@ -114,6 +114,38 @@
     },
     {
       "type": "shell",
+      "label": "build (release-itt)",
+      "detail": "compiler: g++ / intel vtune instrumentation",
+      "command": "-c",
+      "args": [
+        "'",
+        "g++",
+        "\"${file}\"",
+        "-I\"${workspaceFolder}/src/utilz\"",
+        "-I\"C:/Program Files (x86)/Intel/oneAPI/vtune/latest/sdk/include\"",
+        "-L\"C:/Program Files (x86)/Intel/oneAPI/vtune/latest/sdk/lib64\"",
+        "-std=c++17",
+        "--static",
+        "-fopt-info-optimized-missed-loop-omp-vec=\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}${input:compileOptions}.opt.all\"",
+        "-gdwarf-3",
+        "-D",
+        "ALG_VARIATION=${input:compileVariation}",
+        "-D",
+        "ITT_TRACE",
+        "${input:compileOptions}",
+        "-O3",
+        "-o",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}${input:compileOptions}.exe\"",
+        "-llibittnotify",
+        "'"
+      ],
+      "group": "build",
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "type": "shell",
       "label": "build (benchmark)",
       "detail": "compiler: g++ / google benchmarks",
       "command": "-c",

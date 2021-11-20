@@ -8,6 +8,11 @@
   #include "../algorithms/01.hpp"
 #endif
 
+// instrumentation
+#ifdef ITT_TRACE
+  #include <ittnotify.h>
+#endif
+
 // global includes
 //
 #include <fstream>
@@ -164,12 +169,25 @@ main(int argc, char* argv[]) noexcept
 #ifdef APSP_ALG_BLOCKED
   auto scan_ms = utilz::measure_milliseconds([&m, &in, s, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m, s); });
 #else
-  auto        scan_ms = utilz::measure_milliseconds([&m, &in, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m); });
+  auto scan_ms = utilz::measure_milliseconds([&m, &in, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m); });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
-  auto exec_ms = utilz::measure_milliseconds([&m]() -> void { calculate_apsp(m); });
+  auto exec_ms = utilz::measure_milliseconds(
+    [&m]() -> void {
+#ifdef ITT_TRACE
+      __itt_domain*        domain      = __itt_domain_create("apsp.shell");
+      __itt_string_handle* handle_exec = __itt_string_handle_create("apsp.shell.exec");
+      __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
+#endif
+
+      calculate_apsp(m);
+
+#ifdef ITT_TRACE
+      __itt_task_end(domain);
+#endif
+    });
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &out, opt_binary]() -> void { ::apsp::io::print_matrix(out, opt_binary, m); });
