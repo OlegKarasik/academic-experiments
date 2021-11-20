@@ -10,6 +10,7 @@ param(
     [string]$DataPattern = $(throw '-DataPattern parameter is required.'),
     [ValidateNotNullOrEmpty()]
     [string]$Output = $(throw '-Output parameter is required.'),
+    [switch]$Optional,
     $LineCount = 500
 )
 
@@ -59,12 +60,15 @@ try {
                 break;
             } while ($true);
             if (($Group -eq $null) -or ($Value -eq $null)) {
+              if ($Optional -eq $false) {
                 throw 'Pattern search failed with the following error: -GroupPattern or -DataPattern has no result';
+              }
+              return;
             };
-                
+
             $Found = $false;
             for ($i = 0; $i -lt $Content.Length; ++$i) {
-                if ($Content[$i][0] -eq $Group) { 
+                if ($Content[$i][0] -eq $Group) {
                     $Found = $true;
                     $Content[$i] += $Value;
 
