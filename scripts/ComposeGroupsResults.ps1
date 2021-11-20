@@ -39,11 +39,16 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
                            -DataPattern $DataPatterns[$i] `
                            -Output "$($Groups[$i]).out" `
                            -LineCount $LineCount `
-                           -ErrorAction Stop
-} 
+                           -ErrorAction Stop `
+                           -Optional
+}
 
 $Groups | % {
     $Target = Join-Path -Path $TargetDirectory -ChildPath "$($_).out" -ErrorAction Stop;
+    if (-not (Test-Path -Path $Target -PathType Leaf -ErrorAction Stop)) {
+      Write-Verbose -Message "No output for '$_', skipping";
+      return;
+    };
 
     Write-Host "Combining information from '$Target'" -ErrorAction Stop;
 
