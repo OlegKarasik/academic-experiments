@@ -81,6 +81,8 @@ $RunConfig | ForEach-Object {
         }
 
         if ($RunProf) {
+          Write-Host "Running profiling..." -ErrorAction Stop;
+
           for ($i = 0; $i -lt $Repeat; $i = $i + 1) {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'prof' -ErrorAction Stop;
@@ -94,13 +96,20 @@ $RunConfig | ForEach-Object {
               -allow-multiple-runs `
               --app-working-dir=$app_dir `
               -- $app_dir\_application-$version.exe -i "$source_dir\$Size.g" -o "$source_dir\$Size.g.out" $arguments `
-              2> 'eee.txt'
+              2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop)
 
             & $vtune -R summary `
               -result-dir $ExperimentResultsDirectory `
               -filter 'task=apsp.shell.exec' `
               > $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune.txt' -ErrorAction Stop);
           }
+          & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+            -NamePattern "vtune-cout\.txt" `
+            -Groups 'Exec' `
+            -DataPatterns 'Exec:\s+(\d+)ms' `
+            -Output "vtune-cout-combined.txt" `
+            -Multiple
+
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune\.txt" `
             -Groups $CollectionGroups `

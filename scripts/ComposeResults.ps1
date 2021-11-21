@@ -11,7 +11,8 @@ param(
   [ValidateNotNullOrEmpty()]
   [string] $Output = $(throw '-Output parameter is required.'),
   [switch] $Optional,
-  $LineCount = 500
+  [switch] $Multiple,
+  $LineCount = -1
 )
 
 if (-not (Test-Path -Path $TargetDirectory -PathType Container -ErrorAction Stop)) {
@@ -26,6 +27,8 @@ Write-Verbose -Message "NAME-PATTERN  : $NamePattern" -ErrorAction Stop;
 Write-Verbose -Message "GROUP-PATTERN : $GroupPattern" -ErrorAction Stop;
 Write-Verbose -Message "DATA-PATTERN  : $DataPattern" -ErrorAction Stop;
 Write-Verbose -Message "LINE COUNT    : $LineCount" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL      : $Optional" -ErrorAction Stop;
+Write-Verbose -Message "MULTIPLE      : $Multiple" -ErrorAction Stop;
 
 $Content = @();
 $Sort = { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) }
@@ -35,10 +38,11 @@ try {
     Write-Verbose -Message "Scanning: '$($_.FullName)'" -ErrorAction Stop;
     Get-ChildItem -Path $_.FullName -File -ErrorAction Stop | ? { return $_.Name -match $NamePattern; } | Sort-Object $Sort | % {
       Write-Host "- Composing results from: '$($_.Name)'" -ErrorAction Stop;
+      $Values = @();
       $Value = $null;
       $Group = $null;
       do {
-        Get-Content -Path $_.FullName -ReadCount $LineCount -ErrorAction Stop | % {
+        Get-Content -Path $_.FullName -TotalCount $LineCount -ErrorAction Stop | % {
           if ($Group -eq $null) {
             $match = $_ -match $GroupPattern;
             if ($match) {
@@ -54,12 +58,19 @@ try {
             };
           };
           if (($Group -ne $null) -and ($Value -ne $null)) {
-            break;
+            $Values += $Value;
+            if ($Multiple -eq $true) {
+              # If we are configured to hold multiple matches then we need
+              # to make sure we aren't break and continue scan
+              $Value = $null;
+            } else {
+              break;
+            }
           };
         };
         break;
       } while ($true);
-      if (($Group -eq $null) -or ($Value -eq $null)) {
+      if (($Group -eq $null) -or ($Values.Length -eq 0)) {
         if ($Optional -eq $false) {
           throw 'Pattern search failed with the following error: -GroupPattern or -DataPattern has no result';
         }
@@ -70,19 +81,19 @@ try {
       for ($i = 0; $i -lt $Content.Length; ++$i) {
         if ($Content[$i][0] -eq $Group) {
           $Found = $true;
-          $Content[$i] += $Value;
+          $Content[$i][1] += $Values;
 
           return;
         };
       };
       if (-not $Found) {
-        $Content += , @($Group, $Value);
+        $Content += , @($Group, $Values);
       };
     };
   };
   $ContentLine = @();
   for ($i = 0; $i -lt $Content.Length; ++$i) {
-    $ContentLine += $Content[$i] -join ' ';
+    $ContentLine += "$($Content[$i][0]) $($($Content[$i][1]) -join ' ')";
   };
   $ContentLine = $ContentLine -join $([System.Environment]::NewLine);
   if ($ContentLine.Length -ne 0) {

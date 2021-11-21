@@ -10,7 +10,8 @@ param(
   [string[]] $DataPatterns = $(throw '-DataPatterns parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string]   $Output = $(throw '-Output parameter is required.'),
-  $LineCount = 500
+  [switch]   $Multiple,
+  $LineCount = -1
 )
 
 if ($Groups.Count -ne $DataPatterns.Count) {
@@ -31,6 +32,7 @@ $DataPatterns | % {
   Write-Verbose -Message "- $_" -ErrorAction Stop;
 }
 Write-Verbose -Message "LINE COUNT    : $LineCount" -ErrorAction Stop;
+Write-Verbose -Message "MULTIPLE      : $Multiple" -ErrorAction Stop;
 
 for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
   & "$PSScriptRoot/ComposeResults.ps1" -TargetDirectory $TargetDirectory `
@@ -40,7 +42,8 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
     -Output "$($Groups[$i]).txt" `
     -LineCount $LineCount `
     -ErrorAction Stop `
-    -Optional
+    -Optional `
+    -Multiple:$Multiple
 }
 
 Write-Host "Processing outputs from '$TargetDirectory' into '$Output'" -ErrorAction Stop;
