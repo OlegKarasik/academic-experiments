@@ -95,7 +95,7 @@ $RunConfig | ForEach-Object {
               -knob event-config=$($EventConfig -join ',') `
               -allow-multiple-runs `
               --app-working-dir=$app_dir `
-              -- $app_dir\_application-$version.exe -i "$source_dir\$Size.g" -o "$source_dir\$Size.g.out" $arguments `
+              -- "$app_dir\_application-$version-itt.exe" -i "$source_dir\$Size.g" -o "$source_dir\$Size.g.out" $arguments `
               2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop)
 
             & $vtune -R summary `
