@@ -75,7 +75,7 @@ $RunConfig | ForEach-Object {
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
-            -Groups 'Exec' `
+            -Groups 'Exec:cout-exec' `
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "cout-combined.txt"
         }
@@ -105,7 +105,7 @@ $RunConfig | ForEach-Object {
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune-cout\.txt" `
-            -Groups 'Exec' `
+            -Groups 'Exec:vtune-exec' `
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "vtune-cout-combined.txt" `
             -Multiple
