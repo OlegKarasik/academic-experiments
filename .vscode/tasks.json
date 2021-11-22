@@ -126,7 +126,7 @@
         "-L\"C:/Program Files (x86)/Intel/oneAPI/vtune/latest/sdk/lib64\"",
         "-std=c++17",
         "--static",
-        "-fopt-info-optimized-missed-loop-omp-vec=\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}${input:compileOptions}.opt.all\"",
+        "-fopt-info-optimized-missed-loop-omp-vec=\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}${input:compileOptions}-itt.opt.all\"",
         "-gdwarf-3",
         "-D",
         "ALG_VARIATION=${input:compileVariation}",
@@ -135,7 +135,7 @@
         "${input:compileOptions}",
         "-O3",
         "-o",
-        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}${input:compileOptions}.exe\"",
+        "\"${fileDirname}/bin/${fileBasenameNoExtension}-v${input:compileVariation}${input:compileOptions}-itt.exe\"",
         "-llibittnotify",
         "'"
       ],
