@@ -10,6 +10,7 @@ param(
   [string[]] $DataPatterns = $(throw '-DataPatterns parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string]   $Output = $(throw '-Output parameter is required.'),
+  [string]   $Default = $null,
   [switch]   $Multiple,
   $LineCount = -1
 )
@@ -45,8 +46,9 @@ Write-Verbose -Message "DATA-PATTERNS : $DataPattern" -ErrorAction Stop;
 $DataPatterns | % {
   Write-Verbose -Message "- $_" -ErrorAction Stop;
 }
-Write-Verbose -Message "LINE COUNT    : $LineCount" -ErrorAction Stop;
+Write-Verbose -Message "DEFAULT       : $Default" -ErrorAction Stop;
 Write-Verbose -Message "MULTIPLE      : $Multiple" -ErrorAction Stop;
+Write-Verbose -Message "LINE COUNT    : $LineCount" -ErrorAction Stop;
 
 for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
   & "$PSScriptRoot/ComposeResults.ps1" -TargetDirectory $TargetDirectory `
@@ -57,6 +59,7 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
     -LineCount $LineCount `
     -ErrorAction Stop `
     -Optional `
+    -OptionalDefault $Default `
     -Multiple:$Multiple
 }
 
