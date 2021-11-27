@@ -59,7 +59,8 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
     -LineCount $LineCount `
     -ErrorAction Stop `
     -Optional `
-    -OptionalDefault $Default `
+    -OptionalDefaultGroup $Groups[$i] `
+    -OptionalDefaultValue $Default `
     -Multiple:$Multiple
 }
 

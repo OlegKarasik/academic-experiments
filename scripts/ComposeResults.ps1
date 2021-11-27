@@ -11,7 +11,8 @@ param(
   [ValidateNotNullOrEmpty()]
   [string] $Output = $(throw '-Output parameter is required.'),
   [switch] $Optional,
-  [string] $OptionalDefault = $null,
+  [string] $OptionalDefaultGroup = $null,
+  [string] $OptionalDefaultValue = $null,
   [switch] $Multiple,
   $LineCount = -1
 )
@@ -22,15 +23,16 @@ if (-not (Test-Path -Path $TargetDirectory -PathType Container -ErrorAction Stop
 
 $Output = Join-Path -Path $TargetDirectory -ChildPath $Output -ErrorAction Stop;
 
-Write-Verbose -Message "DIRECTORY        : $TargetDirectory" -ErrorAction Stop;
-Write-Verbose -Message "OUTPUT           : $Output" -ErrorAction Stop;
-Write-Verbose -Message "NAME-PATTERN     : $NamePattern" -ErrorAction Stop;
-Write-Verbose -Message "GROUP-PATTERN    : $GroupPattern" -ErrorAction Stop;
-Write-Verbose -Message "DATA-PATTERN     : $DataPattern" -ErrorAction Stop;
-Write-Verbose -Message "LINE COUNT       : $LineCount" -ErrorAction Stop;
-Write-Verbose -Message "OPTIONAL         : $Optional" -ErrorAction Stop;
-Write-Verbose -Message "OPTIONAL DEFAULT : $OptionalDefault" -ErrorAction Stop;
-Write-Verbose -Message "MULTIPLE         : $Multiple" -ErrorAction Stop;
+Write-Verbose -Message "DIRECTORY              : $TargetDirectory" -ErrorAction Stop;
+Write-Verbose -Message "OUTPUT                 : $Output" -ErrorAction Stop;
+Write-Verbose -Message "NAME-PATTERN           : $NamePattern" -ErrorAction Stop;
+Write-Verbose -Message "GROUP-PATTERN          : $GroupPattern" -ErrorAction Stop;
+Write-Verbose -Message "DATA-PATTERN           : $DataPattern" -ErrorAction Stop;
+Write-Verbose -Message "LINE COUNT             : $LineCount" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL               : $Optional" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL DEFAULT GROUP : $OptionalDefaultGroup" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL DEFAULT VALUE : $OptionalDefaultValue" -ErrorAction Stop;
+Write-Verbose -Message "MULTIPLE               : $Multiple" -ErrorAction Stop;
 
 $Content = @();
 $Sort = { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) }
@@ -76,10 +78,11 @@ try {
         if ($Optional -eq $false) {
           throw 'Pattern search failed with the following error: -GroupPattern or -DataPattern has no result';
         }
-        if ($OptionalDefault -ne $null) {
+        if (($OptionalDefaultGroup -ne $null) -and ($OptionalDefaultValue -ne $null)) {
           # We can specify a default value for optional parameter (ex. 0)
           # to have an understanding in what concrete run we had no output
-          $Values += $OptionalDefault;
+          $Values += $OptionalDefaultValue;
+          $Group = $OptionalDefaultGroup;
         } else {
           return;
         }

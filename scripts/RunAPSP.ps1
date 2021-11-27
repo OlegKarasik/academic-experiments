@@ -79,6 +79,10 @@ $RunConfig | ForEach-Object {
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "cout-combined.txt" `
             -Default "0"
+
+          Copy-Item -Path $(Join-Path -Path $ExperimentOutputDirectory -ChildPath "cout-combined.txt" -ErrorAction Stop) `
+                    -Destination $(Join-Path -Path $OutputDirectory -ChildPath "$($ExperimentCode).-cout.txt" -ErrorAction Stop) `
+                    -ErrorAction Stop
         }
 
         if ($RunProf) {
@@ -112,12 +116,20 @@ $RunConfig | ForEach-Object {
             -Multiple `
             -Default "0"
 
+            Copy-Item -Path $(Join-Path -Path $ExperimentOutputDirectory -ChildPath "vtune-cout-combined.txt" -ErrorAction Stop) `
+                      -Destination $(Join-Path -Path $OutputDirectory -ChildPath "$($ExperimentCode).-vtune-cout.txt" -ErrorAction Stop) `
+                      -ErrorAction Stop
+
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune\.txt" `
             -Groups $CollectionGroups `
             -DataPatterns $CollectionPatterns `
             -Output "vtune-combined.txt" `
             -Default "0"
+
+            Copy-Item -Path $(Join-Path -Path $ExperimentOutputDirectory -ChildPath "vtune-combined.txt" -ErrorAction Stop) `
+                      -Destination $(Join-Path -Path $OutputDirectory -ChildPath "$($ExperimentCode).-vtune.txt" -ErrorAction Stop) `
+                      -ErrorAction Stop
         }
       }
     }
