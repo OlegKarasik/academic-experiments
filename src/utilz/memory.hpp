@@ -3,6 +3,8 @@
 // global includes
 //
 #include <memory>
+#include <algorithm>
+#include <limits>
 #include <stdexcept>
 
 namespace utilz {
