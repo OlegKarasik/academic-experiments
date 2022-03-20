@@ -22,7 +22,7 @@ scan_matrix(std::istream& s, bool binary, S& m, TArgs... args)
   using set_fn = ::utilz::procedures::square_shape_set<S>;
   using rep_fn = ::utilz::procedures::square_shape_replace<S>;
 
-  using valut_type = typename ::utilz::traits::square_shape_traits<S>::value_type;
+  using value_type = typename ::utilz::traits::square_shape_traits<S>::value_type;
 
   sz_fn  sz(args...);
   set_fn set;
@@ -33,7 +33,7 @@ scan_matrix(std::istream& s, bool binary, S& m, TArgs... args)
   // Replace 'zero' values with corresponding 'infinity' value to ensure correct
   // execution of APSP Floyd-Warshall algorithm
   //
-  rep(m, valut_type(0), apsp::constants::infinity<valut_type>());
+  rep(m, value_type(0), apsp::constants::infinity<value_type>());
 };
 
 template<typename S>
