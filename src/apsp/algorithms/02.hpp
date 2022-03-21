@@ -5,10 +5,10 @@
 #include "square-shape.hpp"
 #include "memory.hpp"
 
-template<typename T, typename A>
+template<typename T>
 struct support_arrays
 {
-  using array_type = typename ::utilz::square_shape<T, A>::pointer;
+  using array_type = typename ::utilz::square_shape<T>::pointer;
 
   array_type mck;
   array_type drk;
@@ -17,7 +17,7 @@ struct support_arrays
 };
 
 template<typename T, typename A>
-__attribute__((noinline)) support_arrays<T, A>
+__attribute__((noinline)) support_arrays<T>
 setup_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& buff_buf)
 {
   using array_type = typename ::utilz::square_shape<T, A>::pointer;
@@ -26,7 +26,7 @@ setup_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& buff_buf)
 
   alsiz_type allocation_size = m.size() * sizeof(value_type);
 
-  support_arrays<T, A> arrays;
+  support_arrays<T> arrays;
 
   arrays.mck = reinterpret_cast<array_type>(allocation_size);
   arrays.drk = reinterpret_cast<array_type>(allocation_size);
@@ -39,7 +39,7 @@ setup_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& buff_buf)
 // apsp::constants::infinity<value_type>()
 template<typename T, typename A>
 __attribute__((noinline)) void
-calculate_apsp(::utilz::square_shape<T, A>& m, support_arrays<T, A> support_arrays)
+calculate_apsp(::utilz::square_shape<T, A>& m, support_arrays<T> support_arrays)
 {
   using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
