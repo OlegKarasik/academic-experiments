@@ -1,11 +1,15 @@
 // global algorithms
 //
 #if (ALG_VARIATION == 0)
-  #include "../00.hpp"
+  #include "../algorithms/00.hpp"
 #endif
 
 #if (ALG_VARIATION == 1)
-  #include "../01.hpp"
+  #include "../algorithms/01.hpp"
+#endif
+
+#if (ALG_VARIATION == 2)
+  #include "../algorithms/02.hpp"
 #endif
 
 // global includes
@@ -23,7 +27,7 @@
 #include "square-shape.hpp"
 
 // local utilz
-#include "../../io.hpp"
+#include "../io.hpp"
 
 template<typename T>
 class Fixture : public ::testing::Test
@@ -31,6 +35,10 @@ class Fixture : public ::testing::Test
 public:
 // aliasing
 //
+#ifdef APSP_ALG_SETUP
+  using buffer = ::utilz::memory::buffer_dyn;
+#endif
+
 #ifdef APSP_ALG_BLOCKED
   using matrix = ::utilz::square_shape<::utilz::square_shape<T>>;
 #else
@@ -40,6 +48,10 @@ public:
   using matrix_at = utilz::procedures::square_shape_at<matrix>;
 
 public:
+#ifdef APSP_ALG_SETUP
+  buffer m_buf;
+#endif
+
   matrix m_src;
   matrix m_res;
 
@@ -58,11 +70,11 @@ public:
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
 #ifdef APSP_ALG_BLOCKED
-    ::apsp::io::scan_matrix(src_fs, this->m_src, 2);
-    ::apsp::io::scan_matrix(res_fs, this->m_res, 2);
+    ::apsp::io::scan_matrix(src_fs, false, this->m_src, 2);
+    ::apsp::io::scan_matrix(res_fs, false, this->m_res, 2);
 #else
-    ::apsp::io::scan_matrix(src_fs, this->m_src);
-    ::apsp::io::scan_matrix(res_fs, this->m_res);
+    ::apsp::io::scan_matrix(src_fs, false, this->m_src);
+    ::apsp::io::scan_matrix(res_fs, false, this->m_res);
 #endif
   };
   ~Fixture(){};
@@ -72,7 +84,13 @@ using FixtureT = Fixture<int>;
 
 TEST_F(FixtureT, Execute)
 {
+#ifdef APSP_ALG_SETUP
+  auto setup = setup_apsp(this->m_src, this->m_buf);
+
+  calculate_apsp(this->m_src, setup);
+#else
   calculate_apsp(this->m_src);
+#endif
 
   matrix_at at;
 

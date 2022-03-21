@@ -46,7 +46,7 @@
 using g_calculation_type = int;
 
 template<typename T>
-using g_allocator_type = typename ::utilz::memory::buff_allocator<T>;
+using g_allocator_type = typename ::utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
@@ -163,17 +163,23 @@ main(int argc, char* argv[]) noexcept
     return 1;
   }
 
-  ::utilz::memory::buff_buf                           buff_buf(memory, opt_reserve, opt_alignment);
-  ::utilz::memory::buff_allocator<matrix::value_type> buff_allocator(&buff_buf);
+  ::utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
+  ::utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
 
   // Define matrix and execute algorithm specific overloads of methods
   //
-  matrix m(buff_allocator);
+  matrix m(buffer_allocator);
 
 #ifdef APSP_ALG_BLOCKED
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, opt_binary, s]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m, s); });
+  auto scan_ms = utilz::measure_milliseconds(
+    [&m, &in, opt_binary, s]() -> void { 
+      ::apsp::io::scan_matrix(in, opt_binary, m, s); 
+    });
 #else
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m); });
+  auto scan_ms = utilz::measure_milliseconds(
+    [&m, &in, opt_binary]() -> void { 
+      ::apsp::io::scan_matrix(in, opt_binary, m); 
+    });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
@@ -185,7 +191,7 @@ main(int argc, char* argv[]) noexcept
   // It is important to keep in mind that setup_apsp acts on memory buffer after the
   // matrix has been allocated.
   //
-  auto setup = setup_apsp(m, buff_buf);
+  auto setup = setup_apsp(m, buffer_fx);
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(

@@ -6,24 +6,43 @@
 #include "memory.hpp"
 
 template<typename T, typename A>
-__attribute__((noinline)) bool
-setup_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buff_buf buff_buf)
+struct support_arrays
 {
-  return true;
-}
+  using array_type = typename ::utilz::square_shape<T, A>::pointer;
 
-// #define FMAX 1000000000
-// static int mck[N];
-// static int drk[N];
-// static int mrk[N];
-// static int wrk[N];
+  array_type mck;
+  array_type drk;
+  array_type mrk;
+  array_type wrk;
+};
+
+template<typename T, typename A>
+__attribute__((noinline)) support_arrays<T, A>
+setup_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& buff_buf)
+{
+  using array_type = typename ::utilz::square_shape<T, A>::pointer;
+  using value_type = typename ::utilz::square_shape<T, A>::value_type;
+  using alsiz_type = typename ::utilz::memory::buffer_fx::size_type;
+
+  alsiz_type allocation_size = m.size() * sizeof(value_type);
+
+  support_arrays<T, A> arrays;
+
+  arrays.mck = reinterpret_cast<array_type>(allocation_size);
+  arrays.drk = reinterpret_cast<array_type>(allocation_size);
+  arrays.mrk = reinterpret_cast<array_type>(allocation_size);
+  arrays.wrk = reinterpret_cast<array_type>(allocation_size);
+
+  return arrays;
+};
+
 // apsp::constants::infinity<value_type>()
 template<typename T, typename A>
 __attribute__((noinline)) void
-calculate_apsp(::utilz::square_shape<T, A>& m, bool value)
+calculate_apsp(::utilz::square_shape<T, A>& m, support_arrays<T, A> support_arrays)
 {
-  // using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  // using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
 	// int i, j, k;
 	// int* pDij;
@@ -36,7 +55,7 @@ calculate_apsp(::utilz::square_shape<T, A>& m, bool value)
 
 	// drk[0] = FMAX;
 	// wrk[0] = B1[1];
-	// for (k = 1; k < N; ++k) {
+	for (size_type k = size_type(1); k < m.size(); ++k) {
 	// 	pDck = &B1[(k - 1) * N];
 	// 	for (i = 0; i < k; ++i)
 	// 		mck[i] = FMAX;
@@ -77,5 +96,5 @@ calculate_apsp(::utilz::square_shape<T, A>& m, bool value)
 	// 		sumDij = drki + *pdck;
 	// 		if (*pDij > sumDij) *pDij = sumDij;
 	// 	}
-	// }
+	}
 };
