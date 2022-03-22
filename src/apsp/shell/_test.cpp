@@ -35,7 +35,7 @@ class Fixture : public ::testing::Test
 public:
 // aliasing
 //
-#ifdef APSP_ALG_SETUP
+#ifdef APSP_ALG_WIND_UPDOWN
   using buffer = ::utilz::memory::buffer_dyn;
 #endif
 
@@ -48,7 +48,7 @@ public:
   using matrix_at = utilz::procedures::square_shape_at<matrix>;
 
 public:
-#ifdef APSP_ALG_SETUP
+#ifdef APSP_ALG_WIND_UPDOWN
   buffer m_buf;
 #endif
 
@@ -84,10 +84,12 @@ using FixtureT = Fixture<int>;
 
 TEST_F(FixtureT, Execute)
 {
-#ifdef APSP_ALG_SETUP
-  auto setup = setup_apsp(this->m_src, this->m_buf);
+#ifdef APSP_ALG_WIND_UPDOWN
+  auto options = wind_up_apsp(this->m_src, this->m_buf);
 
-  calculate_apsp(this->m_src, setup);
+  calculate_apsp(this->m_src, options);
+
+  wind_down_apsp(this->m_src, this->m_buf, options);
 #else
   calculate_apsp(this->m_src);
 #endif

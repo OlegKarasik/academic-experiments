@@ -1,100 +1,154 @@
 #pragma once
 
-#define APSP_ALG_SETUP
+#define APSP_ALG_WIND_UPDOWN
 
-#include "square-shape.hpp"
 #include "memory.hpp"
+#include "square-shape.hpp"
+
+#include "../constants.hpp"
 
 template<typename T>
 struct support_arrays
 {
-  using array_type = typename ::utilz::square_shape<T>::pointer;
+  using pointer = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T>>::pointer;
 
-  array_type mck;
-  array_type drk;
-  array_type mrk;
-  array_type wrk;
+  pointer mck;
+  pointer drk;
+  pointer mrk;
+  pointer wrk;
 };
 
 template<typename T, typename A>
 __attribute__((noinline)) support_arrays<T>
-setup_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& buff_buf)
+wind_up_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b)
 {
-  using array_type = typename ::utilz::square_shape<T, A>::pointer;
-  using value_type = typename ::utilz::square_shape<T, A>::value_type;
-  using alsiz_type = typename ::utilz::memory::buffer_fx::size_type;
+  using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
-  alsiz_type allocation_size = m.size() * sizeof(value_type);
+  auto allocation_size = m.size() * sizeof(value_type);
 
   support_arrays<T> arrays;
 
-  arrays.mck = reinterpret_cast<array_type>(allocation_size);
-  arrays.drk = reinterpret_cast<array_type>(allocation_size);
-  arrays.mrk = reinterpret_cast<array_type>(allocation_size);
-  arrays.wrk = reinterpret_cast<array_type>(allocation_size);
+  arrays.mck = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  arrays.drk = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  arrays.mrk = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  arrays.wrk = reinterpret_cast<pointer>(b.allocate(allocation_size));
+
+  // The algorithm requires that all self-loops have non "infinite" value. This
+  // doesn't affect correctness of calculations.
+  //
+  for (size_type i = size_type(0); i < m.size(); ++i) {
+    if (m.at(i, i) == ::apsp::constants::infinity<value_type>())
+      m.at(i, i) = size_type(0);
+
+    arrays.mck[i] = ::apsp::constants::infinity<value_type>();
+    arrays.drk[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mrk[i] = ::apsp::constants::infinity<value_type>();
+    arrays.wrk[i] = ::apsp::constants::infinity<value_type>();
+  }
 
   return arrays;
 };
 
-// apsp::constants::infinity<value_type>()
 template<typename T, typename A>
 __attribute__((noinline)) void
-calculate_apsp(::utilz::square_shape<T, A>& m, support_arrays<T> support_arrays)
+wind_down_apsp(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b, support_arrays<T> o)
 {
-  using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
-	// int i, j, k;
-	// int* pDij;
-	// int minR;
-	// int sumR, sumC, sumDij;
-	// int drki;
-	// int* pBik;
-	// int* pBki, bki;
-	// int* pdck, * pmrk, * pwrk, * pmck;
+  using alptr_type = typename ::utilz::memory::buffer::pointer;
 
-	// drk[0] = FMAX;
-	// wrk[0] = B1[1];
-	for (size_type k = size_type(1); k < m.size(); ++k) {
-	// 	pDck = &B1[(k - 1) * N];
-	// 	for (i = 0; i < k; ++i)
-	// 		mck[i] = FMAX;
-	// 	pBki = &B1[k * N];
-	// 	pmrk = &mrk[0];
-	// 	for (i = 0; i < k; ++i, ++pmrk) {
-	// 		minR = FMAX;
-	// 		bki = pBki[i];
-	// 		drki = drk[i];
-	// 		pDij = &B1[i * N];
-	// 		pdck = pDck;
-	// 		for (j = 0; j < k; ++j, ++pDij, ++pdck) {
-	// 			sumDij = drki + *pdck;
-	// 			if (*pDij > sumDij) *pDij = sumDij;
-	// 			sumR = *pDij + wrk[j];
-	// 			if (minR > sumR) minR = sumR;
-	// 			sumC = *pDij + bki;
-	// 			if (mck[j] > sumC) mck[j] = sumC;
-	// 		}
-	// 		*pmrk = minR;
-	// 	}
-	// 	pBki = &B1[k * N];
-	// 	pBik = &B1[k];
-	// 	pwrk = &wrk[0];
-	// 	pmck = &mck[0];
-	// 	for (i = 0; i < k; ++i, ++pBki, pBik += N, ++pwrk, ++pmck) {
-	// 		*pBki = *pmck;
-	// 		*pBik = drk[i] = mrk[i];
-	// 		*pwrk = pBik[1];
-	// 	}
-	// 	if (k < N - 1) *pwrk = pBik[1];
-	// }
-	// for (i = 0; i < N - 1; ++i) {
-	// 	drki = drk[i];
-	// 	pDij = &B1[i * N];
-	// 	pdck = &B1[(N - 1) * N];
-	// 	for (j = 0; j < N - 1; ++j, ++pDij, ++pdck) {
-	// 		sumDij = drki + *pdck;
-	// 		if (*pDij > sumDij) *pDij = sumDij;
-	// 	}
-	}
+  auto allocation_size = m.size() * sizeof(value_type);
+
+  b.deallocate(reinterpret_cast<alptr_type>(o.mck), allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.drk), allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mrk), allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.wrk), allocation_size);
+
+  // Restoring the matrix to a state where self-loop is represented as
+  // infinity instead of 0.
+  //
+  for (size_type i = size_type(0); i < m.size(); ++i)
+    if (m.at(i, i) == size_type(0))
+      m.at(i, i) = ::apsp::constants::infinity<value_type>();
+}
+
+template<typename T, typename A>
+__attribute__((noinline)) void
+calculate_apsp(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
+{
+  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+
+  pointer    pDck;
+  pointer    pDij;
+  value_type minR;
+  value_type sumR, sumC, sumDij;
+  value_type drki;
+  pointer    pBik;
+  pointer    pBki;
+  value_type bki;
+  pointer    pdck, pmrk, pwrk, pmck;
+
+  support_arrays.drk[0] = ::apsp::constants::infinity<value_type>();
+  support_arrays.wrk[0] = m.at(0, 1);
+
+  for (size_type k = size_type(1); k < m.size(); ++k) {
+    pDck = m.at(k - 1);
+    for (size_type i = size_type(0); i < k; ++i)
+      support_arrays.mck[i] = ::apsp::constants::infinity<value_type>();
+
+    pBki = m.at(k);
+    pmrk = &support_arrays.mrk[0];
+    for (size_type i = 0; i < k; ++i, ++pmrk) {
+      minR = ::apsp::constants::infinity<value_type>();
+      bki  = pBki[i];
+      drki = support_arrays.drk[i];
+      pDij = m.at(i);
+      pdck = pDck;
+
+      for (size_type j = 0; j < k; ++j, ++pDij, ++pdck) {
+        sumDij = drki + *pdck;
+        if (*pDij > sumDij)
+          *pDij = sumDij;
+
+        sumR = *pDij + support_arrays.wrk[j];
+        if (minR > sumR)
+          minR = sumR;
+
+        sumC = *pDij + bki;
+        if (support_arrays.mck[j] > sumC)
+          support_arrays.mck[j] = sumC;
+      }
+      *pmrk = minR;
+    }
+
+    pBki = m.at(k);
+    pBik = &m.at(0)[k];
+    pwrk = &support_arrays.wrk[0];
+    pmck = &support_arrays.mck[0];
+
+    for (size_type i = 0; i < k; ++i, ++pBki, pBik += m.size(), ++pwrk, ++pmck) {
+      *pBki = *pmck;
+      *pBik = support_arrays.drk[i] = support_arrays.mrk[i];
+      *pwrk                         = pBik[1];
+    }
+
+    if (k < m.size() - 1)
+      *pwrk = pBik[1];
+  }
+  for (size_type i = size_type(0); i < m.size() - size_type(1); ++i) {
+    drki = support_arrays.drk[i];
+    pDij = m.at(i);
+    pdck = m.at(m.size() - 1);
+
+    for (size_type j = 0; j < m.size() - size_type(1); ++j, ++pDij, ++pdck) {
+      sumDij = drki + *pdck;
+      if (*pDij > sumDij)
+        *pDij = sumDij;
+    }
+  }
 };

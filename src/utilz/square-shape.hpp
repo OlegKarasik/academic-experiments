@@ -330,6 +330,7 @@ public:
   using item_type  = typename square_shape<T, A>::value_type;
   using size_type  = typename square_shape<T, A>::size_type;
   using value_type = typename square_shape<T, A>::value_type;
+  using pointer    = typename square_shape<T, A>::pointer;
 };
 
 template<typename T, typename A, typename U>
@@ -340,6 +341,7 @@ public:
   using item_type  = typename square_shape<square_shape<T, A>, U>::value_type;
   using size_type  = typename square_shape<square_shape<T, A>, U>::size_type;
   using value_type = typename square_shape_traits<square_shape<T, A>>::value_type;
+  using pointer    = typename square_shape_traits<square_shape<T, A>>::pointer;
 };
 
 } // namespace traits
@@ -445,11 +447,11 @@ public:
     for (result_type i = result_type(0); i < os_sz; ++i)
       for (result_type j = result_type(0); j < os_sz; ++j) {
         typename U::rebind<A>::other in_a(s.m_a);
-        
+
         auto in_s = square_shape<T, A>(in_a);
 
         this->__impl<I + 1, square_shape<T, A>>::operator()(in_s, in_sz);
-        
+
         s.at(i, j) = std::move(in_s);
       }
   }

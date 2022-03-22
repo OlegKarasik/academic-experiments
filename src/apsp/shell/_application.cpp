@@ -184,19 +184,19 @@ main(int argc, char* argv[]) noexcept
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_SETUP
+#ifdef APSP_ALG_WIND_UPDOWN
   // In cases when algorithm requires additional setup (ex. pre-allocated arrays) 
-  // it can be done in setup_apsp procedure.
+  // it can be done in wind_up_apsp procedure (and undone in wind_down_apsp).
   // 
-  // It is important to keep in mind that setup_apsp acts on memory buffer after the
+  // It is important to keep in mind that wind_up_apsp acts on memory buffer after the
   // matrix has been allocated.
   //
-  auto setup = setup_apsp(m, buffer_fx);
+  auto o = wind_up_apsp(m, buffer_fx);
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(
-#ifdef APSP_ALG_SETUP
-    [&m, &setup]() -> void {
+#ifdef APSP_ALG_WIND_UPDOWN
+    [&m, &o]() -> void {
 #else
     [&m]() -> void {
 #endif
@@ -207,8 +207,8 @@ main(int argc, char* argv[]) noexcept
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
-#ifdef APSP_ALG_SETUP 
-      calculate_apsp(m, setup);
+#ifdef APSP_ALG_WIND_UPDOWN 
+      calculate_apsp(m, o);
 #else
       calculate_apsp(m);
 #endif
@@ -219,6 +219,10 @@ main(int argc, char* argv[]) noexcept
     });
 
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
+
+#ifdef APSP_ALG_WIND_UPDOWN
+  wind_down_apsp(m, buffer_fx, o);
+#endif
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &out, opt_binary]() -> void { ::apsp::io::print_matrix(out, opt_binary, m); });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
