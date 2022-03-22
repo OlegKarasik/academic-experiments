@@ -8,6 +8,10 @@
   #include "../algorithms/01.hpp"
 #endif
 
+#if (ALG_VARIATION == 2)
+  #include "../algorithms/02.hpp"
+#endif
+
 // instrumentation
 #ifdef ITT_TRACE
   #include <ittnotify.h>
@@ -42,7 +46,7 @@
 using g_calculation_type = int;
 
 template<typename T>
-using g_allocator_type = typename ::utilz::memory::buff_allocator<T>;
+using g_allocator_type = typename ::utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
@@ -159,35 +163,61 @@ main(int argc, char* argv[]) noexcept
     return 1;
   }
 
-  ::utilz::memory::buff_buf                           buff_buf(memory, opt_reserve, opt_alignment);
-  ::utilz::memory::buff_allocator<matrix::value_type> buff_allocator(&buff_buf);
+  ::utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
+  ::utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
 
   // Define matrix and execute algorithm specific overloads of methods
   //
-  matrix m(buff_allocator);
+  matrix m(buffer_allocator);
 
 #ifdef APSP_ALG_BLOCKED
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, s, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m, s); });
+  auto scan_ms = utilz::measure_milliseconds(
+    [&m, &in, opt_binary, s]() -> void { 
+      ::apsp::io::scan_matrix(in, opt_binary, m, s); 
+    });
 #else
-  auto scan_ms = utilz::measure_milliseconds([&m, &in, opt_binary]() -> void { ::apsp::io::scan_matrix(in, opt_binary, m); });
+  auto scan_ms = utilz::measure_milliseconds(
+    [&m, &in, opt_binary]() -> void { 
+      ::apsp::io::scan_matrix(in, opt_binary, m); 
+    });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
+#ifdef APSP_ALG_SETUP
+  // In cases when algorithm requires additional setup (ex. pre-allocated arrays) 
+  // it can be done in setup_apsp procedure.
+  // 
+  // It is important to keep in mind that setup_apsp acts on memory buffer after the
+  // matrix has been allocated.
+  //
+  auto setup = setup_apsp(m, buffer_fx);
+#endif
+
   auto exec_ms = utilz::measure_milliseconds(
+#ifdef APSP_ALG_SETUP
+    [&m, &setup]() -> void {
+#else
     [&m]() -> void {
+#endif
+
 #ifdef ITT_TRACE
       __itt_domain*        domain      = __itt_domain_create("apsp.shell");
       __itt_string_handle* handle_exec = __itt_string_handle_create("apsp.shell.exec");
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
+#ifdef APSP_ALG_SETUP 
+      calculate_apsp(m, setup);
+#else
       calculate_apsp(m);
+#endif
 
 #ifdef ITT_TRACE
       __itt_task_end(domain);
 #endif
     });
+
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &out, opt_binary]() -> void { ::apsp::io::print_matrix(out, opt_binary, m); });

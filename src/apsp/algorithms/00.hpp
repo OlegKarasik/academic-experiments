@@ -1,7 +1,5 @@
 #pragma once
 
-#undef APSP_ALG_BLOCKED
-
 #include "square-shape.hpp"
 
 template<typename T, typename A>

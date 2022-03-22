@@ -10,15 +10,15 @@
 #include "square-shape.hpp"
 
 // local utilz
-#include "../../io.hpp"
+#include "../io.hpp"
 
 // algorithm
 #if (ALG_VARIATION == 0)
-  #include "../00.hpp"
+  #include "../algorithms/00.hpp"
 #endif
 
 #if (ALG_VARIATION == 1)
-  #include "../01.hpp"
+  #include "../algorithms/01.hpp"
 #endif
 
 #ifdef _WIN32
@@ -46,7 +46,7 @@ public:
     if (!src_fs.is_open())
       throw std::logic_error("erro: the file '" + src_path.generic_string() + "' doesn't exist.");
 
-    apsp::io::scan_matrix(src_fs, this->m_src);
+    apsp::io::scan_matrix(src_fs, false, this->m_src);
   }
   ~Fixture()
   {
