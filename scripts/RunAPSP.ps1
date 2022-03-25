@@ -72,6 +72,10 @@ $RunConfig | ForEach-Object {
               -i "$source_dir\$Size.g" `
               -o "$source_dir\$Size.g-$version.out" $arguments `
               2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop);
+
+            if ($LastExitCode -ne 0) {
+              throw "Algorithm execution has failed with exit code: '$LastExitCode'. Please investigate.";
+            }
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
@@ -104,10 +108,18 @@ $RunConfig | ForEach-Object {
               -- "$app_dir\_application-$version-itt.exe" -i "$source_dir\$Size.g" -o "$source_dir\$Size.g.out" $arguments `
               2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop);
 
+            if ($LastExitCode -ne 0) {
+              throw "Algorithm execution (profiled) has failed with exit code: '$LastExitCode'. Please investigate.";
+            }
+
             & $vtune -R summary `
               -result-dir $ExperimentResultsDirectory `
               -filter 'task=apsp.shell.exec' `
               > $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune.txt' -ErrorAction Stop);
+
+            if ($LastExitCode -ne 0) {
+              throw "Profiling report generation has failed with exit code: '$LastExitCode'. Please investigate.";
+            }
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune-cout\.txt" `
