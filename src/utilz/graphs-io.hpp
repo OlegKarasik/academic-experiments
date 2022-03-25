@@ -18,8 +18,13 @@ scan_matrix(std::istream& s, bool binary, Matrix& g, MatrixSetSizeOperation& set
   // Read vertex and edge count
   //
   size_type sz = size_type(0);
-  if (!(s >> sz))
-    throw std::logic_error("erro: can't scan adjacency matrix size; expected format: <size>");
+  if (binary) {
+    if (!s.read(reinterpret_cast<char*>(&sz), sizeof(size_type)))
+      throw std::logic_error("erro: can't scan adjacency matrix size from binary file");
+  } else {
+    if (!(s >> sz))
+      throw std::logic_error("erro: can't scan adjacency matrix size; expected format: <size>");
+  }
 
   // Resize graph
   //
@@ -32,7 +37,7 @@ scan_matrix(std::istream& s, bool binary, Matrix& g, MatrixSetSizeOperation& set
       for (size_type j = size_type(0); j < sz; ++j) {
         value_type v;
         if (!s.read(reinterpret_cast<char*>(&v), sizeof(value_type)))
-          throw std::logic_error("erro: can't read matrix from binary file - the stream ended unexpectadly.");
+          throw std::logic_error("erro: can't scan matrix from binary file - the stream ended unexpectadly.");
 
         set_value(g, i, j, v);
       }
@@ -61,12 +66,10 @@ print_matrix(std::ostream& s, bool binary, Matrix& m, MatrixGetSizeOperation& ge
   if (sz == size_type(0))
     return;
 
-  // Write size information
-  //
-  if (!(s << sz << '\n'))
-    throw std::logic_error("erro: can't print adjacency matrix size");
-
   if (binary) {
+    if (!s.write(reinterpret_cast<char*>(&sz), sizeof(size_type)))
+      throw std::logic_error("erro: can't print adjacency matrix size");
+
     for (size_type i = size_type(0); i < sz; ++i)
       for (size_type j = size_type(0); j < sz; ++j) {
         value_type v = get_value(m, i, j);
@@ -74,6 +77,9 @@ print_matrix(std::ostream& s, bool binary, Matrix& m, MatrixGetSizeOperation& ge
           throw std::logic_error("erro: can't print adjacency matrix cell value");
       }
   } else {
+    if (!(s << sz << '\n'))
+      throw std::logic_error("erro: can't print adjacency matrix size");
+
     for (size_type i = size_type(0); i < sz; ++i)
       for (size_type j = size_type(0); j < sz; ++j) {
         value_type v = get_value(m, i, j);
