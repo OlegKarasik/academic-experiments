@@ -70,7 +70,7 @@ $RunConfig | ForEach-Object {
 
             & "$app_dir\_application-$version.exe" `
               -i "$source_dir\$Size.g" `
-              -o "$source_dir\$Size.g.out" $arguments `
+              -o "$source_dir\$Size.g-$version.out" $arguments `
               2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop);
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
@@ -102,7 +102,7 @@ $RunConfig | ForEach-Object {
               -data-limit=10000 `
               --app-working-dir=$app_dir `
               -- "$app_dir\_application-$version-itt.exe" -i "$source_dir\$Size.g" -o "$source_dir\$Size.g.out" $arguments `
-              2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop)
+              2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop);
 
             & $vtune -R summary `
               -result-dir $ExperimentResultsDirectory `
