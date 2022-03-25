@@ -73,7 +73,7 @@ random_graph(
         "erro: hoops count of promised paths is greater than edges count.");
   }
 
-  if (e >= (v * (v - 1) / 2))
+  if (e >= (v * (v - size_type(1)) / size_type(2)))
     throw std::logic_error(
       "erro: edge count in direct acyclic graph can't exceed: `((v) * (v - 1) / 2)`, where `v` is a vertex count.");
 
@@ -97,7 +97,7 @@ random_graph(
 
   // Permutate vector of vertexes
   //
-  for (size_type i = 0; i < (v - size_type(1)); ++i)
+  for (size_type i = size_type(0); i < (v - size_type(1)); ++i)
     std::swap(vertexes[distribution(distribution_engine)], vertexes[i]);
 
   // Set output matrix size and start writing edges
@@ -186,11 +186,18 @@ random_graph(
       // we simply perform a direct search to insert an edge
       //
       bool found = false;
-      for (size_type _i = 0; _i < v && !found; ++_i)
-        for (size_type _j = 0; _j < v && !found; ++_j) {
+      for (size_type _i = size_type(0); _i < v && !found; ++_i)
+        for (size_type _j = size_type(0); _j < v && !found; ++_j) {
           i = vertexes[_i];
           j = vertexes[_j];
 
+          // Ensure we aren't creating self-cycles
+          //
+          if (i == j)
+            continue;
+
+          // Ensure we aren't creating bi-directed edges
+          //
           if (i > j)
             std::swap(i, j);
 
