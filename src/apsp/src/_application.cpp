@@ -1,7 +1,3 @@
-// global algorithm
-//
-#include "algorithm.hpp"
-
 // instrumentation
 #ifdef ITT_TRACE
   #include <ittnotify.h>
@@ -18,7 +14,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// global utilz
+// global common includes
 //
 #include "measure.hpp"
 #include "memory.hpp"
@@ -27,9 +23,10 @@
 //
 #include "win-memory.hpp"
 
-// local utilz
+// local includes
 //
-#include "../io.hpp"
+#include "algorithm.hpp"
+#include "io.hpp"
 
 // define global types
 //

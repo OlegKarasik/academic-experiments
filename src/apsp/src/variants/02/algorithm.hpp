@@ -5,7 +5,7 @@
 #include "memory.hpp"
 #include "square-shape.hpp"
 
-#include "../constants.hpp"
+#include "constants.hpp"
 
 template<typename T>
 struct support_arrays

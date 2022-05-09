@@ -1,11 +1,11 @@
 {
     "folders": [
         {
-            "name": "utilz",
-            "path": "../utilz"
+            "name": "common",
+            "path": "../_common"
         },
         {
-            "name": "application",
+            "name": "program",
             "path": "."
         }
     ],
@@ -15,6 +15,9 @@
             "C:\\mingw-w64\\mingw64\\bin"
         ],
         "cmake.generator": "MinGW Makefiles",
-        "cmake.buildDirectory": "${workspaceFolder}/build"
+        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "files.associations": {
+            "type_traits": "cpp"
+        }
     }
 }
