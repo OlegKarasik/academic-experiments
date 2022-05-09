@@ -1,16 +1,6 @@
 // global algorithm
 //
-#if (ALG_VARIATION == 0)
-  #include "../algorithms/00.hpp"
-#endif
-
-#if (ALG_VARIATION == 1)
-  #include "../algorithms/01.hpp"
-#endif
-
-#if (ALG_VARIATION == 2)
-  #include "../algorithms/02.hpp"
-#endif
+#include "algorithm.hpp"
 
 // instrumentation
 #ifdef ITT_TRACE
