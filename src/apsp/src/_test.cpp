@@ -1,17 +1,3 @@
-// global algorithms
-//
-#if (ALG_VARIATION == 0)
-  #include "../algorithms/00.hpp"
-#endif
-
-#if (ALG_VARIATION == 1)
-  #include "../algorithms/01.hpp"
-#endif
-
-#if (ALG_VARIATION == 2)
-  #include "../algorithms/02.hpp"
-#endif
-
 // global includes
 //
 #include <filesystem>
@@ -26,8 +12,10 @@
 // global utilz
 #include "square-shape.hpp"
 
-// local utilz
-#include "../io.hpp"
+// local includes
+//
+#include "algorithm.hpp"
+#include "io.hpp"
 
 template<typename T>
 class Fixture : public ::testing::Test
