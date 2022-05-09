@@ -54,6 +54,7 @@ dkms.conf
 
 # Directories
 bin
+build
 
 # Mac
 .DS_Store

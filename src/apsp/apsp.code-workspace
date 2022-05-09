@@ -1,0 +1,20 @@
+{
+    "folders": [
+        {
+            "name": "utilz",
+            "path": "../utilz"
+        },
+        {
+            "name": "app",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "cmake.sourceDirectory": "${workspaceFolder}",
+        "cmake.mingwSearchDirs": [
+            "C:\\mingw-w64\\mingw64\\bin"
+        ],
+        "cmake.generator": "MinGW Makefiles",
+        "cmake.buildDirectory": "${workspaceFolder}/build"
+    }
+}
