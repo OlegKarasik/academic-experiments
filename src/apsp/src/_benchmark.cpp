@@ -9,21 +9,14 @@
 // global utilz
 #include "square-shape.hpp"
 
-// local utilz
-#include "../io.hpp"
+// local includes
+//
+#include "algorithm.hpp"
+#include "io.hpp"
 
-// algorithm
-#if (ALG_VARIATION == 0)
-  #include "../algorithms/00.hpp"
-#endif
-
-#if (ALG_VARIATION == 1)
-  #include "../algorithms/01.hpp"
-#endif
-
-#ifdef _WIN32
-  #pragma comment(lib, "Shlwapi.lib")
-#endif
+// #ifdef _WIN32
+//   #pragma comment(lib, "Shlwapi.lib")
+// #endif
 
 namespace apsp  = ::apsp;
 namespace utilz = ::utilz;
