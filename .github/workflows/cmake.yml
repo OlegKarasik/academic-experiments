@@ -1,4 +1,4 @@
-name: All-pairs Shortests Paths (CMake) 
+name: All-pairs Shortests Paths
 
 on:
   push:
@@ -14,7 +14,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+
+    - name: Checkout
+      uses: actions/checkout@v3
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}/src/apsp
