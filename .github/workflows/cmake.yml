@@ -8,6 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Release
+  GENERATOR: MinGW Makefiles
 
 jobs:
   build:
@@ -20,9 +21,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Configure CMake
+    - name: Configure
       working-directory: ${{github.workspace}}/src/apsp
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_GENERATOR=${{env.GENERATOR}}
 
     - name: Build
       working-directory: ${{github.workspace}}/src/apsp
