@@ -6,15 +6,16 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  BUILD_TYPE:      Release
-  BUILD_GENERATOR: MinGW Makefiles
-  BUILD_DIR:       ${{github.workspace}}/src/apsp/build
-
 jobs:
   build:
     name: All-Pairs Shortest Paths
+    env:
+      WORK_DIR:        ${{github.workspace}}/src/apsp
 
+      BUILD_TYPE:      Release
+      BUILD_GENERATOR: MinGW Makefiles
+      BUILD_DIR:       ${{env.WORK_DIR}}/src/apsp/build
+      
     runs-on: windows-latest
 
     steps:
@@ -31,7 +32,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Configure
-      run: cmake -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "${{env.BUILD_GENERATOR}}"
+      run: cmake -S ${{env.WORK_DIR}} -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "${{env.BUILD_GENERATOR}}"
 
     - name: Build
       run: cmake --build ${{env.BUILD_DIR}} --config ${{env.BUILD_TYPE}}
