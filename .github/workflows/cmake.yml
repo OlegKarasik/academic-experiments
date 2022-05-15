@@ -12,13 +12,45 @@ env:
   BUILD_DIR:       build
   
 jobs:
-  build:
+  apsp:
     name: All-Pairs Shortest Paths
       
     runs-on: windows-latest
     
     env:
       PROJT_DIR: ${{github.workspace}}/src/apsp
+    
+    steps:
+    - name: Setup MINGW (ENVIRONMENT & COMPILER)
+      uses: msys2/setup-msys2@v2
+      with:
+        update:  true
+        install: mingw-w64-x86_64-gcc
+        
+    - name: Setup MINGW (SYSTEM PATH)
+      run:  echo "D:/a/_temp/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure
+      working-directory: ${{env.PROJT_DIR}}
+      run: cmake -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "${{env.BUILD_GENERATOR}}"
+
+    - name: Build
+      working-directory: ${{env.PROJT_DIR}}
+      run: cmake --build ${{env.BUILD_DIR}} --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      working-directory: ${{env.PROJT_DIR}}
+      run: ctest --test-dir ${{env.BUILD_DIR}} -C ${{env.BUILD_TYPE}}
+  tools:
+    name: Tools
+      
+    runs-on: windows-latest
+    
+    env:
+      PROJT_DIR: ${{github.workspace}}/src/tools
     
     steps:
     - name: Setup MINGW (ENVIRONMENT & COMPILER)
