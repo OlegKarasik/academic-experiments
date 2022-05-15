@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14.0)
-project(application VERSION 0.1.0)
+project(apsp VERSION 0.1.0)
 
 # Include Google Test commands to simplify Google Tests integration
 #

@@ -1,11 +1,11 @@
 #include "square-shape.hpp"
 
-#include <string>
 #include <algorithm>
-#include <iostream>
 #include <fstream>
-#include <sstream>
+#include <iostream>
 #include <random>
+#include <sstream>
+#include <string>
 
 #include "graphs-generators.hpp"
 #include "graphs-io.hpp"
@@ -87,7 +87,7 @@ main(int argc, char* argv[])
   size_t v = 4800;
   size_t e = size_t(((v * (v - 1)) / 2) * 0.8);
 
-  utilz::square_shape<int>                                      random_adj;
+  utilz::square_shape<int>                                                                   random_adj;
   std::vector<utilz::graphs::generators::promised_path<utilz::square_shape<int>::size_type>> vec;
 
   set_size<utilz::square_shape<int>>  s_size;
