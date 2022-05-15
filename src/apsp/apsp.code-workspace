@@ -1,12 +1,12 @@
 {
     "folders": [
         {
-            "name": "common",
-            "path": "../_common"
-        },
-        {
             "name": "program",
             "path": "."
+        },
+        {
+            "name": "common",
+            "path": "../_common"
         }
     ],
     "settings": {
