@@ -13,7 +13,7 @@
 int
 main(int argc, char* argv[])
 {
-  size_t v = 4800;
+  size_t v = 4900;
   size_t e = size_t(((v * (v - 1)) / 2) * 0.8);
 
   utilz::square_shape<int>                                                                   random_adj;
