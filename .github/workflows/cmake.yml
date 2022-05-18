@@ -21,29 +21,43 @@ jobs:
       PROJT_DIR: ${{github.workspace}}/src/apsp
     
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - uses: dorny/paths-filter@v2.2.1
+      id: changes
+      with:
+        filters: |
+          apsp:
+            - 'src/apsp/**/*.*'
+          common:
+            - 'src/common/**/*.*'
+              
     - name: Setup MINGW (ENVIRONMENT & COMPILER)
       uses: msys2/setup-msys2@v2
       with:
         update:  true
         install: mingw-w64-x86_64-gcc
+      if: steps.changes.apsp == 'true' || steps.changes.common == 'true'
         
     - name: Setup MINGW (SYSTEM PATH)
       run:  echo "D:/a/_temp/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: Checkout
-      uses: actions/checkout@v3
+      if: steps.changes.apsp == 'true' || steps.changes.common == 'true'
 
     - name: Configure
       working-directory: ${{env.PROJT_DIR}}
       run: cmake -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "${{env.BUILD_GENERATOR}}"
-
+      if: steps.changes.apsp == 'true' || steps.changes.common == 'true'
+      
     - name: Build
       working-directory: ${{env.PROJT_DIR}}
       run: cmake --build ${{env.BUILD_DIR}} --config ${{env.BUILD_TYPE}}
-
+      if: steps.changes.apsp == 'true' || steps.changes.common == 'true'
+      
     - name: Test
       working-directory: ${{env.PROJT_DIR}}
       run: ctest --test-dir ${{env.BUILD_DIR}} -C ${{env.BUILD_TYPE}}
+      if: steps.changes.apsp == 'true' || steps.changes.common == 'true'
   tools:
     name: Tools
       
@@ -53,26 +67,40 @@ jobs:
       PROJT_DIR: ${{github.workspace}}/src/tools
     
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - uses: dorny/paths-filter@v2.2.1
+      id: changes
+      with:
+        filters: |
+          tools:
+            - 'src/tools/**/*.*'
+          common:
+            - 'src/common/**/*.*'
+            
     - name: Setup MINGW (ENVIRONMENT & COMPILER)
       uses: msys2/setup-msys2@v2
       with:
         update:  true
         install: mingw-w64-x86_64-gcc
+      if: steps.changes.tools == 'true' || steps.changes.common == 'true'
         
     - name: Setup MINGW (SYSTEM PATH)
       run:  echo "D:/a/_temp/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: Checkout
-      uses: actions/checkout@v3
+      if: steps.changes.tools == 'true' || steps.changes.common == 'true'
 
     - name: Configure
       working-directory: ${{env.PROJT_DIR}}
       run: cmake -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "${{env.BUILD_GENERATOR}}"
+      if: steps.changes.tools == 'true' || steps.changes.common == 'true'
 
     - name: Build
       working-directory: ${{env.PROJT_DIR}}
       run: cmake --build ${{env.BUILD_DIR}} --config ${{env.BUILD_TYPE}}
+      if: steps.changes.tools == 'true' || steps.changes.common == 'true'
 
     - name: Test
       working-directory: ${{env.PROJT_DIR}}
       run: ctest --test-dir ${{env.BUILD_DIR}} -C ${{env.BUILD_TYPE}}
+      if: steps.changes.tools == 'true' || steps.changes.common == 'true'
