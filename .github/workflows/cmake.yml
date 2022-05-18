@@ -13,11 +13,15 @@ env:
   
 jobs:
   changes:
+    name: Detect Changes
+    
     runs-on: ubuntu-latest
+    
     outputs:
       apsp: ${{ steps.filter.outputs.apsp }}
       common: ${{ steps.filter.outputs.common }}
       tools: ${{ steps.filter.outputs.tools }}
+    
     steps:
     - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
