@@ -19,5 +19,14 @@
     "files.associations": {
       "type_traits": "cpp"
     }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cmake-tools",
+      "twxs.cmake",
+      "editorconfig.editorconf",
+      "github.vscode-pull-request-github"
+    ]
   }
 }
