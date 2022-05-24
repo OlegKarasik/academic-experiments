@@ -62,7 +62,7 @@ include_directories(${INC_LIST})
 enable_testing()
 
 # Initialise targets
-foreach(t 00 01 02)
+foreach(t 00 01 02 03)
     add_executable(_application-v${t} ${APP_SRC_LIST})
     add_executable(_test-v${t}        ${TST_SRC_LIST})
     add_executable(_benchmark-v${t}   ${BNK_SRC_LIST})
