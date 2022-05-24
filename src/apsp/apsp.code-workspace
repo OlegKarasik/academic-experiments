@@ -17,7 +17,9 @@
     "cmake.generator": "MinGW Makefiles",
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "files.associations": {
-      "type_traits": "cpp"
+        "type_traits": "cpp",
+        "array": "cpp",
+        "string_view": "cpp"
     }
   },
   "extensions": {
@@ -25,7 +27,7 @@
       "ms-vscode.cpptools",
       "ms-vscode.cmake-tools",
       "twxs.cmake",
-      "editorconfig.editorconf",
+      "editorconfig.editorconfig",
       "github.vscode-pull-request-github"
     ]
   }
