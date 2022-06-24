@@ -67,6 +67,8 @@ enable_testing()
 
 # Initialise OpenMP compatible targets
 list(APPEND omp_targets 00)
+list(APPEND omp_targets 01)
+list(APPEND omp_targets 03)
 
 # Initialise targets
 foreach(t 00 01 02 03)
@@ -81,7 +83,9 @@ foreach(t 00 01 02 03)
   target_link_libraries(_test-v${t}      PRIVATE GTest::gtest_main)
   target_link_libraries(_benchmark-v${t} PRIVATE benchmark::benchmark_main)
 
-  if((OpenMP_CXX_FOUND) AND (ENABLE_OPENMP))
+  list(FIND omp_targets ${t} SUPPORTS_OPENMP)
+
+  if((OpenMP_CXX_FOUND) AND (ENABLE_OPENMP) AND (SUPPORTS_OPENMP GREATER -1))
     target_link_libraries(_application-v${t} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_test-v${t} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_benchmark-v${t} PUBLIC OpenMP::OpenMP_CXX)
