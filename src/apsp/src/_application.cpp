@@ -37,7 +37,7 @@ using g_allocator_type = typename ::utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
 using matrix_block = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
 using matrix       = ::utilz::square_shape<matrix_block, g_allocator_type<matrix_block>>;
 #else
@@ -55,7 +55,7 @@ main(int argc, char* argv[]) noexcept
   std::ifstream ins;
   std::ofstream outs;
 
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
   matrix::size_type s = 0;
 
   const char* options = "i:o:bpr:a:s:";
@@ -108,7 +108,7 @@ main(int argc, char* argv[]) noexcept
           return 1;
         }
         break;
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
       case 's':
         std::cerr << "-s: " << optarg << "\n";
 
@@ -157,32 +157,32 @@ main(int argc, char* argv[]) noexcept
   //
   matrix m(buffer_allocator);
 
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &in, opt_binary, s]() -> void { 
-      ::apsp::io::scan_matrix(in, opt_binary, m, s); 
+    [&m, &in, opt_binary, s]() -> void {
+      ::apsp::io::scan_matrix(in, opt_binary, m, s);
     });
 #else
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &in, opt_binary]() -> void { 
-      ::apsp::io::scan_matrix(in, opt_binary, m); 
+    [&m, &in, opt_binary]() -> void {
+      ::apsp::io::scan_matrix(in, opt_binary, m);
     });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_WIND_UPDOWN
-  // In cases when algorithm requires additional setup (ex. pre-allocated arrays) 
-  // it can be done in wind_up_apsp procedure (and undone in wind_down_apsp).
-  // 
-  // It is important to keep in mind that wind_up_apsp acts on memory buffer after the
+#ifdef APSP_ALG_HAS_OPTIONS
+  // In cases when algorithm requires additional setup (ex. pre-allocated arrays)
+  // it can be done in up procedure (and undone in down).
+  //
+  // It is important to keep in mind that up acts on memory buffer after the
   // matrix has been allocated.
   //
-  auto o = wind_up_apsp(m, buffer_fx);
+  auto o = up(m, buffer_fx);
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(
-#ifdef APSP_ALG_WIND_UPDOWN
+#ifdef APSP_ALG_HAS_OPTIONS
     [&m, &o]() -> void {
 #else
     [&m]() -> void {
@@ -194,10 +194,10 @@ main(int argc, char* argv[]) noexcept
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
-#ifdef APSP_ALG_WIND_UPDOWN 
-      calculate_apsp(m, o);
+#ifdef APSP_ALG_HAS_OPTIONS
+      run(m, o);
 #else
-      calculate_apsp(m);
+      run(m);
 #endif
 
 #ifdef ITT_TRACE
@@ -207,8 +207,8 @@ main(int argc, char* argv[]) noexcept
 
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_WIND_UPDOWN
-  wind_down_apsp(m, buffer_fx, o);
+#ifdef APSP_ALG_HAS_OPTIONS
+  down(m, buffer_fx, o);
 #endif
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &out, opt_binary]() -> void { ::apsp::io::print_matrix(out, opt_binary, m); });

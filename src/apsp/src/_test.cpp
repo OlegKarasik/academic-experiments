@@ -23,11 +23,11 @@ class Fixture : public ::testing::Test
 public:
 // aliasing
 //
-#ifdef APSP_ALG_WIND_UPDOWN
+#ifdef APSP_ALG_HAS_OPTIONS
   using buffer = ::utilz::memory::buffer_dyn;
 #endif
 
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
   using matrix = ::utilz::square_shape<::utilz::square_shape<T>>;
 #else
   using matrix = ::utilz::square_shape<T>;
@@ -36,7 +36,7 @@ public:
   using matrix_at = utilz::procedures::square_shape_at<matrix>;
 
 public:
-#ifdef APSP_ALG_WIND_UPDOWN
+#ifdef APSP_ALG_HAS_OPTIONS
   buffer m_buf;
 #endif
 
@@ -57,7 +57,7 @@ public:
     if (!res_fs.is_open())
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
     ::apsp::io::scan_matrix(src_fs, false, this->m_src, 2);
     ::apsp::io::scan_matrix(res_fs, false, this->m_res, 2);
 #else
@@ -72,14 +72,14 @@ using FixtureT = Fixture<int>;
 
 TEST_F(FixtureT, Execute)
 {
-#ifdef APSP_ALG_WIND_UPDOWN
-  auto options = wind_up_apsp(this->m_src, this->m_buf);
+#ifdef APSP_ALG_HAS_OPTIONS
+  auto options = up(this->m_src, this->m_buf);
 
-  calculate_apsp(this->m_src, options);
+  run(this->m_src, options);
 
-  wind_down_apsp(this->m_src, this->m_buf, options);
+  down(this->m_src, this->m_buf, options);
 #else
-  calculate_apsp(this->m_src);
+  run(this->m_src);
 #endif
 
   matrix_at at;

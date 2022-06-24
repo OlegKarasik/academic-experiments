@@ -1,7 +1,7 @@
 #pragma once
 
-#define APSP_ALG_BLOCKED
-#define APSP_ALG_WIND_UPDOWN
+#define APSP_ALG_HAS_BLOCKS
+#define APSP_ALG_HAS_OPTIONS
 
 #include "memory.hpp"
 #include "square-shape.hpp"
@@ -25,7 +25,7 @@ struct support_arrays
 
 template<typename T, typename A, typename U>
 __attribute__((noinline)) support_arrays<T>
-wind_up_apsp(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory::buffer& b)
+up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory::buffer& b)
 {
   using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::pointer;
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
@@ -69,7 +69,7 @@ wind_up_apsp(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::util
 
 template<typename T, typename A, typename U>
 __attribute__((noinline)) void
-wind_down_apsp(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory::buffer& b, support_arrays<T> o)
+down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory::buffer& b, support_arrays<T> o)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::value_type;
@@ -323,7 +323,7 @@ BCA_P3(
 
 template<typename T, typename A, typename U>
 __attribute__((noinline)) void
-calculate_apsp(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<T>& support_arrays)
+run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<T>& support_arrays)
 {
   int i, j, m;
   for (m = 0; m < blocks.size(); ++m) {

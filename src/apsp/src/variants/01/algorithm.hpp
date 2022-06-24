@@ -1,6 +1,6 @@
 #pragma once
 
-#define APSP_ALG_BLOCKED
+#define APSP_ALG_HAS_BLOCKS
 
 #include "square-shape.hpp"
 
@@ -18,7 +18,7 @@ calculate_block(::utilz::square_shape<T, A>& ij, ::utilz::square_shape<T, A>& ik
 
 template<typename T, typename A, typename U>
 __attribute__((noinline)) void
-calculate_apsp(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
+run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
 {
   using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
 

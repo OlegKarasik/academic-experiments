@@ -22,18 +22,18 @@ class Fixture : public benchmark::Fixture
 {
 // aliasing
 //
-#ifdef APSP_ALG_WIND_UPDOWN
+#ifdef APSP_ALG_HAS_OPTIONS
   using buffer = ::utilz::memory::buffer_dyn;
 #endif
 
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
   using matrix = ::utilz::square_shape<::utilz::square_shape<T>>;
 #else
   using matrix = ::utilz::square_shape<T>;
 #endif
 
 public:
-#ifdef APSP_ALG_WIND_UPDOWN
+#ifdef APSP_ALG_HAS_OPTIONS
   buffer m_buf;
 #endif
 
@@ -48,7 +48,7 @@ public:
     if (!src_fs.is_open())
       throw std::logic_error("erro: the file '" + src_path.generic_string() + "' doesn't exist.");
 
-#ifdef APSP_ALG_BLOCKED
+#ifdef APSP_ALG_HAS_BLOCKS
     ::apsp::io::scan_matrix(src_fs, false, this->m_src, 2);
 #else
     ::apsp::io::scan_matrix(src_fs, false, this->m_src);
@@ -63,14 +63,14 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 (benchmark::State& state)
 {
   for (auto _ : state) {
-#ifdef APSP_ALG_WIND_UPDOWN
-    auto options = wind_up_apsp(this->m_src, this->m_buf);
+#ifdef APSP_ALG_HAS_OPTIONS
+    auto options = up(this->m_src, this->m_buf);
 
-    calculate_apsp(this->m_src, options);
+    run(this->m_src, options);
 
-    wind_down_apsp(this->m_src, this->m_buf, options);
+    down(this->m_src, this->m_buf, options);
 #else
-    calculate_apsp(this->m_src);
+    run(this->m_src);
 #endif
   }
 }
