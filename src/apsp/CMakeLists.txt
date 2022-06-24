@@ -9,6 +9,10 @@ include(GoogleTest)
 #
 include(FetchContent)
 
+# Find OpenMP package
+#
+find_package(OpenMP)
+
 # Declare Google Tests and Google Benchmark content
 #
 FetchContent_Declare(
@@ -61,22 +65,31 @@ include_directories(${INC_LIST})
 #
 enable_testing()
 
+# Initialise OpenMP compatible targets
+list(APPEND omp_targets 00)
+
 # Initialise targets
 foreach(t 00 01 02 03)
-    add_executable(_application-v${t} ${APP_SRC_LIST})
-    add_executable(_test-v${t}        ${TST_SRC_LIST})
-    add_executable(_benchmark-v${t}   ${BNK_SRC_LIST})
+  add_executable(_application-v${t} ${APP_SRC_LIST})
+  add_executable(_test-v${t}        ${TST_SRC_LIST})
+  add_executable(_benchmark-v${t}   ${BNK_SRC_LIST})
 
-    target_include_directories(_application-v${t} PRIVATE src/variants/${t})
-    target_include_directories(_test-v${t}        PRIVATE src/variants/${t})
-    target_include_directories(_benchmark-v${t}   PRIVATE src/variants/${t})
+  target_include_directories(_application-v${t} PRIVATE src/variants/${t})
+  target_include_directories(_test-v${t}        PRIVATE src/variants/${t})
+  target_include_directories(_benchmark-v${t}   PRIVATE src/variants/${t})
 
-    target_link_libraries(_test-v${t}      PRIVATE GTest::gtest_main)
-    target_link_libraries(_benchmark-v${t} PRIVATE benchmark::benchmark_main)
+  target_link_libraries(_test-v${t}      PRIVATE GTest::gtest_main)
+  target_link_libraries(_benchmark-v${t} PRIVATE benchmark::benchmark_main)
 
-    # Discover Google Tests in the target
-    #
-    gtest_discover_tests(_test-v${t})
+  if((OpenMP_CXX_FOUND) AND (ENABLE_OPENMP))
+    target_link_libraries(_application-v${t}-pp PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(_test-v${t} PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(_benchmark-v${t} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+
+  # Discover Google Tests in the target
+  #
+  gtest_discover_tests(_test-v${t})
 endforeach()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

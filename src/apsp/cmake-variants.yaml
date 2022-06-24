@@ -1,0 +1,39 @@
+buildType:
+  default: debug
+  choices:
+    debug:
+      short: Debug
+      long: Emit debug information
+      buildType: Debug
+    release:
+      short: Release
+      long: Optimize generated code
+      buildType: Release
+
+itt:
+  default: single
+  choices:
+    pure:
+      short: "Defaults"
+      long: "Defaults"
+      setting:
+        ENABLE_ITT: "NO"
+        ENABLE_OPENMP: "NO"
+    itt:
+      short: "ITT"
+      long: "Intel ITT"
+      setting:
+        ENABLE_ITT: "YES"
+        ENABLE_OPENMP: "NO"
+    openmp:
+      short: "OpenMP"
+      long: "OpenMP"
+      setting:
+        ENABLE_ITT: "NO"
+        ENABLE_OPENMP: "YES"
+    itt-openmp:
+      short: "ITT + OpenMP"
+      long: "Intel ITT + OpenMP"
+      setting:
+        ENABLE_ITT: "YES"
+        ENABLE_OPENMP: "YES"
