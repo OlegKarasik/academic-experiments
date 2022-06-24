@@ -11,29 +11,29 @@ buildType:
       buildType: Release
 
 itt:
-  default: single
+  default: pure
   choices:
     pure:
-      short: "Defaults"
+      short: "Default"
       long: "Defaults"
-      setting:
+      settings:
         ENABLE_ITT: "NO"
         ENABLE_OPENMP: "NO"
     itt:
       short: "ITT"
       long: "Intel ITT"
-      setting:
+      settings:
         ENABLE_ITT: "YES"
         ENABLE_OPENMP: "NO"
     openmp:
       short: "OpenMP"
       long: "OpenMP"
-      setting:
+      settings:
         ENABLE_ITT: "NO"
         ENABLE_OPENMP: "YES"
     itt-openmp:
       short: "ITT + OpenMP"
       long: "Intel ITT + OpenMP"
-      setting:
+      settings:
         ENABLE_ITT: "YES"
         ENABLE_OPENMP: "YES"

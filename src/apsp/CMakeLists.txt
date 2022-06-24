@@ -82,7 +82,7 @@ foreach(t 00 01 02 03)
   target_link_libraries(_benchmark-v${t} PRIVATE benchmark::benchmark_main)
 
   if((OpenMP_CXX_FOUND) AND (ENABLE_OPENMP))
-    target_link_libraries(_application-v${t}-pp PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(_application-v${t} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_test-v${t} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_benchmark-v${t} PUBLIC OpenMP::OpenMP_CXX)
   endif()
