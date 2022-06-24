@@ -85,6 +85,9 @@ foreach(t 00 01 02 03)
 
   list(FIND omp_targets ${t} SUPPORTS_OPENMP)
 
+  # If compiler supports OpenMP, our build variant is to use OpenMP and
+  # algorithm supports OpenMP, then link OpenMP libraries and compiler options
+  #
   if((OpenMP_CXX_FOUND) AND (ENABLE_OPENMP) AND (SUPPORTS_OPENMP GREATER -1))
     target_link_libraries(_application-v${t} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_test-v${t} PUBLIC OpenMP::OpenMP_CXX)
