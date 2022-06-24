@@ -233,82 +233,93 @@ BCA_C1(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support
   }
 }
 
-// void
-// BCA_C2(int b1, int b2)
-// { // ++++++++++++++++++++++++++++++++++++++++++++++++++++   For paper and use
-//   int* B1 = BA[b1];
-//   int* B2 = BA[b2];
-//   int  j, i, k, k1;
-//   int  sum0, sum1;
-//   int  ck1B2i, rkB2i;
-//   int *prkB1, *prkB1_j, *priB1, *prk1B1, *prk1B1_j, *prkB2, *pck1B2i, *priB2;
-//   ck1B2[0] = B2[0];
-//   for (k = 1; k < B; ++k) {
-//     k1     = k - 1;
-//     prkB1  = &B1[k * B];
-//     prk1B1 = &B1[k1 * B];
-//     prkB2  = &B2[k * B];
-//     for (i = 0; i < k; ++i) {
-//       ck1B2i   = ck1B2[i];
-//       prkB1_j  = prkB1;
-//       priB1    = &B1[i * B];
-//       prk1B1_j = prk1B1;
-//       rkB2i    = prkB2[i];
-//       for (j = 0; j < B; ++j, ++prkB1_j, ++priB1, ++prk1B1_j) {
-//         sum1 = ck1B2i + *prk1B1_j;
-//         if (*priB1 > sum1)
-//           *priB1 = sum1;
-//         sum0 = rkB2i + *priB1;
-//         if (*prkB1_j > sum0)
-//           *prkB1_j = sum0;
-//       }
-//     }
-//     pck1B2i = ck1B2;
-//     priB2   = &B2[0] + k;
-//     for (i = 0; i < k; ++i, ++pck1B2i, priB2 += B) {
-//       *pck1B2i = *priB2;
-//     }
-//   }
-//   k1     = k - 1;
-//   prk1B1 = &B1[k1 * B];
-//   for (i = 0; i < k1; ++i) {
-//     ck1B2i   = ck1B2[i];
-//     priB1    = &B1[i * B];
-//     prk1B1_j = prk1B1;
-//     for (j = 0; j < B; ++j, ++priB1, ++prk1B1_j) {
-//       sum1 = ck1B2i + *prk1B1_j;
-//       if (*priB1 > sum1)
-//         *priB1 = sum1;
-//     }
-//   }
-// }
-// void
-// BCA_P3(int b1, int b2, int b3)
-// {
-//   int* B1 = BA[b1];
-//   int* B2 = BA[b2];
-//   int* B3 = BA[b3];
-//   int  i, j, k;
-//   int  sum;
-//   int *k_rowB3, *pkj_row;
-//   int *i_rowB1, *i_rowB1j, *i_rowB2;
-//   int  ik;
-//   for (i = 0; i < B; ++i) {
-//     i_rowB1 = &B1[i * B];
-//     i_rowB2 = &B2[i * B];
-//     for (k = 0; k < B; ++k) {
-//       k_rowB3  = &B3[k * B];
-//       ik       = i_rowB2[k];
-//       i_rowB1j = i_rowB1;
-//       for (j = 0; j < B; ++j, ++k_rowB3, ++i_rowB1j) {
-//         sum = ik + *k_rowB3;
-//         if (*i_rowB1j > sum) {
-//           *i_rowB1j = sum;
-//         }
-//       }
-//     }
-//   }
-// }
+template<typename T, typename A>
+void
+BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support_arrays<T>& support_arrays)
+{
+  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+
+  size_type  j, i, k, k1;
+  value_type  sum0, sum1;
+  value_type  ck1B2i, rkB2i;
+  pointer prkB1, prkB1_j, priB1, prk1B1, prk1B1_j, prkB2, pck1B2i, priB2;
+  support_arrays.ckb1[0] = b2.at(0, 0);
+  for (k = size_type(1); k < b1.size(); ++k) {
+    k1     = k - 1;
+    prkB1  = b1.at(k);
+    prk1B1 = b1.at(k1);
+    prkB2  = b2.at(k);
+    for (i = size_type(0); i < k; ++i) {
+      ck1B2i   = support_arrays.ckb1[i];
+      prkB1_j  = prkB1;
+      priB1    = b1.at(i);
+      prk1B1_j = prk1B1;
+      rkB2i    = prkB2[i];
+      for (j = size_type(0); j < b1.size(); ++j, ++prkB1_j, ++priB1, ++prk1B1_j) {
+        sum1 = ck1B2i + *prk1B1_j;
+        if (*priB1 > sum1)
+          *priB1 = sum1;
+        sum0 = rkB2i + *priB1;
+        if (*prkB1_j > sum0)
+          *prkB1_j = sum0;
+      }
+    }
+    pck1B2i = support_arrays.ckb1;
+    priB2   = &b2.at(0, k);
+    for (i = size_type(0); i < k; ++i, ++pck1B2i, priB2 += b1.size()) {
+      *pck1B2i = *priB2;
+    }
+  }
+  k1     = k - 1;
+  prk1B1 = b1.at(k1);
+  for (i = size_type(0); i < k1; ++i) {
+    ck1B2i   = support_arrays.ckb1[i];
+    priB1    = b1.at(i);
+    prk1B1_j = prk1B1;
+    for (j = 0; j < b1.size(); ++j, ++priB1, ++prk1B1_j) {
+      sum1 = ck1B2i + *prk1B1_j;
+      if (*priB1 > sum1)
+        *priB1 = sum1;
+    }
+  }
+}
+
+template<typename T, typename A>
+void
+BCA_P3(
+  ::utilz::square_shape<T, A>& b1,
+  ::utilz::square_shape<T, A>& b2,
+  ::utilz::square_shape<T, A>& b3,
+  support_arrays<T>& support_arrays
+)
+{
+  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+
+  size_type  i, j, k;
+  value_type  sum;
+  pointer k_rowB3, pkj_row;
+  pointer i_rowB1, i_rowB1j, i_rowB2;
+  value_type  ik;
+  for (i = size_type(0); i < b1.size(); ++i) {
+    i_rowB1 = b1.at(i);
+    i_rowB2 = b2.at(i);
+    for (k = size_type(0); k < b1.size(); ++k) {
+      k_rowB3  = b3.at(k);
+      ik       = i_rowB2[k];
+      i_rowB1j = i_rowB1;
+      for (j = size_type(0); j < b1.size(); ++j, ++k_rowB3, ++i_rowB1j) {
+        sum = ik + *k_rowB3;
+        if (*i_rowB1j > sum) {
+          *i_rowB1j = sum;
+        }
+      }
+    }
+  }
+}
 
 template<typename T, typename A, typename U>
 __attribute__((noinline)) void
@@ -323,16 +334,21 @@ calculate_apsp(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, supp
       if (i != m) {
         auto& x = blocks.at(i, m);
         auto& y = blocks.at(m, m);
+        auto& z = blocks.at(m, i);
 
         BCA_C1(x, y, support_arrays);
-        //BCA_C2(m * M + i, m * M + m);
+        BCA_C2(z, y, support_arrays);
       }
     }
     for (i = 0; i < blocks.size(); ++i) {
       if (i != m) {
         for (j = 0; j < blocks.size(); ++j) {
           if (j != m) {
-            //BCA_P3(i * M + j, i * M + m, m * M + j);
+            auto& x = blocks.at(i, j);
+            auto& y = blocks.at(i, m);
+            auto& z = blocks.at(m, j);
+
+            BCA_P3(x, y, z, support_arrays);
           }
         }
       }
