@@ -66,40 +66,69 @@ include_directories(${INC_LIST})
 enable_testing()
 
 # Initialise OpenMP compatible targets
-list(APPEND omp_targets 00)
-list(APPEND omp_targets 01)
-list(APPEND omp_targets 03)
+#
+list(APPEND omp_targets 00_omp)
+list(APPEND omp_targets 01_omp)
+list(APPEND omp_targets 03_omp)
+
+# Initialise algorithms targets
+#
+list(APPEND targets_names 00)
+list(APPEND targets_names 00_omp)
+list(APPEND targets_names 01)
+list(APPEND targets_names 01_omp)
+list(APPEND targets_names 02)
+list(APPEND targets_names 03)
+list(APPEND targets_names 03_omp)
+
+# Initialise algorithms aliases
+#
+list(APPEND targets_alias 00)
+list(APPEND targets_alias 00)
+list(APPEND targets_alias 01)
+list(APPEND targets_alias 01)
+list(APPEND targets_alias 02)
+list(APPEND targets_alias 03)
+list(APPEND targets_alias 03)
+
+# Initialise length
+#
+list(LENGTH targets_names _length)
+math(EXPR length "${_length}-1")
 
 # Initialise targets
-foreach(t 00 01 02 03)
-  add_executable(_application-v${t} ${APP_SRC_LIST})
-  add_executable(_test-v${t}        ${TST_SRC_LIST})
-  add_executable(_benchmark-v${t}   ${BNK_SRC_LIST})
+foreach(index RANGE ${length})
+  list(GET targets_names ${index} t_name)
+  list(GET targets_alias ${index} t_alias)
 
-  target_include_directories(_application-v${t} PRIVATE src/variants/${t})
-  target_include_directories(_test-v${t}        PRIVATE src/variants/${t})
-  target_include_directories(_benchmark-v${t}   PRIVATE src/variants/${t})
+  add_executable(_application-v${t_name} ${APP_SRC_LIST})
+  add_executable(_test-v${t_name}        ${TST_SRC_LIST})
+  add_executable(_benchmark-v${t_name}   ${BNK_SRC_LIST})
 
-  target_link_libraries(_test-v${t}      PRIVATE GTest::gtest_main)
-  target_link_libraries(_benchmark-v${t} PRIVATE benchmark::benchmark_main)
+  target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
+  target_include_directories(_test-v${t_name}        PRIVATE src/variants/${t_alias})
+  target_include_directories(_benchmark-v${t_name}   PRIVATE src/variants/${t_alias})
 
-  list(FIND omp_targets ${t} SUPPORTS_OPENMP)
+  target_link_libraries(_test-v${t_name}      PRIVATE GTest::gtest_main)
+  target_link_libraries(_benchmark-v${t_name} PRIVATE benchmark::benchmark_main)
+
+  list(FIND omp_targets ${t_name} SUPPORTS_OPENMP)
 
   # If compiler supports OpenMP, our build variant is to use OpenMP and
   # algorithm supports OpenMP, then link OpenMP libraries and compiler options
   #
-  if((OpenMP_CXX_FOUND) AND (ENABLE_OPENMP) AND (SUPPORTS_OPENMP GREATER -1))
-    target_link_libraries(_application-v${t} PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(_test-v${t} PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(_benchmark-v${t} PUBLIC OpenMP::OpenMP_CXX)
+  if((OpenMP_CXX_FOUND) AND (SUPPORTS_OPENMP GREATER -1))
+    target_link_libraries(_application-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
   endif()
 
   # Discover Google Tests in the target
   #
-  gtest_discover_tests(_test-v${t})
+  gtest_discover_tests(_test-v${t_name})
 endforeach()
 
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECt_nameAME ${PROJECt_nameAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
 include(CPack)

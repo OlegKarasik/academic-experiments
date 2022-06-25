@@ -15,25 +15,11 @@ itt:
   choices:
     pure:
       short: "Default"
-      long: "Defaults"
+      long: "nothing more"
       settings:
         ENABLE_ITT: "NO"
-        ENABLE_OPENMP: "NO"
     itt:
       short: "ITT"
       long: "Intel ITT"
       settings:
         ENABLE_ITT: "YES"
-        ENABLE_OPENMP: "NO"
-    openmp:
-      short: "OpenMP"
-      long: "OpenMP"
-      settings:
-        ENABLE_ITT: "NO"
-        ENABLE_OPENMP: "YES"
-    itt-openmp:
-      short: "ITT + OpenMP"
-      long: "Intel ITT + OpenMP"
-      settings:
-        ENABLE_ITT: "YES"
-        ENABLE_OPENMP: "YES"
