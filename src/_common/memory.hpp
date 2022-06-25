@@ -7,6 +7,7 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
+#include <utility>
 
 namespace utilz {
 namespace memory {
@@ -240,9 +241,9 @@ public:
   ~buffer_dyn()
   {
     std::for_each(
-      this->m_allocations.begin(), 
-      this->m_allocations.end(), 
-      [this](pointer p) -> void { 
+      this->m_allocations.begin(),
+      this->m_allocations.end(),
+      [this](pointer p) -> void {
         this->_deallocate(p, 0);
       });
   }

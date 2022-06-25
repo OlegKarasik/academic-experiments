@@ -17,9 +17,10 @@
     "cmake.generator": "MinGW Makefiles",
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "files.associations": {
-        "type_traits": "cpp",
-        "array": "cpp",
-        "string_view": "cpp"
+      "type_traits": "cpp",
+      "array": "cpp",
+      "string_view": "cpp",
+      "utility": "cpp"
     }
   },
   "extensions": {
