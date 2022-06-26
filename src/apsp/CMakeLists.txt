@@ -13,6 +13,43 @@ include(FetchContent)
 #
 find_package(OpenMP)
 
+# Find Intel ITT if needed (Windows)
+if(ENABLE_ITT)
+  if(WIN32)
+    set(CMAKE_VTUNE_SDK_DIR "C:\\Program Files (x86)\\Intel\\oneAPI\\vtune\\latest\\sdk")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+      set(itt_arch "64")
+    else()
+      set(itt_arch "32")
+    endif()
+
+    find_path(ITT_INCLUDE_DIRS ittnotify.h
+      PATHS ${CMAKE_VTUNE_SDK_DIR}
+      PATH_SUFFIXES include)
+
+    find_path(ITT_LIBRARY_DIRS libittnotify.lib
+      PATHS ${CMAKE_VTUNE_SDK_DIR}
+      PATH_SUFFIXES lib${itt_arch})
+
+    if(NOT ITT_INCLUDE_DIRS MATCHES NOTFOUND AND
+       NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
+
+      message(STATUS "Found Intel ITT includes in ${ITT_INCLUDE_DIRS}")
+      message(STATUS "Found Intel ITT libraries in ${ITT_LIBRARY_DIRS}")
+
+      include_directories(${ITT_INCLUDE_DIRS})
+      link_directories(${ITT_LIBRARY_DIRS})
+
+      set(ITT_LIBRARY libittnotify)
+      set(ITT_FOUND TRUE)
+    endif()
+  endif()
+
+  if (NOT ITT_FOUND)
+    message(FATAL_ERROR "Failed to find ITT library")
+  endif()
+endif()
+
 # Declare Google Tests and Google Benchmark content
 #
 FetchContent_Declare(
@@ -121,6 +158,12 @@ foreach(index RANGE ${length})
     target_link_libraries(_application-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+
+  if (ITT_FOUND)
+    target_link_libraries(_application-v${t_name} PUBLIC ${ITT_LIBRARY})
+    target_link_libraries(_test-v${t_name} PUBLIC ${ITT_LIBRARY})
+    target_link_libraries(_benchmark-v${t_name} PUBLIC ${ITT_LIBRARY})
   endif()
 
   # Discover Google Tests in the target
