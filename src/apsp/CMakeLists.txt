@@ -14,6 +14,7 @@ include(FetchContent)
 find_package(OpenMP)
 
 # Find Intel ITT if needed (Windows)
+#
 if(ENABLE_ITT)
   if(WIN32)
     set(CMAKE_VTUNE_SDK_DIR "C:\\Program Files (x86)\\Intel\\oneAPI\\vtune\\latest\\sdk")
