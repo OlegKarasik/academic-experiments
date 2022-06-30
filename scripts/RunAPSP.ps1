@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+  [string] $LaunchConfigPath = './launch.launch-config',
   [string] $RunConfigPath = './run.run-config',
   [string] $EventConfigPath = './events.event-config',
   [ValidateNotNullOrEmpty()]
@@ -10,17 +11,26 @@ param(
 )
 # Constants
 #
-$source_dir = 'D:\Projects\Profiling';
-$app_dir = 'D:\Projects\GitHub\academic-experiments\src\apsp\shell\bin';
-
+# $source_dir = 'D:\Projects\Profiling';
+# $app_dir = 'D:\Projects\GitHub\academic-experiments\src\apsp\shell\bin';
 $vtune = 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest\bin64\vtune';
 
-Write-Verbose -Message "RUN CONFIG PATH   : $RunConfigPath" -ErrorAction Stop;
-Write-Verbose -Message "EVENT CONFIG PATH : $EventConfigPath" -ErrorAction Stop;
-Write-Verbose -Message "OUTPUT DIRECTORY  : $OutputDirectory" -ErrorAction Stop;
-Write-Verbose -Message "REPEAT            : $Repeat" -ErrorAction Stop;
-Write-Verbose -Message "RUN BASE          : $RunBase" -ErrorAction Stop;
-Write-Verbose -Message "RUN PROFILE       : $RunProf" -ErrorAction Stop;
+Write-Verbose -Message "LAUNCH CONFIG PATH : $LaunchConfigPath" -ErrorAction Stop;
+Write-Verbose -Message "RUN CONFIG PATH    : $RunConfigPath" -ErrorAction Stop;
+Write-Verbose -Message "EVENT CONFIG PATH  : $EventConfigPath" -ErrorAction Stop;
+Write-Verbose -Message "OUTPUT DIRECTORY   : $OutputDirectory" -ErrorAction Stop;
+Write-Verbose -Message "REPEAT             : $Repeat" -ErrorAction Stop;
+Write-Verbose -Message "RUN BASE           : $RunBase" -ErrorAction Stop;
+Write-Verbose -Message "RUN PROFILE        : $RunProf" -ErrorAction Stop;
+
+Write-Host "Reading launch config..." -ErrorAction Stop;
+$LaunchConfig = Get-Content -Path $LaunchConfigPath -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop;
+
+$source_dir = $LaunchConfig.source_dir;
+$app_dir = $LaunchConfig.app_dir;
+
+Write-Verbose -Message "SOURCE DIRECTORY : $source_dir" -ErrorAction Stop;
+Write-Verbose -Message "APP DIRECTORY    : $app_dir" -ErrorAction Stop;
 
 Write-Host "Reading event config..." -ErrorAction Stop;
 $EventConfig = Get-Content -Path $EventConfigPath -ErrorAction Stop;
@@ -52,7 +62,7 @@ $RunConfig | ForEach-Object {
         $ExperimentCode = "$Size.$Version.$($Arguments -join '')";
 
         Write-Host "Experiment code: $ExperimentCode" -ErrorAction Stop;
-        
+
         $ExperimentOutputDirectory = Join-Path -Path $OutputDirectory -ChildPath $ExperimentCode -ErrorAction Stop;
         if (Test-Path -Path $ExperimentOutputDirectory -PathType Container -ErrorAction Stop) {
           Remove-Item -Path $ExperimentOutputDirectory -Recurse -Force -ErrorAction Stop | Out-Null;
@@ -65,7 +75,7 @@ $RunConfig | ForEach-Object {
           for ($i = 0; $i -lt $Repeat; $i = $i + 1) {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'base' -ErrorAction Stop;
-            
+
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
             & "$app_dir\_application-$version.exe" `
@@ -95,7 +105,7 @@ $RunConfig | ForEach-Object {
           for ($i = 0; $i -lt $Repeat; $i = $i + 1) {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'prof' -ErrorAction Stop;
-            
+
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
             & $vtune -collect-with runsa `
