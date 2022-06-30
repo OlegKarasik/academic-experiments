@@ -15,40 +15,40 @@ find_package(OpenMP)
 
 # Find Intel ITT if needed (Windows)
 #
-if(ENABLE_ITT)
-  if(WIN32)
-    set(CMAKE_VTUNE_SDK_DIR "C:\\Program Files (x86)\\Intel\\oneAPI\\vtune\\latest\\sdk")
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set(itt_arch "64")
-    else()
-      set(itt_arch "32")
-    endif()
-
-    find_path(ITT_INCLUDE_DIRS ittnotify.h
-      PATHS ${CMAKE_VTUNE_SDK_DIR}
-      PATH_SUFFIXES include)
-
-    find_path(ITT_LIBRARY_DIRS libittnotify.lib
-      PATHS ${CMAKE_VTUNE_SDK_DIR}
-      PATH_SUFFIXES lib${itt_arch})
-
-    if(NOT ITT_INCLUDE_DIRS MATCHES NOTFOUND AND
-       NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
-
-      message(STATUS "Found Intel ITT includes in ${ITT_INCLUDE_DIRS}")
-      message(STATUS "Found Intel ITT libraries in ${ITT_LIBRARY_DIRS}")
-
-      include_directories(${ITT_INCLUDE_DIRS})
-      link_directories(${ITT_LIBRARY_DIRS})
-
-      set(ITT_LIBRARY libittnotify)
-      set(ITT_FOUND TRUE)
-    endif()
+if(WIN32)
+  set(CMAKE_VTUNE_SDK_DIR "C:\\Program Files (x86)\\Intel\\oneAPI\\vtune\\latest\\sdk")
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(itt_arch "64")
+  else()
+    set(itt_arch "32")
   endif()
 
-  if (NOT ITT_FOUND)
-    message(FATAL_ERROR "Failed to find ITT library")
+  find_path(ITT_INCLUDE_DIRS ittnotify.h
+    PATHS ${CMAKE_VTUNE_SDK_DIR}
+    PATH_SUFFIXES include)
+
+  find_path(ITT_LIBRARY_DIRS libittnotify.lib
+    PATHS ${CMAKE_VTUNE_SDK_DIR}
+    PATH_SUFFIXES lib${itt_arch})
+
+  if(NOT ITT_INCLUDE_DIRS MATCHES NOTFOUND AND
+      NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
+
+    message(STATUS "Found Intel ITT includes in ${ITT_INCLUDE_DIRS}")
+    message(STATUS "Found Intel ITT libraries in ${ITT_LIBRARY_DIRS}")
+
+    include_directories(${ITT_INCLUDE_DIRS})
+    link_directories(${ITT_LIBRARY_DIRS})
+
+    set(ITT_LIBRARY libittnotify)
+    set(ITT_FOUND TRUE)
+
+    message(STATUS "Intel ITT - FOUND")
   endif()
+endif()
+
+if (NOT ITT_FOUND)
+  message(STATUS "Intel ITT - NOT FOUND")
 endif()
 
 # Declare Google Tests and Google Benchmark content
@@ -105,19 +105,19 @@ enable_testing()
 
 # Initialise OpenMP compatible targets
 #
-list(APPEND omp_targets 00_omp)
-list(APPEND omp_targets 01_omp)
-list(APPEND omp_targets 03_omp)
+list(APPEND omp_targets 00-omp)
+list(APPEND omp_targets 01-omp)
+list(APPEND omp_targets 03-omp)
 
 # Initialise algorithms targets
 #
 list(APPEND targets_names 00)
-list(APPEND targets_names 00_omp)
+list(APPEND targets_names 00-omp)
 list(APPEND targets_names 01)
-list(APPEND targets_names 01_omp)
+list(APPEND targets_names 01-omp)
 list(APPEND targets_names 02)
 list(APPEND targets_names 03)
-list(APPEND targets_names 03_omp)
+list(APPEND targets_names 03-omp)
 
 # Initialise algorithms aliases
 #
@@ -128,6 +128,30 @@ list(APPEND targets_alias 01)
 list(APPEND targets_alias 02)
 list(APPEND targets_alias 03)
 list(APPEND targets_alias 03)
+
+# Initialise ITT targets if ITT is enabled
+#
+if (ITT_FOUND)
+  list(APPEND omp_targets 00-omp-itt)
+  list(APPEND omp_targets 01-omp-itt)
+  list(APPEND omp_targets 03-omp-itt)
+
+  list(APPEND targets_names 00-itt)
+  list(APPEND targets_names 00-omp-itt)
+  list(APPEND targets_names 01-itt)
+  list(APPEND targets_names 01-omp-itt)
+  list(APPEND targets_names 02-itt)
+  list(APPEND targets_names 03-itt)
+  list(APPEND targets_names 03-omp-itt)
+
+  list(APPEND targets_alias 00)
+  list(APPEND targets_alias 00)
+  list(APPEND targets_alias 01)
+  list(APPEND targets_alias 01)
+  list(APPEND targets_alias 02)
+  list(APPEND targets_alias 03)
+  list(APPEND targets_alias 03)
+endif()
 
 # Initialise length
 #

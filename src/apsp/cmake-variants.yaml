@@ -9,17 +9,3 @@ buildType:
       short: Release
       long: Optimize generated code
       buildType: Release
-
-itt:
-  default: pure
-  choices:
-    pure:
-      short: "Default"
-      long: "nothing more"
-      settings:
-        ENABLE_ITT: "NO"
-    itt:
-      short: "ITT"
-      long: "Intel ITT"
-      settings:
-        ENABLE_ITT: "YES"
