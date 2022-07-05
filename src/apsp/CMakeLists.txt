@@ -186,6 +186,10 @@ foreach(index RANGE ${length})
   endif()
 
   if (ITT_FOUND)
+    target_compile_definitions(_application-v${t_name} PRIVATE ITT_TRACE)
+    target_compile_definitions(_test-v${t_name} PRIVATE ITT_TRACE)
+    target_compile_definitions(_benchmark-v${t_name} PRIVATE ITT_TRACE)
+
     target_link_libraries(_application-v${t_name} PUBLIC ${ITT_LIBRARY})
     target_link_libraries(_test-v${t_name} PUBLIC ${ITT_LIBRARY})
     target_link_libraries(_benchmark-v${t_name} PUBLIC ${ITT_LIBRARY})
