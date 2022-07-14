@@ -193,6 +193,9 @@ foreach(index RANGE ${length})
     target_link_libraries(_application-v${t_name} PUBLIC ${ITT_LIBRARY})
     target_link_libraries(_test-v${t_name} PUBLIC ${ITT_LIBRARY})
     target_link_libraries(_benchmark-v${t_name} PUBLIC ${ITT_LIBRARY})
+
+    string(REPLACE - _ t_tun ${t_name})
+    target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_tun})
   endif()
 
   # Discover Google Tests in the target
@@ -200,7 +203,7 @@ foreach(index RANGE ${length})
   gtest_discover_tests(_test-v${t_name})
 endforeach()
 
-set(CPACK_PROJECt_nameAME ${PROJECt_nameAME})
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
 include(CPack)

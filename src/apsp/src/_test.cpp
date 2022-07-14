@@ -34,6 +34,7 @@ public:
 #endif
 
   using matrix_at = utilz::procedures::square_shape_at<matrix>;
+  using matrix_sz = utilz::procedures::square_shape_get_size<matrix>;
 
 public:
 #ifdef APSP_ALG_HAS_OPTIONS
@@ -70,7 +71,7 @@ public:
 
 using FixtureT = Fixture<int>;
 
-TEST_F(FixtureT, Execute)
+TEST_F(FixtureT, FIXTURE_NAME)
 {
 #ifdef APSP_ALG_HAS_OPTIONS
   auto options = up(this->m_src, this->m_buf);
@@ -83,8 +84,9 @@ TEST_F(FixtureT, Execute)
 #endif
 
   matrix_at at;
+  matrix_sz sz;
 
-  for (matrix::size_type i = matrix::size_type(0); i < this->m_src.size() && this->m_res.size(); ++i)
-    for (matrix::size_type j = matrix::size_type(0); j < this->m_src.size() && this->m_res.size(); ++j)
+  for (matrix::size_type i = matrix::size_type(0); i < sz(this->m_src) && sz(this->m_res); ++i)
+    for (matrix::size_type j = matrix::size_type(0); j < sz(this->m_src) && sz(this->m_res); ++j)
       ASSERT_EQ(at(this->m_src, i, j), at(this->m_res, i, j));
 };
