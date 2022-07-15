@@ -5,7 +5,7 @@
       "path": "."
     },
     {
-      "name": "common",
+      "name": "_common",
       "path": "../_common"
     }
   ],
@@ -25,7 +25,7 @@
       "ms-vscode.cpptools",
       "ms-vscode.cmake-tools",
       "twxs.cmake",
-      "editorconfig.editorconf",
+      "editorconfig.editorconfig",
       "github.vscode-pull-request-github"
     ]
   }
