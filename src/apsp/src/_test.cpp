@@ -45,8 +45,14 @@ public:
   matrix m_src;
   matrix m_res;
 
+#ifdef APSP_ALG_HAS_BLOCKS
+  Fixture(
+    const std::string& graph_name,
+    const matrix_st block_size)
+#else
   Fixture(
     const std::string& graph_name)
+#endif
   {
     std::filesystem::path root_path = workspace::root();
     std::filesystem::path data_path = "data/_test/direct-acyclic-graphs";
@@ -63,8 +69,8 @@ public:
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
 #ifdef APSP_ALG_HAS_BLOCKS
-    ::apsp::io::scan_matrix(src_fs, false, this->m_src, 5);
-    ::apsp::io::scan_matrix(res_fs, false, this->m_res, 5);
+    ::apsp::io::scan_matrix(src_fs, false, this->m_src, block_size);
+    ::apsp::io::scan_matrix(res_fs, false, this->m_res, block_size);
 #else
     ::apsp::io::scan_matrix(src_fs, false, this->m_src);
     ::apsp::io::scan_matrix(res_fs, false, this->m_res);
@@ -90,12 +96,30 @@ public:
 
     for (auto i = matrix_st(0); i < sz(this->m_src) && sz(this->m_res); ++i)
       for (auto j = matrix_st(0); j < sz(this->m_src) && sz(this->m_res); ++j)
-        ASSERT_EQ(at(this->m_src, i, j), at(this->m_res, i, j));
+        ASSERT_EQ(at(this->m_src, i, j), at(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };
 
 using FixtureT = Fixture<int>;
 
+const auto graph_names = testing::Values("10-14", "32-376");
+
+#ifdef APSP_ALG_HAS_BLOCKS
+const auto block_sizes = testing::Values(2, 5);
+
+class FixtureP
+  : public FixtureT
+  , public ::testing::WithParamInterface<std::tuple<std::string, int>>
+{
+public:
+  FixtureP()
+    : FixtureT(std::get<0>(GetParam()), std::get<1>(GetParam()))
+  {
+  }
+};
+
+INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, testing::Combine(graph_names, block_sizes));
+#else
 class FixtureP
   : public FixtureT
   , public ::testing::WithParamInterface<std::string>
@@ -107,9 +131,8 @@ public:
   }
 };
 
-const auto values = testing::Values("10-14", "32-376");
-
-INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
+INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, graph_names);
+#endif
 
 TEST_P(FixtureP, correctness)
 {
