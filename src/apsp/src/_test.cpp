@@ -105,7 +105,7 @@ using FixtureT = Fixture<int>;
 const auto graph_names = testing::Values("10-14", "32-376");
 
 #ifdef APSP_ALG_HAS_BLOCKS
-const auto block_sizes = testing::Values(2, 5);
+const auto block_sizes = testing::Values(2, 4, 5);
 
 class FixtureP
   : public FixtureT
