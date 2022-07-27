@@ -11,8 +11,8 @@ param(
 )
 # Constants
 #
-# $source_dir = 'D:\Projects\Profiling';
-# $app_dir = 'D:\Projects\GitHub\academic-experiments\src\apsp\shell\bin';
+# $SourceDirectory = 'D:\Projects\Profiling';
+# $ApplicationDirectory = 'D:\Projects\GitHub\academic-experiments\src\apsp\shell\bin';
 $vtune = 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest\bin64\vtune';
 
 Write-Verbose -Message "LAUNCH CONFIG PATH : $LaunchConfigPath" -ErrorAction Stop;
@@ -26,11 +26,11 @@ Write-Verbose -Message "RUN PROFILE        : $RunProf" -ErrorAction Stop;
 Write-Host "Reading launch config..." -ErrorAction Stop;
 $LaunchConfig = Get-Content -Path $LaunchConfigPath -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop;
 
-$source_dir = $LaunchConfig.source_dir;
-$app_dir = $LaunchConfig.app_dir;
+$SourceDirectory = $LaunchConfig.source_dir;
+$ApplicationDirectory = $LaunchConfig.app_dir;
 
-Write-Verbose -Message "SOURCE DIRECTORY : $source_dir" -ErrorAction Stop;
-Write-Verbose -Message "APP DIRECTORY    : $app_dir" -ErrorAction Stop;
+Write-Verbose -Message "SOURCE DIRECTORY      : $SourceDirectory" -ErrorAction Stop;
+Write-Verbose -Message "APPLICATION DIRECTORY : $ApplicationDirectory" -ErrorAction Stop;
 
 Write-Host "Reading event config..." -ErrorAction Stop;
 $EventConfig = Get-Content -Path $EventConfigPath -ErrorAction Stop;
@@ -45,10 +45,11 @@ $CollectionPatterns = $CollectionGroups | % { return "$_\s+(\d+)" };
 Write-Host "Configuring execution environment..."
 Set-Variable `
   -Name 'INTEL_LIBITTNOTIFY64' `
-  -Value 'C:/Program Files (x86)/Intel/oneAPI/vtune/2021.8.0/bin64\runtime\ittnotify_collector.dll' `
+  -Value 'C:/Program Files (x86)/Intel/oneAPI/vtune/2021.8.0/bin64/runtime/ittnotify_collector.dll' `
   -ErrorAction Stop;
 
 Write-Host "Starting experiements..." -ErrorAction Stop;
+$OutputHash = @()
 $RunConfig | ForEach-Object {
   $Params = $_;
   $Params.versions | ForEach-Object {
@@ -76,16 +77,28 @@ $RunConfig | ForEach-Object {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'base' -ErrorAction Stop;
 
+            $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
+            $ExperimentOutputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
+            $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop;
+
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
-            & "$app_dir\_application-$version.exe" `
-              -i "$source_dir\$Size.g" `
-              -o "$source_dir\$Size.g-$version.out" $arguments `
-              2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop);
+            Write-Verbose -Message "Running application" -ErrorAction Stop;
+            Write-Verbose -Message "Executable : _application-$version.exe" -ErrorAction Stop;
+            Write-Verbose -Message "Input      : $ExperimentInputFile" -ErrorAction Stop;
+            Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
+            Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
+
+            & "$ApplicationDirectory\_application-$version.exe" `
+              -i $ExperimentInputFile `
+              -o $ExperimentOutputFile $arguments `
+              2> $ExperimentResultsFile;
 
             if ($LastExitCode -ne 0) {
               throw "Algorithm execution has failed with exit code: '$LastExitCode'. Please investigate.";
             }
+
+            $OutputHash += Get-FileHash -Path ExperimentOutputFile -Algorithm SHA512;
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
@@ -106,7 +119,17 @@ $RunConfig | ForEach-Object {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'prof' -ErrorAction Stop;
 
+            $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
+            $ExperimentOutputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
+            $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop;
+
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
+
+            Write-Verbose -Message "Running application (vTune)" -ErrorAction Stop;
+            Write-Verbose -Message "Executable : _application-$version-itt.exe" -ErrorAction Stop;
+            Write-Verbose -Message "Input      : $ExperimentInputFile" -ErrorAction Stop;
+            Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
+            Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
 
             & $vtune -collect-with runsa `
               -no-summary -result-dir $ExperimentResultsDirectory `
@@ -114,13 +137,17 @@ $RunConfig | ForEach-Object {
               -knob event-config=$($EventConfig -join ',') `
               -allow-multiple-runs `
               -data-limit=10000 `
-              --app-working-dir=$app_dir `
-              -- "$app_dir\_application-$version-itt.exe" -i "$source_dir\$Size.g" -o "$source_dir\$Size.g.out" $arguments `
-              2> $(Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop);
+              --app-working-dir=$ApplicationDirectory `
+              -- "$ApplicationDirectory\_application-$version-itt.exe" -i $ExperimentInputFile -o $ExperimentOutputFile $arguments `
+              2> $ExperimentResultsFile;
 
             if ($LastExitCode -ne 0) {
               throw "Algorithm execution (profiled) has failed with exit code: '$LastExitCode'. Please investigate.";
             }
+
+            $OutputHash += Get-FileHash -Path ExperimentOutputFile -Algorithm SHA512;
+
+            Write-Verbose -Message "Running analysis (vTune)" -ErrorAction Stop;
 
             & $vtune -R summary `
               -result-dir $ExperimentResultsDirectory `
@@ -158,3 +185,15 @@ $RunConfig | ForEach-Object {
     }
   }
 }
+
+Write-Host "Starting verification..." -ErrorAction Stop;
+$UniqueHash = $OutputHash | Select-Object -Unique
+if ($UniqueHash.Count -eq 1) {
+  Write-Host "Verification completed. No failures detected."
+} else {
+  Write-Host "Verification failed for the following files:"
+  $UniqueHash | % {
+    Write-Host "- $($_.Path)" -ErrorAction Stop;
+  }
+}
+
