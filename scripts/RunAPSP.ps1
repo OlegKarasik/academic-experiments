@@ -78,7 +78,7 @@ $RunConfig | ForEach-Object {
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'base' -ErrorAction Stop;
 
             $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
-            $ExperimentOutputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
+            $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
             $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop;
 
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
@@ -120,7 +120,7 @@ $RunConfig | ForEach-Object {
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'prof' -ErrorAction Stop;
 
             $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
-            $ExperimentOutputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
+            $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
             $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop;
 
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
