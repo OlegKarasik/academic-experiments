@@ -98,7 +98,7 @@ $RunConfig | ForEach-Object {
               throw "Algorithm execution has failed with exit code: '$LastExitCode'. Please investigate.";
             }
 
-            $OutputHash += Get-FileHash -Path ExperimentOutputFile -Algorithm SHA512;
+            $OutputHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
@@ -121,7 +121,7 @@ $RunConfig | ForEach-Object {
 
             $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
             $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
-            $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop;
+            $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop;
 
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
@@ -145,7 +145,7 @@ $RunConfig | ForEach-Object {
               throw "Algorithm execution (profiled) has failed with exit code: '$LastExitCode'. Please investigate.";
             }
 
-            $OutputHash += Get-FileHash -Path ExperimentOutputFile -Algorithm SHA512;
+            $OutputHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
 
             Write-Verbose -Message "Running analysis (vTune)" -ErrorAction Stop;
 
@@ -187,11 +187,12 @@ $RunConfig | ForEach-Object {
 }
 
 Write-Host "Starting verification..." -ErrorAction Stop;
+Write-Host "Comparing $($OutputHash.Count) file hashes..."
 $UniqueHash = $OutputHash | Select-Object -Unique
 if ($UniqueHash.Count -eq 1) {
   Write-Host "Verification completed. No failures detected."
 } else {
-  Write-Host "Verification failed for the following files:"
+  Write-Host "Verification completed. Detected multiple hash origins:"
   $UniqueHash | % {
     Write-Host "- $($_.Path)" -ErrorAction Stop;
   }
