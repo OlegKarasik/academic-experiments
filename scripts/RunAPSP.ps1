@@ -85,6 +85,7 @@ $RunConfig | ForEach-Object {
 
             Write-Verbose -Message "Running application" -ErrorAction Stop;
             Write-Verbose -Message "Executable : _application-$version.exe" -ErrorAction Stop;
+            Write-Verbose -Message "Arguments  : $arguments" -ErrorAction Stop;
             Write-Verbose -Message "Input      : $ExperimentInputFile" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
@@ -127,6 +128,7 @@ $RunConfig | ForEach-Object {
 
             Write-Verbose -Message "Running application (vTune)" -ErrorAction Stop;
             Write-Verbose -Message "Executable : _application-$version-itt.exe" -ErrorAction Stop;
+            Write-Verbose -Message "Arguments  : $arguments" -ErrorAction Stop;
             Write-Verbose -Message "Input      : $ExperimentInputFile" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
