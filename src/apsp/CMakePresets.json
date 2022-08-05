@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "hidden": true,
+      "name": "mingw-gcc",
+      "generator": "MinGW Makefiles",
+      "binaryDir": "${workspaceFolder}/build",
+      "environment": {
+        "MINGW64_ROOT": "C:/msys64/mingw64",
+        "PATH": "$env{MINGW64_ROOT}/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
+        "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "mingw-gcc-debug",
+      "displayName": "GCC 12.1.0 (Debug)",
+      "inherits": [
+        "mingw-gcc"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "mingw-gcc-release",
+      "displayName": "GCC 12.1.0 (Release)",
+      "inherits": [
+        "mingw-gcc"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "mingw-gcc-debug",
+      "displayName": "GCC (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "mingw-gcc-debug"
+    },
+    {
+      "name": "mingw-gcc-release",
+      "displayName": "GCC (Release)",
+      "configurePreset": "mingw-gcc-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "mingw-gcc-debug",
+      "displayName": "GCC (Debug)",
+      "configurePreset": "mingw-gcc-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
