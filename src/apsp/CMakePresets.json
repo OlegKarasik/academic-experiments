@@ -36,6 +36,50 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "hidden": true,
+      "name": "mingw-intel",
+      "generator": "MinGW Makefiles",
+      "binaryDir": "${workspaceFolder}/build",
+      "environment": {
+        "CPATH":"C:/Program Files (x86)/Intel/oneAPI/tbb/latest/env/../include;C:/Program Files (x86)/Intel/oneAPI/dpl/latest/windows/include;C:/Program Files (x86)/Intel/oneAPI/dev-utilities/latest/include;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/include;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/compiler/include;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/compiler/include/intel64",
+        "MINGW64_ROOT": "C:/msys64/mingw64",
+        "MSVC_ROOT": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133",
+        "SDK_ROOT": "C:/Program Files (x86)/Windows Kits/10",
+        "INTEL_ROOT":"C:/Program Files (x86)/Intel/oneAPI/compiler/2022.1.0/windows/compiler",
+        "LD_LIBRARY_PATH":"$env{SDK_ROOT}/Lib/10.0.20348.0/um/x64",
+        "INCLUDE":"C:/Program Files (x86)/Intel/oneAPI/tbb/latest/env/../include;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../include;C:/Program Files (x86)/Intel/oneAPI/itac/latest/include;C:/Program Files (x86)/Intel/oneAPI/dev-utilities/latest/include;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/include;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/compiler/include;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/compiler/include/intel64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/ATLMFC/include;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/include;C:/Program Files (x86)/Windows Kits/NETFXSDK/4.8/include/um;C:/Program Files (x86)/Windows Kits/10/include/10.0.20348.0/ucrt;C:/Program Files (x86)/Windows Kits/10/include/10.0.20348.0/shared;C:/Program Files (x86)/Windows Kits/10/include/10.0.20348.0/um;C:/Program Files (x86)/Windows Kits/10/include/10.0.20348.0/winrt;C:/Program Files (x86)/Windows Kits/10/include/10.0.20348.0/cppwinrt",
+        "LIB":"C:/Program Files (x86)/Intel/oneAPI/tbb/latest/env/../lib/intel64/vc_mt;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../lib/release;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../lib;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/compiler/lib;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/compiler/lib/intel64_win;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/lib;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/lib/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/ATLMFC/lib/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/lib/x64;C:/Program Files (x86)/Windows Kits/NETFXSDK/4.8/lib/um/x64;C:/Program Files (x86)/Windows Kits/10/lib/10.0.20348.0/ucrt/x64;C:/Program Files (x86)/Windows Kits/10/lib/10.0.20348.0/um/x64",
+        "LIBPATH":"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/ATLMFC/lib/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/lib/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/lib/x86/store/references;C:/Program Files (x86)/Windows Kits/10/UnionMetadata/10.0.20348.0;C:/Program Files (x86)/Windows Kits/10/References/10.0.20348.0;C:/Windows/Microsoft.NET/Framework64/v4.0.30319",
+        "PATH": "C:/Program Files (x86)/Intel/oneAPI/tbb/latest/env/../redist/intel64/vc_mt;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../libfabric/bin/utils;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../libfabric/bin;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../bin/release;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/env/../bin;C:/Program Files (x86)/Intel/oneAPI/itac/latest/bin;C:/Program Files (x86)/Intel/oneAPI/itac/latest/dll;C:/Program Files (x86)/Intel/oneAPI/dev-utilities/latest/bin;C:/Program Files (x86)/Intel/oneAPI/debugger/latest/env//../gdb/intel64/bin;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/lib;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/redist/intel64_win/compiler;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/lib/oclfpga/host/windows64/bin;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/lib/oclfpga/bin;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE//Extensions/Microsoft/IntelliCode/CLI;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/HostX64/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/VC/VCPackages;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/TestWindow;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/TeamFoundation/Team Explorer;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/bin/Roslyn;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Team Tools/Performance Tools/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Team Tools/Performance Tools;C:/Program Files (x86)/Microsoft Visual Studio/Shared/Common/VSPerfCollectionTools/vs2019//x64;C:/Program Files (x86)/Microsoft Visual Studio/Shared/Common/VSPerfCollectionTools/vs2019/;C:/Program Files (x86)/Microsoft SDKs/Windows/v10.0A/bin/NETFX 4.8 Tools/x64/;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/FSharp/Tools;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/devinit;C:/Program Files (x86)/Windows Kits/10/bin/10.0.20348.0/x64;C:/Program Files (x86)/Windows Kits/10/bin/x64;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community//MSBuild/Current/Bin;C:/Windows/Microsoft.NET/Framework64/v4.0.30319;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/bin/;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/bin/release/;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/libfabric/bin/;C:/Program Files (x86)/Intel/oneAPI/mpi/latest/libfabric/bin/utils/;C:/Program Files (x86)/Intel/oneAPI/tbb/latest/redist/intel64/vc_mt/;C:/Program Files (x86)/Intel/oneAPI/tbb/latest/redist/ia32/vc_mt/;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/redist/intel64_win/compiler;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/redist/ia32_win/compiler;C:/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64_win/mpirt;C:/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64_win/compiler;C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2018.3.210/windows/mpi/intel64/bin;C:/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64_win/mpirt;C:/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64_win/compiler;C:/WINDOWS/system32;C:/WINDOWS;C:/WINDOWS/System32/Wbem;C:/WINDOWS/System32/WindowsPowerShell/v1.0/;C:/Program Files/Microsoft SQL Server/130/Tools/Binn/;C:/Program Files/Microsoft/Web Platform Installer/;C:/Program Files/Microsoft SQL Server/120/Tools/Binn/;C:/Program Files (x86)/Microsoft SQL Server/110/DTS/Binn/;C:/Program Files (x86)/Microsoft SQL Server/120/DTS/Binn/;C:/Program Files (x86)/Microsoft SQL Server/130/DTS/Binn/;C:/Program Files/dotnet/;C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common;C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/;C:/WINDOWS/System32/OpenSSH/;C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR;C:/WINDOWS/system32;C:/WINDOWS;C:/WINDOWS/System32/Wbem;C:/WINDOWS/System32/WindowsPowerShell/v1.0/;C:/WINDOWS/System32/OpenSSH/;C:/Program Files/Intel/WiFi/bin/;C:/Program Files/Common Files/Intel/WirelessCommon/;C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/;C:/Program Files/nodejs/;C:/Program Files/Microsoft VS Code/bin;C:/Program Files/Docker/Docker/resources/bin;C:/ProgramData/DockerDesktop/version-bin;C:/Program Files/CMake/bin;C:/Program Files/PowerShell/7/;C:/Program Files/Git/cmd;C:/Program Files (x86)/Windows Kits/10/bin/x86;C:/Users/karas/AppData/Local/Microsoft/WindowsApps;C:/Users/karas/.dotnet/tools;C:/Users/karas/AppData/Local/Microsoft/WindowsApps;C:/Program Files/JetBrains/CLion 2019.2/bin;C:/Users/karas/AppData/Roaming/npm;C:/Users/karas/.dotnet/tools;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja;C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/VC/Linux/bin/ConnectionManagerExe;C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/lib/ocloc;C:/Program Files (x86)/Intel/oneAPI/inspector/latest/bin64;C:/Program Files (x86)/Intel/oneAPI/vtune/latest/bin64;$env{INTEL_ROOT}/lib/intel64;$env{SDK_ROOT}/Lib/10.0.20348.0/um/x64;$env{MSVC_ROOT}/bin/Hostx64/x64;$env{MSVC_ROOT}/lib/x64;$env{MINGW64_ROOT}/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
+        "CMAKE_C_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "mingw-intel-debug",
+      "displayName": "Intel (Debug)",
+      "inherits": [
+        "mingw-intel"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "mingw-intel-release",
+      "displayName": "Intel (Release)",
+      "inherits": [
+        "mingw-intel"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
@@ -49,6 +93,12 @@
       "name": "mingw-gcc-release",
       "displayName": "GCC (Release)",
       "configurePreset": "mingw-gcc-release"
+    },
+    {
+      "name": "mingw-intel-debug",
+      "displayName": "Intel (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "mingw-intel-debug"
     }
   ],
   "testPresets": [

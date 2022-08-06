@@ -51,38 +51,47 @@ if (NOT ITT_FOUND)
   message(STATUS "Intel ITT - NOT FOUND")
 endif()
 
-# Declare Google Tests and Google Benchmark content
-#
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        release-1.11.0
-)
+if (NOT CMAKE_CXX_COMPILER_ID EQUAL "Intel")
+  set(ICL_FOUND TRUE)
 
-FetchContent_Declare(
-  googlebenchmark
-  GIT_REPOSITORY https://github.com/google/benchmark.git
-  GIT_TAG        v1.6.1
-)
+  message(STATUS "Detected Intel ICL... Disabling google test and goole benchmarks...")
+  message(STATUS "Intel ICL - FOUND")
+endif()
 
-# Set main compilation options
-#
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if (NOT ICL_FOUND)
+  # Declare Google Tests and Google Benchmark content
+  #
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG        release-1.11.0
+  )
 
-# Initialise Google Tests library entry point
-#
-set(BUILD_GMOCK OFF)
+  FetchContent_Declare(
+    googlebenchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG        v1.6.1
+  )
 
-# Initialise Google Benchmarks library options
-#
-# - Disable Google Tests
-set(BENCHMARK_ENABLE_TESTING     OFF)
-set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+  # Set main compilation options
+  #
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Make Google Tests and Google Benchmark available to the rest of the build
-#
-FetchContent_MakeAvailable(googletest googlebenchmark)
+  # Initialise Google Tests library entry point
+  #
+  set(BUILD_GMOCK OFF)
+
+  # Initialise Google Benchmarks library options
+  #
+  # - Disable Google Tests
+  set(BENCHMARK_ENABLE_TESTING     OFF)
+  set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+
+  # Make Google Tests and Google Benchmark available to the rest of the build
+  #
+  FetchContent_MakeAvailable(googletest googlebenchmark)
+endif()
 
 # Configure global includes for all configuration
 # and targets
@@ -164,15 +173,20 @@ foreach(index RANGE ${length})
   list(GET targets_alias ${index} t_alias)
 
   add_executable(_application-v${t_name} ${APP_SRC_LIST})
-  add_executable(_test-v${t_name}        ${TST_SRC_LIST})
-  add_executable(_benchmark-v${t_name}   ${BNK_SRC_LIST})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
-  target_include_directories(_test-v${t_name}        PRIVATE src/variants/${t_alias})
-  target_include_directories(_benchmark-v${t_name}   PRIVATE src/variants/${t_alias})
 
-  target_link_libraries(_test-v${t_name}      PRIVATE GTest::gtest_main)
-  target_link_libraries(_benchmark-v${t_name} PRIVATE benchmark::benchmark_main)
+  if (NOT ICL_FOUND)
+    add_executable(_test-v${t_name}        ${TST_SRC_LIST})
+    add_executable(_benchmark-v${t_name}   ${BNK_SRC_LIST})
+
+    target_include_directories(_test-v${t_name}        PRIVATE src/variants/${t_alias})
+    target_include_directories(_benchmark-v${t_name}   PRIVATE src/variants/${t_alias})
+
+    target_link_libraries(_test-v${t_name}      PRIVATE GTest::gtest_main)
+    target_link_libraries(_benchmark-v${t_name} PRIVATE benchmark::benchmark_main)
+  endif()
+
 
   list(FIND omp_targets ${t_name} SUPPORTS_OPENMP)
 
@@ -181,26 +195,35 @@ foreach(index RANGE ${length})
   #
   if((OpenMP_CXX_FOUND) AND (SUPPORTS_OPENMP GREATER -1))
     target_link_libraries(_application-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+
+    if (NOT ICL_FOUND)
+      target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+      target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+    endif()
   endif()
 
   if (ITT_FOUND)
     target_compile_definitions(_application-v${t_name} PRIVATE ITT_TRACE)
-    target_compile_definitions(_test-v${t_name} PRIVATE ITT_TRACE)
-    target_compile_definitions(_benchmark-v${t_name} PRIVATE ITT_TRACE)
 
     target_link_libraries(_application-v${t_name} PUBLIC ${ITT_LIBRARY})
-    target_link_libraries(_test-v${t_name} PUBLIC ${ITT_LIBRARY})
-    target_link_libraries(_benchmark-v${t_name} PUBLIC ${ITT_LIBRARY})
 
-    string(REPLACE - _ t_fixture ${t_name})
-    target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
+    if (NOT ICL_FOUND)
+      target_compile_definitions(_test-v${t_name} PRIVATE ITT_TRACE)
+      target_compile_definitions(_benchmark-v${t_name} PRIVATE ITT_TRACE)
+
+      target_link_libraries(_test-v${t_name} PUBLIC ${ITT_LIBRARY})
+      target_link_libraries(_benchmark-v${t_name} PUBLIC ${ITT_LIBRARY})
+
+      string(REPLACE - _ t_fixture ${t_name})
+      target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
+    endif()
   endif()
 
-  # Discover Google Tests in the target
-  #
-  gtest_discover_tests(_test-v${t_name})
+  if (NOT ICL_FOUND)
+    # Discover Google Tests in the target
+    #
+    gtest_discover_tests(_test-v${t_name})
+  endif()
 endforeach()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
