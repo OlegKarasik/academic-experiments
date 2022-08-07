@@ -12,7 +12,11 @@
 // global C includes
 //
 #include <stdlib.h>
-#include <unistd.h>
+#ifdef __INTEL_COMPILER
+  #include <io.h>
+#else
+  #include <unistd.h>
+#endif
 
 // global common includes
 //

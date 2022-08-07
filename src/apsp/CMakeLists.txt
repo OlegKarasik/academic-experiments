@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.20.0)
+
+# Setup policies
+#
+cmake_policy(SET CMP0077 NEW)
+
 project(apsp VERSION 0.1.0)
 
 # Include Google Test commands to simplify Google Tests integration
@@ -32,7 +37,7 @@ if(WIN32)
     PATH_SUFFIXES lib${itt_arch})
 
   if(NOT ITT_INCLUDE_DIRS MATCHES NOTFOUND AND
-      NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
+     NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
 
     message(STATUS "Found Intel ITT includes in ${ITT_INCLUDE_DIRS}")
     message(STATUS "Found Intel ITT libraries in ${ITT_LIBRARY_DIRS}")
@@ -51,7 +56,7 @@ if (NOT ITT_FOUND)
   message(STATUS "Intel ITT - NOT FOUND")
 endif()
 
-if (NOT CMAKE_CXX_COMPILER_ID EQUAL "Intel")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(ICL_FOUND TRUE)
 
   message(STATUS "Detected Intel ICL... Disabling google test and goole benchmarks...")

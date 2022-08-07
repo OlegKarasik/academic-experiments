@@ -5,8 +5,6 @@
 
 namespace utilz {
 
-// переписать внутринности graphg
-
 // ---
 // Forward declarations
 //
@@ -67,7 +65,7 @@ struct square_shape_replace;
 template<typename T, typename A = std::allocator<T>>
 class square_shape
 {
-  template<std::size_t I, T, A>
+  template<std::size_t I, T>
   friend struct ::utilz::procedures::___set_size::__impl;
 
 public:
