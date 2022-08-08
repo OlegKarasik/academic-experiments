@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #ifdef __INTEL_COMPILER
   #include <io.h>
+
+  #include "portables/posix/getopt.h"
 #else
   #include <unistd.h>
 #endif
@@ -25,6 +27,7 @@
 
 // operating system level includes, manage if going cross-platform
 //
+#include "portables/hacks/defines.h"
 #include "win-memory.hpp"
 
 // local includes
@@ -49,7 +52,7 @@ using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calc
 #endif
 
 int
-main(int argc, char* argv[]) noexcept
+main(int argc, char* argv[]) __hack_noexcept
 {
   bool   opt_binary    = false;
   bool   opt_pages     = false;

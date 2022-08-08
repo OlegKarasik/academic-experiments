@@ -3,6 +3,8 @@
 #define APSP_ALG_HAS_BLOCKS
 #define APSP_ALG_HAS_OPTIONS
 
+#include "portables/hacks/defines.h"
+
 #include "memory.hpp"
 #include "square-shape.hpp"
 
@@ -24,7 +26,7 @@ struct support_arrays
 };
 
 template<typename T, typename A, typename U>
-__attribute__((noinline)) support_arrays<T>
+__hack_noinline support_arrays<T>
 up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory::buffer& b)
 {
   using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::pointer;
@@ -68,7 +70,7 @@ up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory:
 };
 
 template<typename T, typename A, typename U>
-__attribute__((noinline)) void
+__hack_noinline void
 down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory::buffer& b, support_arrays<T> o)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
@@ -311,7 +313,7 @@ calculate_peripheral(
 }
 
 template<typename T, typename A, typename U>
-__attribute__((noinline)) void
+__hack_noinline void
 run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;

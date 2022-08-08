@@ -2,6 +2,8 @@
 
 #define APSP_ALG_HAS_BLOCKS
 
+#include "portables/hacks/defines.h"
+
 #include "square-shape.hpp"
 
 template<typename T, typename A>
@@ -13,18 +15,22 @@ calculate_block(::utilz::square_shape<T, A>& ij, ::utilz::square_shape<T, A>& ik
   for (size_type k = size_type(0); k < ij.size(); ++k)
     for (size_type i = size_type(0); i < ij.size(); ++i)
       for (size_type j = size_type(0); j < ij.size(); ++j)
-        ij.at(i, j) = std::min(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
 
 template<typename T, typename A, typename U>
-__attribute__((noinline)) void
+__hack_noinline void
 run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
 {
   using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
 
-#pragma omp parallel default(none) shared(blocks)
+#ifdef _OPENMP
+  #pragma omp parallel default(none) shared(blocks)
+#endif
   {
-#pragma omp single
+#ifdef _OPENMP
+  #pragma omp single
+#endif
     {
       for (size_type b = size_type(0); b < blocks.size(); ++b) {
         auto& center = blocks.at(b, b);
@@ -35,23 +41,33 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
           auto& north = blocks.at(i, b);
           auto& west  = blocks.at(b, i);
 
-#pragma omp task untied default(none) shared(north, center)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(north, center)
+#endif
           calculate_block(north, north, center);
 
-#pragma omp task untied default(none) shared(west, center)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(west, center)
+#endif
           calculate_block(west, center, west);
         };
         for (size_type i = (b + size_type(1)); i < blocks.size(); ++i) {
           auto& south = blocks.at(i, b);
           auto& east  = blocks.at(b, i);
 
-#pragma omp task untied default(none) shared(south, center)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(south, center)
+#endif
           calculate_block(south, south, center);
 
-#pragma omp task untied default(none) shared(east, center)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(east, center)
+#endif
           calculate_block(east, center, east);
         };
-#pragma omp taskwait
+#ifdef _OPENMP
+  #pragma omp taskwait
+#endif
 
         for (size_type i = size_type(0); i < b; ++i) {
           auto& north = blocks.at(i, b);
@@ -59,7 +75,9 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
             auto& ij = blocks.at(i, j);
             auto& bj = blocks.at(b, j);
 
-#pragma omp task untied default(none) shared(ij, north, bj)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(ij, north, bj)
+#endif
             calculate_block(ij, north, bj);
           };
 
@@ -67,7 +85,9 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
             auto& ij = blocks.at(i, j);
             auto& bj = blocks.at(b, j);
 
-#pragma omp task untied default(none) shared(ij, north, bj)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(ij, north, bj)
+#endif
             calculate_block(ij, north, bj);
           };
         };
@@ -77,7 +97,9 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
             auto& ij = blocks.at(i, j);
             auto& bj = blocks.at(b, j);
 
-#pragma omp task untied default(none) shared(ij, south, bj)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(ij, south, bj)
+#endif
             calculate_block(ij, south, bj);
           };
 
@@ -85,11 +107,15 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
             auto& ij = blocks.at(i, j);
             auto& bj = blocks.at(b, j);
 
-#pragma omp task untied default(none) shared(ij, south, bj)
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(ij, south, bj)
+#endif
             calculate_block(ij, south, bj);
           };
         };
-#pragma omp taskwait
+#ifdef _OPENMP
+  #pragma omp taskwait
+#endif
       };
     }
   }

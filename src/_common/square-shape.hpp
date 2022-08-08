@@ -65,7 +65,11 @@ struct square_shape_replace;
 template<typename T, typename A = std::allocator<T>>
 class square_shape
 {
+#ifdef __INTEL_COMPILER
+  template<std::size_t I, typename T>
+#else
   template<std::size_t I, T>
+#endif
   friend struct ::utilz::procedures::___set_size::__impl;
 
 public:
