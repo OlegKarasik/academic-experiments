@@ -65,8 +65,8 @@ struct square_shape_replace;
 template<typename T, typename A = std::allocator<T>>
 class square_shape
 {
-#ifdef __INTEL_COMPILER
-  template<std::size_t I, typename T>
+#ifdef _INTEL_COMPILER
+  template<std::size_t I, typename S>
 #else
   template<std::size_t I, T>
 #endif
@@ -449,7 +449,7 @@ public:
 
     for (result_type i = result_type(0); i < os_sz; ++i)
       for (result_type j = result_type(0); j < os_sz; ++j) {
-        typename U::rebind<A>::other in_a(s.m_a);
+        typename U::template rebind<A>::other in_a(s.m_a);
 
         auto in_s = square_shape<T, A>(in_a);
 

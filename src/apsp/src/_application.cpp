@@ -1,3 +1,6 @@
+// portability
+#include "portables/hacks/defines.h"
+
 // instrumentation
 #ifdef ITT_TRACE
   #include <ittnotify.h>
@@ -12,7 +15,7 @@
 // global C includes
 //
 #include <stdlib.h>
-#ifdef __INTEL_COMPILER
+#ifdef _INTEL_COMPILER
   #include <io.h>
 
   #include "portables/posix/getopt.h"

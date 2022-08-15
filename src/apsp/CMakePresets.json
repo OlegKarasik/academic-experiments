@@ -55,26 +55,62 @@
       },
       "cacheVariables": {
         "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
-        "CMAKE_C_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe",
-        "CMAKE_CXX_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true
       }
     },
     {
-      "name": "mingw-intel-debug",
+      "hidden": true,
+      "name": "mingw-intel-icl",
+      "inherits": [ "mingw-intel" ],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "mingw-intel-icx",
+      "inherits": [ "mingw-intel" ],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe"
+      }
+    },
+    {
+      "name": "mingw-intel-icl-debug",
       "displayName": "Intel (Debug)",
       "inherits": [
-        "mingw-intel"
+        "mingw-intel-icl"
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "mingw-intel-release",
+      "name": "mingw-intel-icl-release",
       "displayName": "Intel (Release)",
       "inherits": [
-        "mingw-intel"
+        "mingw-intel-icl"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "mingw-intel-icx-debug",
+      "displayName": "Intel LLVM (Debug)",
+      "inherits": [
+        "mingw-intel-icx"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "mingw-intel-icx-release",
+      "displayName": "Intel LLVM (Release)",
+      "inherits": [
+        "mingw-intel-icx"
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -94,10 +130,28 @@
       "configurePreset": "mingw-gcc-release"
     },
     {
-      "name": "mingw-intel-debug",
+      "name": "mingw-intel-icl-debug",
       "displayName": "Intel (Debug)",
       "configuration": "Debug",
-      "configurePreset": "mingw-intel-debug"
+      "configurePreset": "mingw-intel-icl-debug"
+    },
+    {
+      "name": "mingw-intel-icl-release",
+      "displayName": "Intel (Release)",
+      "configuration": "Release",
+      "configurePreset": "mingw-intel-icl-release"
+    },
+    {
+      "name": "mingw-intel-icx-debug",
+      "displayName": "Intel LLVM (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "mingw-intel-icx-debug"
+    },
+    {
+      "name": "mingw-intel-icx-release",
+      "displayName": "Intel LLVM (Release)",
+      "configuration": "Release",
+      "configurePreset": "mingw-intel-icx-release"
     }
   ],
   "testPresets": [
