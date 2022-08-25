@@ -55,9 +55,10 @@
         "SDK_ROOT": "C:/Program Files (x86)/Windows Kits/10",
         "SDK_INC_ROOT": "$env{SDK_ROOT}/include/$env{SDK_VER}",
         "SDK_LIB_ROOT": "$env{SDK_ROOT}/lib/$env{SDK_VER}",
+        "SDK_BIN_ROOT": "$env{SDK_ROOT}/bin/$env{SDK_VER}",
         "INCLUDE":"$env{ONEAPI_INC_ROOT}/intel64;$env{MSVC_ROOT}/include;$env{SDK_INC_ROOT}/ucrt;$env{SDK_INC_ROOT}/shared;$env{SDK_INC_ROOT}/um",
         "LIB":"$env{ONEAPI_LIB_ROOT}/intel64_win;$env{MSVC_LIB_ROOT}/x64;$env{SDK_LIB_ROOT}/ucrt/x64;$env{SDK_LIB_ROOT}/um/x64",
-        "PATH": "$env{ONEAPI_LIB_ROOT}/intel64;$env{SDK_LIB_ROOT}/um/x64;$env{MSVC_BIN_ROOT}/Hostx64/x64;$env{MSVC_LIB_ROOT}/x64;$env{MINGW64_ROOT}/bin;$penv{PATH}"
+        "PATH": "$env{ONEAPI_LIB_ROOT}/intel64;$env{SDK_LIB_ROOT}/um/x64;$env{SDK_BIN_ROOT}/x64;$env{MSVC_BIN_ROOT}/Hostx64/x64;$env{MSVC_LIB_ROOT}/x64;$env{MINGW64_ROOT}/bin;$penv{PATH}"
       },
       "cacheVariables": {
         "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
