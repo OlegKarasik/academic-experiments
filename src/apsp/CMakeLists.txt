@@ -185,6 +185,10 @@ foreach(index RANGE ${length})
   list(GET targets_names ${index} t_name)
   list(GET targets_alias ${index} t_alias)
 
+  if (NOT ICL_ICX_FOUND)
+    string(REPLACE - _ t_fixture ${t_name})
+  endif()
+
   add_executable(_application-v${t_name} ${APP_SRC_LIST})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
@@ -198,6 +202,8 @@ foreach(index RANGE ${length})
 
     target_link_libraries(_test-v${t_name}      PRIVATE GTest::gtest_main)
     target_link_libraries(_benchmark-v${t_name} PRIVATE benchmark::benchmark_main)
+
+    target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
   endif()
 
 
@@ -210,6 +216,8 @@ foreach(index RANGE ${length})
     if (NOT ICL_ICX_FOUND)
       target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
       target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
+
+      target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
     endif()
   endif()
 
@@ -227,7 +235,6 @@ foreach(index RANGE ${length})
       target_link_libraries(_test-v${t_name} PUBLIC ${ITT_LIBRARY})
       target_link_libraries(_benchmark-v${t_name} PUBLIC ${ITT_LIBRARY})
 
-      string(REPLACE - _ t_fixture ${t_name})
       target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
     endif()
   endif()
