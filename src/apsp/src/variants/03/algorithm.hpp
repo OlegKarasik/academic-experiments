@@ -317,32 +317,57 @@ __hack_noinline void
 run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+#ifdef _OPENMP
+  #pragma omp parallel default(none) shared(blocks, support_arrays)
+#endif
+  {
+#ifdef _OPENMP
+  #pragma omp single
+#endif
+    {
+      for (auto m = size_type(0); m < blocks.size(); ++m) {
+        auto& center = blocks.at(m, m);
 
-  for (auto m = size_type(0); m < blocks.size(); ++m) {
-    auto& center = blocks.at(m, m);
+        calculate_diagonal_block(center, support_arrays);
+        for (auto i = size_type(0); i < blocks.size(); ++i) {
+          if (i != m) {
+            auto& x = blocks.at(i, m);
+            auto& y = blocks.at(m, m);
+            auto& z = blocks.at(m, i);
 
-    calculate_diagonal_block(center, support_arrays);
-    for (auto i = size_type(0); i < blocks.size(); ++i) {
-      if (i != m) {
-        auto& x = blocks.at(i, m);
-        auto& y = blocks.at(m, m);
-        auto& z = blocks.at(m, i);
+// #ifdef _OPENMP
+//   #pragma omp task untied default(none) shared(x, y, support_arrays)
+// #endif
+            BCA_C1(x, y, support_arrays);
 
-        BCA_C1(x, y, support_arrays);
-        BCA_C2(z, y, support_arrays);
-      }
-    }
-    for (auto i = size_type(0); i < blocks.size(); ++i) {
-      if (i != m) {
-        for (auto j = size_type(0); j < blocks.size(); ++j) {
-          if (j != m) {
-            auto& x = blocks.at(i, j);
-            auto& y = blocks.at(i, m);
-            auto& z = blocks.at(m, j);
-
-            calculate_peripheral(x, y, z, support_arrays);
+// #ifdef _OPENMP
+//   #pragma omp task untied default(none) shared(z, y, support_arrays)
+// #endif
+            BCA_C2(z, y, support_arrays);
           }
         }
+#ifdef _OPENMP
+  #pragma omp taskwait
+#endif
+        for (auto i = size_type(0); i < blocks.size(); ++i) {
+          if (i != m) {
+            for (auto j = size_type(0); j < blocks.size(); ++j) {
+              if (j != m) {
+                auto& x = blocks.at(i, j);
+                auto& y = blocks.at(i, m);
+                auto& z = blocks.at(m, j);
+
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(x, y, z, support_arrays)
+#endif
+                calculate_peripheral(x, y, z, support_arrays);
+              }
+            }
+          }
+        }
+#ifdef _OPENMP
+  #pragma omp taskwait
+#endif
       }
     }
   }
