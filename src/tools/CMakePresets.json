@@ -1,0 +1,174 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "hidden": true,
+      "name": "mingw-gcc",
+      "generator": "MinGW Makefiles",
+      "binaryDir": "${workspaceFolder}/build",
+      "environment": {
+        "MINGW64_ROOT": "C:/msys64/mingw64",
+        "PATH": "$env{MINGW64_ROOT}/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
+        "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "mingw-gcc-debug",
+      "displayName": "GCC 12.1.0 (Debug)",
+      "inherits": [
+        "mingw-gcc"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "mingw-gcc-release",
+      "displayName": "GCC 12.1.0 (Release)",
+      "inherits": [
+        "mingw-gcc"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "mingw-intel",
+      "generator": "MinGW Makefiles",
+      "binaryDir": "${workspaceFolder}/build",
+      "environment": {
+        "VS_VER": "2019",
+        "MSVC_VER": "14.29.30133",
+        "SDK_VER": "10.0.20348.0",
+        "MINGW64_ROOT": "C:/msys64/mingw64",
+        "ONEAPI_INC_ROOT": "$env{ONEAPI_ROOT}compiler/latest/windows/compiler/include",
+        "ONEAPI_LIB_ROOT": "$env{ONEAPI_ROOT}compiler/latest/windows/compiler/lib",
+        "MSVC_ROOT": "C:/Program Files (x86)/Microsoft Visual Studio/$env{VS_VER}/Community/VC/Tools/MSVC/$env{MSVC_VER}",
+        "MSVC_BIN_ROOT": "$env{MSVC_ROOT}/bin",
+        "MSVC_LIB_ROOT": "$env{MSVC_ROOT}/lib",
+        "SDK_ROOT": "C:/Program Files (x86)/Windows Kits/10",
+        "SDK_INC_ROOT": "$env{SDK_ROOT}/include/$env{SDK_VER}",
+        "SDK_LIB_ROOT": "$env{SDK_ROOT}/lib/$env{SDK_VER}",
+        "SDK_BIN_ROOT": "$env{SDK_ROOT}/bin/$env{SDK_VER}",
+        "INCLUDE":"$env{ONEAPI_INC_ROOT}/intel64;$env{MSVC_ROOT}/include;$env{SDK_INC_ROOT}/ucrt;$env{SDK_INC_ROOT}/shared;$env{SDK_INC_ROOT}/um",
+        "LIB":"$env{ONEAPI_LIB_ROOT}/intel64_win;$env{MSVC_LIB_ROOT}/x64;$env{SDK_LIB_ROOT}/ucrt/x64;$env{SDK_LIB_ROOT}/um/x64",
+        "PATH": "$env{ONEAPI_LIB_ROOT}/intel64;$env{SDK_LIB_ROOT}/um/x64;$env{SDK_BIN_ROOT}/x64;$env{MSVC_BIN_ROOT}/Hostx64/x64;$env{MSVC_LIB_ROOT}/x64;$env{MINGW64_ROOT}/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "hidden": true,
+      "name": "mingw-intel-icl",
+      "inherits": [ "mingw-intel" ],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/intel64/icl.exe"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "mingw-intel-icx",
+      "inherits": [ "mingw-intel" ],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/windows/bin/icx.exe"
+      }
+    },
+    {
+      "name": "mingw-intel-icl-debug",
+      "displayName": "Intel (Debug)",
+      "inherits": [
+        "mingw-intel-icl"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "mingw-intel-icl-release",
+      "displayName": "Intel (Release)",
+      "inherits": [
+        "mingw-intel-icl"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "mingw-intel-icx-debug",
+      "displayName": "Intel LLVM (Debug)",
+      "inherits": [
+        "mingw-intel-icx"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "mingw-intel-icx-release",
+      "displayName": "Intel LLVM (Release)",
+      "inherits": [
+        "mingw-intel-icx"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "mingw-gcc-debug",
+      "displayName": "GCC (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "mingw-gcc-debug"
+    },
+    {
+      "name": "mingw-gcc-release",
+      "displayName": "GCC (Release)",
+      "configurePreset": "mingw-gcc-release"
+    },
+    {
+      "name": "mingw-intel-icl-debug",
+      "displayName": "Intel (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "mingw-intel-icl-debug"
+    },
+    {
+      "name": "mingw-intel-icl-release",
+      "displayName": "Intel (Release)",
+      "configuration": "Release",
+      "configurePreset": "mingw-intel-icl-release"
+    },
+    {
+      "name": "mingw-intel-icx-debug",
+      "displayName": "Intel LLVM (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "mingw-intel-icx-debug"
+    },
+    {
+      "name": "mingw-intel-icx-release",
+      "displayName": "Intel LLVM (Release)",
+      "configuration": "Release",
+      "configurePreset": "mingw-intel-icx-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "mingw-gcc-debug",
+      "displayName": "GCC (Debug)",
+      "configurePreset": "mingw-gcc-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
