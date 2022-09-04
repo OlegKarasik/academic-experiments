@@ -13,6 +13,9 @@ namespace generators {
 struct directed_acyclic_graph_tag
 {};
 
+struct complete_graph_tag
+{};
+
 template<typename size_type>
 struct promised_path
 {
@@ -216,6 +219,44 @@ random_graph(
     ++c;
     edges[i * v + j] = true;
   };
+};
+
+template<
+  typename Matrix,
+  typename MatrixSetSizeOperation,
+  typename MatrixSetValueOperation>
+void
+random_graph(
+  typename MatrixSetSizeOperation::result_type                              v,
+  Matrix&                                                                   m,
+  MatrixSetSizeOperation&                                                   set_size,
+  MatrixSetValueOperation&                                                  set_value,
+  complete_graph_tag)
+{
+  using size_type  = typename MatrixSetSizeOperation::result_type;
+  using value_type = typename MatrixSetValueOperation::result_type;
+
+  static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
+
+  // Set output matrix size and start writing edges
+  //
+  set_size(m, size_type(v));
+
+  // Because we are generating complete graph and not just graph
+  // with cycles and number of edges the logic behind algorithm
+  // is straightforward - allow all edges except self-loops
+  //
+	for (auto i = size_type(0); i < v; ++i) {
+		for (auto j = size_type(0); j < v; ++j) {
+			if (i == j) {
+        // We aren't generating self-loops in complete graph
+        //
+				set_value(m, i, j, value_type(0));
+			} else {
+        set_value(m, i, j, value_type(1));
+			}
+		}
+	}
 };
 
 } // namespace generators
