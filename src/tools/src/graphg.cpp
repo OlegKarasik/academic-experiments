@@ -1,5 +1,8 @@
-#include "square-shape.hpp"
+// portability
+#include "portables/hacks/defines.h"
 
+// global includes
+//
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -7,6 +10,18 @@
 #include <sstream>
 #include <string>
 
+// global C includes
+//
+#include <stdlib.h>
+#ifdef _INTEL_COMPILER
+  #include <io.h>
+
+  #include "portables/posix/getopt.h"
+#else
+  #include <unistd.h>
+#endif
+
+#include "square-shape.hpp"
 #include "graphs-generators.hpp"
 #include "graphs-io.hpp"
 
