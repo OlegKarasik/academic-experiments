@@ -30,7 +30,6 @@
 
 // operating system level includes, manage if going cross-platform
 //
-#include "portables/hacks/defines.h"
 #include "win-memory.hpp"
 
 // local includes
