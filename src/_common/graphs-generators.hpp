@@ -76,9 +76,13 @@ random_graph(
         "erro: hoops count of promised paths is greater than edges count.");
   }
 
+  if (e <= 0)
+    throw std::logic_error(
+      "erro: edge count in directed acyclic graph can't be zero or negative.");
+
   if (e >= (v * (v - size_type(1)) / size_type(2)))
     throw std::logic_error(
-      "erro: edge count in direct acyclic graph can't exceed: `((v) * (v - 1) / 2)`, where `v` is a vertex count.");
+      "erro: edge count in directed acyclic graph can't exceed: `((v) * (v - 1) / 2)`, where `v` is a vertex count.");
 
   std::mt19937_64                          distribution_engine;
   std::uniform_int_distribution<size_type> distribution(size_type(0), v - size_type(1));
