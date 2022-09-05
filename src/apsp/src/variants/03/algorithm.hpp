@@ -10,6 +10,10 @@
 
 #include "constants.hpp"
 
+#include <thread>
+
+#include <omp.h>
+
 template<typename T>
 struct support_arrays
 {
@@ -23,6 +27,9 @@ struct support_arrays
   pointer ck1b1;
   pointer ckb1w;
   pointer ckb3w;
+
+  size_t allocation_line;
+  size_t allocation_size;
 };
 
 template<typename T, typename A, typename U>
@@ -36,10 +43,19 @@ up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory:
   ::utilz::procedures::square_shape_get_size<utilz::square_shape<utilz::square_shape<T, A>, U>> sz;
   ::utilz::procedures::square_shape_at<utilz::square_shape<utilz::square_shape<T, A>, U>> at;
 
-  auto allocation_size = sz(blocks) * sizeof(value_type);
+#ifdef _OPENMP
+  auto allocation_mulx = std::thread::hardware_concurrency();
+#else
+  auto allocation_mulx = 1;
+#endif
+
+  auto allocation_line = sz(blocks);
+  auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
 
   support_arrays<T> arrays;
 
+  arrays.allocation_line = allocation_line;
+  arrays.allocation_size = allocation_size;
   arrays.mck = reinterpret_cast<T*>(b.allocate(allocation_size));
   arrays.drk = reinterpret_cast<T*>(b.allocate(allocation_size));
   arrays.mrk = reinterpret_cast<T*>(b.allocate(allocation_size));
@@ -81,16 +97,14 @@ down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memor
   ::utilz::procedures::square_shape_get_size<utilz::square_shape<utilz::square_shape<T, A>, U>> sz;
   ::utilz::procedures::square_shape_at<utilz::square_shape<utilz::square_shape<T, A>, U>> at;
 
-  auto allocation_size = sz(blocks) * sizeof(value_type);
-
-  b.deallocate(reinterpret_cast<alptr_type>(o.mck), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.drk), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.mrk), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.wrk), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.ckb1), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.ck1b1), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.ckb1w), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.ckb3w), allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mck), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.drk), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mrk), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.wrk), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.ckb1), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.ck1b1), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.ckb1w), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.ckb3w), o.allocation_size);
 
   // Restoring the matrix to a state where self-loop is represented as
   // infinity instead of 0.
@@ -179,14 +193,25 @@ BCA_C1(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
   using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
 
+#ifdef _OPENMP
+  auto allocation_shift = support_arrays.allocation_line * omp_get_thread_num();
+#else
+  auto allocation_shift = 0;
+#endif
+
   size_type  i, j, k, k1;
   value_type  minr, sum0, sum1;
-  pointer pCk1B1_ = support_arrays.drk, pCkB1_ = support_arrays.mck, pC, priB1_j, prk1B3, prk1B3_j, pckB3w_j, pCkB1_i, ckB1w_i, pckB3w_i;
+  pointer pCk1B1_ = support_arrays.drk + allocation_shift,
+          pCkB1_  = support_arrays.mck + allocation_shift,
+          pCkb1w  = support_arrays.ckb1w + allocation_shift,
+          pCkb3w  = support_arrays.ckb3w + allocation_shift,
+          pC, priB1_j, prk1B3, prk1B3_j, pckB3w_j, pCkB1_i, ckB1w_i, pckB3w_i;
+
   value_type  pCk1B1_i;
   for (i = 0; i < b1.size(); ++i) {
     pCk1B1_[i] = ::apsp::constants::infinity<value_type>();
-    support_arrays.ckb1w[i]  = b1.at(i, 1);
-    support_arrays.ckb3w[i]  = b3.at(i, 1);
+    pCkb1w[i] = b1.at(i, 1);
+    pCkb3w[i] = b3.at(i, 1);
   }
   for (k = 1; k < b1.size(); ++k) {
     k1     = k - 1;
@@ -196,7 +221,7 @@ BCA_C1(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support
       priB1_j  = b1.at(i);
       prk1B3_j = prk1B3;
       pCk1B1_i = pCk1B1_[i];
-      pckB3w_j = support_arrays.ckb3w;
+      pckB3w_j = pCkb3w;
       for (j = 0; j < k; ++j, ++prk1B3_j, ++priB1_j, ++pckB3w_j) {
         sum1 = pCk1B1_i + *prk1B3_j;
         if (*priB1_j > sum1)
@@ -210,8 +235,8 @@ BCA_C1(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support
     priB1_j  = b1.at(0) + k;
     pckB3w_j = b3.at(0) + (k + 1);
     pCkB1_i  = pCkB1_;
-    ckB1w_i  = support_arrays.ckb1w;
-    pckB3w_i = support_arrays.ckb3w;
+    ckB1w_i  = pCkb1w;
+    pckB3w_i = pCkb3w;
     for (i = 0; i < b1.size(); ++i, priB1_j += b1.size(), pckB3w_j += b1.size(), ++pCkB1_i, ++ckB1w_i, ++pckB3w_i) {
       *priB1_j  = *pCkB1_i;
       *ckB1w_i  = priB1_j[1];
@@ -243,18 +268,27 @@ BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
   using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
 
+#ifdef _OPENMP
+  auto allocation_shift = support_arrays.allocation_line * omp_get_thread_num();
+#else
+  auto allocation_shift = 0;
+#endif
+
   size_type  k, k1;
   value_type  sum0, sum1;
   value_type  ck1B2i, rkB2i;
   pointer prkB1, prkB1_j, priB1, prk1B1, prk1B1_j, prkB2, pck1B2i, priB2;
-  support_arrays.ckb1[0] = b2.at(0, 0);
+
+  pointer pCkb1 = support_arrays.ckb1 + allocation_shift;
+
+  pCkb1[0] = b2.at(0, 0);
   for (k = size_type(1); k < b1.size(); ++k) {
     k1     = k - 1;
     prkB1  = b1.at(k);
     prk1B1 = b1.at(k1);
     prkB2  = b2.at(k);
     for (auto i = size_type(0); i < k; ++i) {
-      ck1B2i   = support_arrays.ckb1[i];
+      ck1B2i   = pCkb1[i];
       prkB1_j  = prkB1;
       priB1    = b1.at(i);
       prk1B1_j = prk1B1;
@@ -268,7 +302,7 @@ BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support
           *prkB1_j = sum0;
       }
     }
-    pck1B2i = support_arrays.ckb1;
+    pck1B2i = pCkb1;
     priB2   = b2.at(0) + k;
     for (auto i = size_type(0); i < k; ++i, ++pck1B2i, priB2 += b1.size()) {
       *pck1B2i = *priB2;
@@ -277,7 +311,7 @@ BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support
   k1     = k - 1;
   prk1B1 = b1.at(k1);
   for (auto i = size_type(0); i < k1; ++i) {
-    ck1B2i   = support_arrays.ckb1[i];
+    ck1B2i   = pCkb1[i];
     priB1    = b1.at(i);
     prk1B1_j = prk1B1;
     for (auto j = 0; j < b1.size(); ++j, ++priB1, ++prk1B1_j) {
@@ -335,14 +369,14 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<
             auto& y = blocks.at(m, m);
             auto& z = blocks.at(m, i);
 
-// #ifdef _OPENMP
-//   #pragma omp task untied default(none) shared(x, y, support_arrays)
-// #endif
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(x, y, support_arrays)
+#endif
             BCA_C1(x, y, support_arrays);
 
-// #ifdef _OPENMP
-//   #pragma omp task untied default(none) shared(z, y, support_arrays)
-// #endif
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(z, y, support_arrays)
+#endif
             BCA_C2(z, y, support_arrays);
           }
         }
