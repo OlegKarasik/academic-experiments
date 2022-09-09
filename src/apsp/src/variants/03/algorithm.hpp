@@ -71,7 +71,9 @@ up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory:
   for (size_type i = size_type(0); i < sz(blocks); ++i) {
     if (at(blocks, i, i) == ::apsp::constants::infinity<value_type>())
       at(blocks, i, i) = size_type(0);
+  }
 
+  for (size_type i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
     arrays.mck[i] = ::apsp::constants::infinity<value_type>();
     arrays.drk[i] = ::apsp::constants::infinity<value_type>();
     arrays.mrk[i] = ::apsp::constants::infinity<value_type>();
