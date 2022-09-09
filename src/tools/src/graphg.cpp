@@ -57,7 +57,7 @@ main(int argc, char* argv[])
   //    Supported values:
   //    - 'l' to any with step 1
   //
-  const char* options = "o:b:a:v:e:l:h:";
+  const char* options = "o:ba:v:e:l:h:";
 
   std::cerr << "Options:\n";
 
