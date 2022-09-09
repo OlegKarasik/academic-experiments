@@ -35,7 +35,7 @@ main(int argc, char* argv[])
   int  opt_low_weight   = 1;
   int  opt_high_weight  = 20;
 
-  std::ofstream outs;
+  std::string output;
 
   // Supported options
   // o: <path>, path to store generated graph
@@ -67,7 +67,7 @@ main(int argc, char* argv[])
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
-        outs.open(optarg);
+        output = optarg;
         break;
       case 'b':
         std::cerr << "-b: true\n";
@@ -127,7 +127,7 @@ main(int argc, char* argv[])
     }
   }
 
-  if (!outs.is_open()) {
+  if (!output.empty()) {
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
@@ -135,10 +135,17 @@ main(int argc, char* argv[])
     std::cerr << "erro: the -v parameter is required";
     return 1;
   }
-
   if (opt_low_weight >= opt_high_weight) {
     std::cerr << "erro: the value of lowest edge weight can't be greater or equal to highest edge weight value";
     return 1;
+  }
+
+  std::ofstream outs;
+
+  if (opt_binary) {
+    outs.open(output, std::ios_base::binary);
+  } else {
+    outs.open(output);
   }
 
   // All graph generators do fill adjacency matrix with edges information

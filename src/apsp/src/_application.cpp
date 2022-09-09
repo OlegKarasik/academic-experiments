@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 
 // global C includes
 //
@@ -61,8 +62,8 @@ main(int argc, char* argv[]) __hack_noexcept
   size_t opt_reserve   = 0;
   size_t opt_alignment = 0;
 
-  std::ifstream ins;
-  std::ofstream outs;
+  std::string input;
+  std::string output;
 
 #ifdef APSP_ALG_HAS_BLOCKS
   matrix::size_type s = 0;
@@ -80,12 +81,12 @@ main(int argc, char* argv[]) __hack_noexcept
       case 'i':
         std::cerr << "-i: " << optarg << "\n";
 
-        ins.open(optarg);
+        input = optarg;
         break;
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
-        outs.open(optarg);
+        output = optarg;
         break;
       case 'b':
         std::cerr << "-b: true\n";
@@ -133,6 +134,24 @@ main(int argc, char* argv[]) __hack_noexcept
   }
 
   std::cerr << std::endl;
+
+  std::ifstream ins;
+  if (!input.empty()) {
+    if (opt_binary) {
+      ins.open(input, std::ios_base::binary);
+    } else {
+      ins.open(input);
+    }
+  }
+
+  std::ofstream outs;
+  if (!output.empty()) {
+    if (opt_binary) {
+      outs.open(output, std::ios_base::binary);
+    } else {
+      outs.open(output);
+    }
+  }
 
   std::istream& in  = ins.is_open() ? ins : std::cin;
   std::ostream& out = outs.is_open() ? outs : std::cout;
