@@ -169,6 +169,14 @@
       "output": {
         "outputOnFailure": true
       }
+    },
+    {
+      "name": "mingw-gcc-release",
+      "displayName": "GCC (Release)",
+      "configurePreset": "mingw-gcc-release",
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ]
 }
