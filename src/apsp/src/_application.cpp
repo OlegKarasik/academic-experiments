@@ -178,6 +178,8 @@ main(int argc, char* argv[]) __hack_noexcept
     return 1;
   }
 
+  ::memset(memory.get(), 0, opt_reserve);
+
   ::utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
   ::utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
 
