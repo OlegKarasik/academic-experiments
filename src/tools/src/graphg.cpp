@@ -32,8 +32,8 @@ main(int argc, char* argv[])
   int  opt_algorithm    = -1;
   int  opt_vertex_count = -1;
   int  opt_edge_percent = -1;
-  int  opt_low_weight   = 0;
-  int  opt_high_weight  = 15;
+  int  opt_low_weight   = 1;
+  int  opt_high_weight  = 20;
 
   std::ofstream outs;
 
@@ -125,6 +125,15 @@ main(int argc, char* argv[])
         }
         break;
     }
+  }
+
+  if (!outs.is_open()) {
+    std::cerr << "erro: the -o parameter is required";
+    return 1;
+  }
+  if (opt_vertex_count == 0) {
+    std::cerr << "erro: the -v parameter is required";
+    return 1;
   }
 
   if (opt_low_weight >= opt_high_weight) {
