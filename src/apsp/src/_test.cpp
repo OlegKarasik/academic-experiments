@@ -1,15 +1,17 @@
+// gtest
+//
+#include "gtest/gtest.h"
+
 // global includes
 //
 #include <filesystem>
 #include <fstream>
 
-#include "gtest/gtest.h"
-
-// internals
+// local internals
 //
 #include "workspace.hpp"
 
-// global utilz
+// local utilz
 #include "square-shape.hpp"
 
 // local includes
