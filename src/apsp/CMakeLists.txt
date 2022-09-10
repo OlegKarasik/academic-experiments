@@ -63,7 +63,17 @@ if ((CMAKE_CXX_COMPILER_ID STREQUAL "Intel") OR (CMAKE_CXX_COMPILER_ID STREQUAL 
   message(STATUS "Intel ICL/ICX - FOUND")
 endif()
 
-if (NOT ICL_ICX_FOUND)
+if (ICL_ICX_FOUND)
+  set(SKIP_GSUITE TRUE)
+  message(STATUS "Skipping compilation of tests and benchmarks because they aren't supported")
+endif()
+
+# Set main compilation options
+#
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (NOT SKIP_GSUITE)
   # Declare Google Tests and Google Benchmark content
   #
   FetchContent_Declare(
@@ -77,11 +87,6 @@ if (NOT ICL_ICX_FOUND)
     GIT_REPOSITORY https://github.com/google/benchmark.git
     GIT_TAG        v1.6.1
   )
-
-  # Set main compilation options
-  #
-  set(CMAKE_CXX_STANDARD 17)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
   # Initialise Google Tests library entry point
   #
@@ -185,7 +190,7 @@ foreach(index RANGE ${length})
   list(GET targets_names ${index} t_name)
   list(GET targets_alias ${index} t_alias)
 
-  if (NOT ICL_ICX_FOUND)
+  if (NOT SKIP_GSUITE)
     string(REPLACE - _ t_fixture ${t_name})
   endif()
 
@@ -193,7 +198,7 @@ foreach(index RANGE ${length})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
 
-  if (NOT ICL_ICX_FOUND)
+  if (NOT SKIP_GSUITE)
     add_executable(_test-v${t_name}        ${TST_SRC_LIST})
     add_executable(_benchmark-v${t_name}   ${BNK_SRC_LIST})
 
@@ -204,6 +209,10 @@ foreach(index RANGE ${length})
     target_link_libraries(_benchmark-v${t_name} PRIVATE benchmark::benchmark_main)
 
     target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      target_compile_options(_benchmark-v${t_name} PRIVATE "-fopt-info-vec-optimized")
+    endif()
   endif()
 
 
@@ -213,7 +222,7 @@ foreach(index RANGE ${length})
   if((OpenMP_CXX_FOUND) AND (${t_name} IN_LIST omp_targets))
     target_link_libraries(_application-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
 
-    if (NOT ICL_ICX_FOUND)
+    if (NOT SKIP_GSUITE)
       target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
       target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
 
@@ -228,7 +237,7 @@ foreach(index RANGE ${length})
 
     target_link_libraries(_application-v${t_name} PUBLIC ${ITT_LIBRARY})
 
-    if (NOT ICL_ICX_FOUND)
+    if (NOT SKIP_GSUITE)
       target_compile_definitions(_test-v${t_name} PRIVATE ITT_TRACE)
       target_compile_definitions(_benchmark-v${t_name} PRIVATE ITT_TRACE)
 
@@ -239,7 +248,7 @@ foreach(index RANGE ${length})
     endif()
   endif()
 
-  if (NOT ICL_ICX_FOUND)
+  if (NOT SKIP_GSUITE)
     # Discover Google Tests in the target
     #
     gtest_discover_tests(_test-v${t_name})
