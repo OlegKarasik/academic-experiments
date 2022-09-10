@@ -15,3 +15,9 @@
 #else
 #define __hack_noexcept noexcept
 #endif
+
+#ifdef _INTEL_COMPILER
+#define __hack_ivdep _Pragma ("ivdep")
+#else
+#define __hack_ivdep _Pragma ("GCC ivdep")
+#endif
