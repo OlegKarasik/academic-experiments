@@ -11,11 +11,13 @@ run(::utilz::square_shape<T, A>& m)
 {
   using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
 
-  for (size_type k = size_type(0); k < m.size(); ++k)
+  const auto x = m.size();
+  for (auto k = size_type(0); k < x; ++k)
 #ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(m) firstprivate(k)
+  #pragma omp parallel for default(none) shared(m) firstprivate(x) firstprivate(k)
 #endif
-    for (size_type i = size_type(0); i < m.size(); ++i)
-      for (size_type j = size_type(0); j < m.size(); ++j)
+    for (auto i = size_type(0); i < x; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < x; ++j)
         m.at(i, j) = (std::min)(m.at(i, j), m.at(i, k) + m.at(k, j));
 };
