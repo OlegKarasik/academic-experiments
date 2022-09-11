@@ -118,70 +118,53 @@ down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memor
 
 template<typename T, typename A>
 void
-calculate_diagonal(::utilz::square_shape<T, A>& block, support_arrays<T>& support_arrays)
+calculate_diagonal(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
-  using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
-
-  pointer    pDck;
-  pointer    pDij;
-  value_type minR;
-  value_type sumR, sumC, sumDij;
-  value_type drki;
-  pointer    pBik;
-  pointer    pBki;
-  value_type bki;
-  pointer    pdck, pmrk, pwrk, pmck;
 
   support_arrays.drk[0] = ::apsp::constants::infinity<value_type>();
-  support_arrays.wrk[0] = block.at(0, 1);
-  for (size_type k = size_type(1); k < block.size(); ++k) {
-    pDck = block.at(k - 1);
-    for (size_type i = size_type(0); i < k; ++i)
+  support_arrays.wrk[0] = m.at(0, 1);
+
+  for (auto k = size_type(1); k < m.size(); ++k) {
+    for (auto i = size_type(0); i < k; ++i)
       support_arrays.mck[i] = ::apsp::constants::infinity<value_type>();
-    pBki = block.at(k);
-    pmrk = &support_arrays.mrk[0];
-    for (size_type i = 0; i < k; ++i, ++pmrk) {
-      minR = ::apsp::constants::infinity<value_type>();
-      bki  = pBki[i];
-      drki = support_arrays.drk[i];
-      pDij = block.at(i);
-      pdck = pDck;
-      for (size_type j = 0; j < k; ++j, ++pDij, ++pdck) {
-        sumDij = drki + *pdck;
-        if (*pDij > sumDij)
-          *pDij = sumDij;
-        sumR = *pDij + support_arrays.wrk[j];
-        if (minR > sumR)
-          minR = sumR;
-        sumC = *pDij + bki;
-        if (support_arrays.mck[j] > sumC)
-          support_arrays.mck[j] = sumC;
+
+    for (auto i = size_type(0); i < k; ++i) {
+      const auto x = m.at(k, i);
+      const auto z = support_arrays.drk[i];
+
+      auto minimum = ::apsp::constants::infinity<value_type>();
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < k; ++j) {
+        m.at(i, j) = (std::min)(m.at(i, j), z + m.at(k - 1, j));
+
+        minimum = (std::min)(minimum, m.at(i, j) + support_arrays.wrk[j]);
+        support_arrays.mck[j] = (std::min)(support_arrays.mck[j], m.at(i, j) + x);
       }
-      *pmrk = minR;
+      support_arrays.mrk[i] = minimum;
     }
 
-    pBki = block.at(k);
-    pBik = block.at(0) + k;
-    pwrk = support_arrays.wrk;
-    pmck = support_arrays.mck;
-    for (size_type i = 0; i < k; ++i, ++pBki, pBik += block.size(), ++pwrk, ++pmck) {
-      *pBki = *pmck;
-      *pBik = support_arrays.drk[i] = support_arrays.mrk[i];
-      *pwrk                         = pBik[1];
+    for (auto i = size_type(0); i < k; ++i) {
+      m.at(k, i) = support_arrays.mck[i];
+      m.at(i, k) = support_arrays.mrk[i];
+
+      support_arrays.drk[i] = support_arrays.mrk[i];
+      support_arrays.wrk[i] = m.at(i, k + 1);
     }
-    if (k < block.size() - 1)
-      *pwrk = pBik[1];
+
+    if (k < (m.size() - 1))
+      support_arrays.wrk[k] = m.at(k, k + 1);
   }
 
-  const auto x = block.size() - size_type(1);
+  const auto x = m.size() - size_type(1);
   for (auto i = size_type(0); i < x; ++i) {
     const auto ix = support_arrays.drk[i];
 
     __hack_ivdep
     for (auto j = size_type(0); j < x; ++j)
-      block.at(i, j) = (std::min)(block.at(i, j), ix + block.at(x, j));
+      m.at(i, j) = (std::min)(m.at(i, j), ix + m.at(x, j));
   }
 }
 
