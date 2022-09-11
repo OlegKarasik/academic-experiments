@@ -175,15 +175,13 @@ calculate_diagonal_block(::utilz::square_shape<T, A>& block, support_arrays<T>& 
       *pwrk = pBik[1];
   }
 
-  for (size_type i = size_type(0); i < block.size() - size_type(1); ++i) {
-    drki = support_arrays.drk[i];
-    pDij = block.at(i);
-    pdck = block.at(block.size() - 1);
-    for (size_type j = 0; j < block.size() - size_type(1); ++j, ++pDij, ++pdck) {
-      sumDij = drki + *pdck;
-      if (*pDij > sumDij)
-        *pDij = sumDij;
-    }
+  const auto x = block.size() - size_type(1);
+  for (auto i = size_type(0); i < x; ++i) {
+    const auto ix = support_arrays.drk[i];
+
+    __hack_ivdep
+    for (auto j = size_type(0); j < x; ++j)
+      block.at(i, j) = (std::min)(block.at(i, j), ix + block.at(x, j));
   }
 }
 
@@ -326,26 +324,16 @@ BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support
 
 template<typename T, typename A>
 void
-calculate_peripheral(
-  ::utilz::square_shape<T, A>& b1,
-  ::utilz::square_shape<T, A>& b2,
-  ::utilz::square_shape<T, A>& b3,
-  support_arrays<T>& support_arrays
-)
+calculate_peripheral(::utilz::square_shape<T, A>& ij, ::utilz::square_shape<T, A>& ik, ::utilz::square_shape<T, A>& kj)
 {
-  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
 
-  for (auto i = size_type(0); i < b1.size(); ++i) {
-    for (auto k = size_type(0); k < b1.size(); ++k) {
-      auto ik = b2.at(i, k);
-      for (auto j = size_type(0); j < b1.size(); ++j) {
-        auto sum = ik + b3.at(k, j);
-        if (b1.at(i, j) > sum) {
-          b1.at(i, j) = sum;
-        }
-      }
-    }
-  }
+  const auto x = ij.size();
+  for (auto k = size_type(0); k < x; ++k)
+    for (auto i = size_type(0); i < x; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < x; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 }
 
 template<typename T, typename A, typename U>
@@ -362,24 +350,23 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<
 #endif
     {
       for (auto m = size_type(0); m < blocks.size(); ++m) {
-        auto& center = blocks.at(m, m);
+        auto& mm = blocks.at(m, m);
 
-        calculate_diagonal_block(center, support_arrays);
+        calculate_diagonal_block(mm, support_arrays);
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
-            auto& x = blocks.at(i, m);
-            auto& y = blocks.at(m, m);
-            auto& z = blocks.at(m, i);
+            auto& im = blocks.at(i, m);
+            auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(x, y, support_arrays)
+  #pragma omp task untied default(none) shared(im, mm, support_arrays)
 #endif
-            BCA_C1(x, y, support_arrays);
+            BCA_C1(im, mm, support_arrays);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(z, y, support_arrays)
+  #pragma omp task untied default(none) shared(mi, mm, support_arrays)
 #endif
-            BCA_C2(z, y, support_arrays);
+            BCA_C2(mi, mm, support_arrays);
           }
         }
 #ifdef _OPENMP
@@ -387,16 +374,16 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<
 #endif
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
+            auto& im = blocks.at(i, m);
             for (auto j = size_type(0); j < blocks.size(); ++j) {
               if (j != m) {
-                auto& x = blocks.at(i, j);
-                auto& y = blocks.at(i, m);
-                auto& z = blocks.at(m, j);
+                auto& ij = blocks.at(i, j);
+                auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(x, y, z, support_arrays)
+  #pragma omp task untied default(none) shared(ij, im, mj)
 #endif
-                calculate_peripheral(x, y, z, support_arrays);
+                calculate_peripheral(ij, im, mj);
               }
             }
           }

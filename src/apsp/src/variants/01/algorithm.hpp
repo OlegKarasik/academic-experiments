@@ -34,87 +34,46 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
   #pragma omp single
 #endif
     {
-      for (auto b = size_type(0); b < blocks.size(); ++b) {
-        auto& center = blocks.at(b, b);
+      for (auto m = size_type(0); m < blocks.size(); ++m) {
+        auto& mm = blocks.at(m, m);
 
-        calculate_block(center, center, center);
+        calculate_block(mm, mm, mm);
 
-        for (auto i = size_type(0); i < b; ++i) {
-          auto& north = blocks.at(i, b);
-          auto& west  = blocks.at(b, i);
-
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(north, center)
-#endif
-          calculate_block(north, north, center);
+        for (auto i = size_type(0); i < blocks.size(); ++i) {
+          if (i != m) {
+            auto& im = blocks.at(i, m);
+            auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(west, center)
+  #pragma omp task untied default(none) shared(im, mm)
 #endif
-          calculate_block(west, center, west);
-        };
-        for (auto i = (b + size_type(1)); i < blocks.size(); ++i) {
-          auto& south = blocks.at(i, b);
-          auto& east  = blocks.at(b, i);
+            calculate_block(im, im, mm);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(south, center)
+  #pragma omp task untied default(none) shared(mi, mm)
 #endif
-          calculate_block(south, south, center);
-
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(east, center)
-#endif
-          calculate_block(east, center, east);
-        };
+            calculate_block(mi, mm, mi);
+          }
+        }
 #ifdef _OPENMP
   #pragma omp taskwait
 #endif
-
-        for (auto i = size_type(0); i < b; ++i) {
-          auto& north = blocks.at(i, b);
-          for (auto j = size_type(0); j < b; ++j) {
-            auto& ij = blocks.at(i, j);
-            auto& bj = blocks.at(b, j);
-
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, north, bj)
-#endif
-            calculate_block(ij, north, bj);
-          };
-
-          for (auto j = (b + size_type(1)); j < blocks.size(); ++j) {
-            auto& ij = blocks.at(i, j);
-            auto& bj = blocks.at(b, j);
+        for (auto i = size_type(0); i < blocks.size(); ++i) {
+          if (i != m) {
+            auto& im = blocks.at(i, m);
+            for (auto j = size_type(0); j < blocks.size(); ++j) {
+              if (j != m) {
+                auto& ij = blocks.at(i, j);
+                auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, north, bj)
+  #pragma omp task untied default(none) shared(ij, im, mj)
 #endif
-            calculate_block(ij, north, bj);
-          };
-        };
-        for (auto i = (b + size_type(1)); i < blocks.size(); ++i) {
-          auto& south = blocks.at(i, b);
-          for (auto j = size_type(0); j < b; ++j) {
-            auto& ij = blocks.at(i, j);
-            auto& bj = blocks.at(b, j);
-
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, south, bj)
-#endif
-            calculate_block(ij, south, bj);
-          };
-
-          for (auto j = (b + size_type(1)); j < blocks.size(); ++j) {
-            auto& ij = blocks.at(i, j);
-            auto& bj = blocks.at(b, j);
-
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, south, bj)
-#endif
-            calculate_block(ij, south, bj);
-          };
-        };
+                calculate_block(ij, im, mj);
+              }
+            }
+          }
+        }
 #ifdef _OPENMP
   #pragma omp taskwait
 #endif
