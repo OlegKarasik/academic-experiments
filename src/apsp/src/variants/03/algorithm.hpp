@@ -118,7 +118,7 @@ down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memor
 
 template<typename T, typename A>
 void
-calculate_diagonal_block(::utilz::square_shape<T, A>& block, support_arrays<T>& support_arrays)
+calculate_diagonal(::utilz::square_shape<T, A>& block, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
@@ -187,7 +187,7 @@ calculate_diagonal_block(::utilz::square_shape<T, A>& block, support_arrays<T>& 
 
 template<typename T, typename A>
 void
-BCA_C1(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support_arrays<T>& support_arrays)
+calculate_vertical(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
@@ -262,7 +262,7 @@ BCA_C1(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support
 
 template<typename T, typename A>
 void
-BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support_arrays<T>& support_arrays)
+calculate_horizontal(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
@@ -308,17 +308,15 @@ BCA_C2(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support
       *pck1B2i = *priB2;
     }
   }
-  k1     = k - 1;
-  prk1B1 = b1.at(k1);
-  for (auto i = size_type(0); i < k1; ++i) {
-    ck1B2i   = pCkb1[i];
-    priB1    = b1.at(i);
-    prk1B1_j = prk1B1;
-    for (auto j = 0; j < b1.size(); ++j, ++priB1, ++prk1B1_j) {
-      sum1 = ck1B2i + *prk1B1_j;
-      if (*priB1 > sum1)
-        *priB1 = sum1;
-    }
+
+  const auto x = k - size_type(1);
+  const auto z = b1.size();
+  for (auto i = size_type(0); i < x; ++i) {
+    const auto ix = pCkb1[i];
+
+    __hack_ivdep
+    for (auto j = size_type(0); j < z; ++j)
+      b1.at(i, j) = (std::min)(b1.at(i, j), ix + b1.at(x, j));
   }
 }
 
@@ -352,7 +350,7 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<
       for (auto m = size_type(0); m < blocks.size(); ++m) {
         auto& mm = blocks.at(m, m);
 
-        calculate_diagonal_block(mm, support_arrays);
+        calculate_diagonal(mm, support_arrays);
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
             auto& im = blocks.at(i, m);
@@ -361,12 +359,12 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, support_arrays)
 #endif
-            BCA_C1(im, mm, support_arrays);
+            calculate_vertical(im, mm, support_arrays);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, support_arrays)
 #endif
-            BCA_C2(mi, mm, support_arrays);
+            calculate_horizontal(mi, mm, support_arrays);
           }
         }
 #ifdef _OPENMP
