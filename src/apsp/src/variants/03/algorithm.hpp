@@ -118,59 +118,59 @@ down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memor
 
 template<typename T, typename A>
 void
-calculate_diagonal(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
+calculate_diagonal(::utilz::square_shape<T, A>& mm, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
   support_arrays.drk[0] = ::apsp::constants::infinity<value_type>();
-  support_arrays.wrk[0] = m.at(0, 1);
+  support_arrays.wrk[0] = mm.at(0, 1);
 
-  for (auto k = size_type(1); k < m.size(); ++k) {
+  for (auto k = size_type(1); k < mm.size(); ++k) {
     for (auto i = size_type(0); i < k; ++i)
       support_arrays.mck[i] = ::apsp::constants::infinity<value_type>();
 
     for (auto i = size_type(0); i < k; ++i) {
-      const auto x = m.at(k, i);
+      const auto x = mm.at(k, i);
       const auto z = support_arrays.drk[i];
 
       auto minimum = ::apsp::constants::infinity<value_type>();
 
       __hack_ivdep
       for (auto j = size_type(0); j < k; ++j) {
-        m.at(i, j) = (std::min)(m.at(i, j), z + m.at(k - 1, j));
+        mm.at(i, j) = (std::min)(mm.at(i, j), z + mm.at(k - 1, j));
 
-        minimum = (std::min)(minimum, m.at(i, j) + support_arrays.wrk[j]);
-        support_arrays.mck[j] = (std::min)(support_arrays.mck[j], m.at(i, j) + x);
+        minimum = (std::min)(minimum, mm.at(i, j) + support_arrays.wrk[j]);
+        support_arrays.mck[j] = (std::min)(support_arrays.mck[j], mm.at(i, j) + x);
       }
       support_arrays.mrk[i] = minimum;
     }
 
     for (auto i = size_type(0); i < k; ++i) {
-      m.at(k, i) = support_arrays.mck[i];
-      m.at(i, k) = support_arrays.mrk[i];
+      mm.at(k, i) = support_arrays.mck[i];
+      mm.at(i, k) = support_arrays.mrk[i];
 
       support_arrays.drk[i] = support_arrays.mrk[i];
-      support_arrays.wrk[i] = m.at(i, k + 1);
+      support_arrays.wrk[i] = mm.at(i, k + 1);
     }
 
-    if (k < (m.size() - 1))
-      support_arrays.wrk[k] = m.at(k, k + 1);
+    if (k < (mm.size() - 1))
+      support_arrays.wrk[k] = mm.at(k, k + 1);
   }
 
-  const auto x = m.size() - size_type(1);
+  const auto x = mm.size() - size_type(1);
   for (auto i = size_type(0); i < x; ++i) {
     const auto ix = support_arrays.drk[i];
 
     __hack_ivdep
     for (auto j = size_type(0); j < x; ++j)
-      m.at(i, j) = (std::min)(m.at(i, j), ix + m.at(x, j));
+      mm.at(i, j) = (std::min)(mm.at(i, j), ix + mm.at(x, j));
   }
 }
 
 template<typename T, typename A>
 void
-calculate_vertical(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b3, support_arrays<T>& support_arrays)
+calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A>& mm, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
@@ -182,28 +182,31 @@ calculate_vertical(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>&
   auto allocation_shift = 0;
 #endif
 
+  pointer im_array_prv_column = support_arrays.drk + allocation_shift;
+  pointer im_array_cur_column = support_arrays.mck + allocation_shift;
+  pointer support_arrays_ckb1w = support_arrays.ckb1w + allocation_shift;
+  pointer support_arrays_ckb3w = support_arrays.ckb3w + allocation_shift;
+
   size_type  i, j, k, k1;
   value_type  minr, sum0, sum1;
-  pointer pCk1B1_ = support_arrays.drk + allocation_shift,
-          pCkB1_  = support_arrays.mck + allocation_shift,
-          pCkb1w  = support_arrays.ckb1w + allocation_shift,
+  pointer pCkb1w  = support_arrays.ckb1w + allocation_shift,
           pCkb3w  = support_arrays.ckb3w + allocation_shift,
           pC, priB1_j, prk1B3, prk1B3_j, pckB3w_j, pCkB1_i, ckB1w_i, pckB3w_i;
 
   value_type  pCk1B1_i;
-  for (i = 0; i < b1.size(); ++i) {
-    pCk1B1_[i] = ::apsp::constants::infinity<value_type>();
-    pCkb1w[i] = b1.at(i, 1);
-    pCkb3w[i] = b3.at(i, 1);
+  for (i = 0; i < im.size(); ++i) {
+    im_array_prv_column[i] = ::apsp::constants::infinity<value_type>();
+    pCkb1w[i] = im.at(i, 1);
+    pCkb3w[i] = mm.at(i, 1);
   }
-  for (k = 1; k < b1.size(); ++k) {
+  for (k = 1; k < im.size(); ++k) {
     k1     = k - 1;
-    prk1B3 = b3.at(k1);
-    for (i = 0; i < b1.size(); ++i) {
-      minr     = b1.at(i, k);
-      priB1_j  = b1.at(i);
+    prk1B3 = mm.at(k1);
+    for (i = 0; i < im.size(); ++i) {
+      minr     = im.at(i, k);
+      priB1_j  = im.at(i);
       prk1B3_j = prk1B3;
-      pCk1B1_i = pCk1B1_[i];
+      pCk1B1_i = im_array_prv_column[i];
       pckB3w_j = pCkb3w;
       for (j = 0; j < k; ++j, ++prk1B3_j, ++priB1_j, ++pckB3w_j) {
         sum1 = pCk1B1_i + *prk1B3_j;
@@ -213,39 +216,36 @@ calculate_vertical(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>&
         if (minr > sum0)
           minr = sum0;
       }
-      pCkB1_[i] = minr;
+      im_array_cur_column[i] = minr;
     }
-    priB1_j  = b1.at(0) + k;
-    pckB3w_j = b3.at(0) + (k + 1);
-    pCkB1_i  = pCkB1_;
+    priB1_j  = im.at(0) + k;
+    pckB3w_j = mm.at(0) + (k + 1);
+    pCkB1_i  = im_array_cur_column;
     ckB1w_i  = pCkb1w;
     pckB3w_i = pCkb3w;
-    for (i = 0; i < b1.size(); ++i, priB1_j += b1.size(), pckB3w_j += b1.size(), ++pCkB1_i, ++ckB1w_i, ++pckB3w_i) {
+    for (i = 0; i < im.size(); ++i, priB1_j += im.size(), pckB3w_j += im.size(), ++pCkB1_i, ++ckB1w_i, ++pckB3w_i) {
       *priB1_j  = *pCkB1_i;
       *ckB1w_i  = priB1_j[1];
       *pckB3w_i = *pckB3w_j;
     }
-    pC      = pCk1B1_;
-    pCk1B1_ = pCkB1_;
-    pCkB1_  = pC;
+    std::swap(im_array_prv_column, im_array_cur_column);
   }
-  k1     = k - 1;
-  prk1B3 = b3.at(k1);
-  for (i = 0; i < b1.size(); ++i) {
-    priB1_j  = b1.at(i);
-    prk1B3_j = prk1B3;
-    pCk1B1_i = pCk1B1_[i];
-    for (j = 0; j < k1; ++j, ++priB1_j, ++prk1B3_j) {
-      sum1 = pCk1B1_i + *prk1B3_j;
-      if (*priB1_j > sum1)
-        *priB1_j = sum1;
+
+  const auto x = im.size();
+  const auto z = k - 1;
+  for (auto i = size_type(0); i < x; ++i) {
+    auto value = im_array_prv_column[i];
+
+    __hack_ivdep
+    for (auto j = size_type(0); j < z; ++j) {
+      im.at(i, j) = (std::min)(im.at(i, j), value + mm.at(z, j));
     }
   }
 }
 
 template<typename T, typename A>
 void
-calculate_horizontal(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A>& b2, support_arrays<T>& support_arrays)
+calculate_vertical(::utilz::square_shape<T, A>& mi, ::utilz::square_shape<T, A>& mm, support_arrays<T>& support_arrays)
 {
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
@@ -264,19 +264,19 @@ calculate_horizontal(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A
 
   pointer pCkb1 = support_arrays.ckb1 + allocation_shift;
 
-  pCkb1[0] = b2.at(0, 0);
-  for (k = size_type(1); k < b1.size(); ++k) {
+  pCkb1[0] = mm.at(0, 0);
+  for (k = size_type(1); k < mi.size(); ++k) {
     k1     = k - 1;
-    prkB1  = b1.at(k);
-    prk1B1 = b1.at(k1);
-    prkB2  = b2.at(k);
+    prkB1  = mi.at(k);
+    prk1B1 = mi.at(k1);
+    prkB2  = mm.at(k);
     for (auto i = size_type(0); i < k; ++i) {
       ck1B2i   = pCkb1[i];
       prkB1_j  = prkB1;
-      priB1    = b1.at(i);
+      priB1    = mi.at(i);
       prk1B1_j = prk1B1;
       rkB2i    = prkB2[i];
-      for (auto j = size_type(0); j < b1.size(); ++j, ++prkB1_j, ++priB1, ++prk1B1_j) {
+      for (auto j = size_type(0); j < mi.size(); ++j, ++prkB1_j, ++priB1, ++prk1B1_j) {
         sum1 = ck1B2i + *prk1B1_j;
         if (*priB1 > sum1)
           *priB1 = sum1;
@@ -286,20 +286,20 @@ calculate_horizontal(::utilz::square_shape<T, A>& b1, ::utilz::square_shape<T, A
       }
     }
     pck1B2i = pCkb1;
-    priB2   = b2.at(0) + k;
-    for (auto i = size_type(0); i < k; ++i, ++pck1B2i, priB2 += b1.size()) {
+    priB2   = mm.at(0) + k;
+    for (auto i = size_type(0); i < k; ++i, ++pck1B2i, priB2 += mi.size()) {
       *pck1B2i = *priB2;
     }
   }
 
   const auto x = k - size_type(1);
-  const auto z = b1.size();
+  const auto z = mi.size();
   for (auto i = size_type(0); i < x; ++i) {
     const auto ix = pCkb1[i];
 
     __hack_ivdep
     for (auto j = size_type(0); j < z; ++j)
-      b1.at(i, j) = (std::min)(b1.at(i, j), ix + b1.at(x, j));
+      mi.at(i, j) = (std::min)(mi.at(i, j), ix + mi.at(x, j));
   }
 }
 
@@ -342,12 +342,12 @@ run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, support_arrays)
 #endif
-            calculate_vertical(im, mm, support_arrays);
+            calculate_horizontal(im, mm, support_arrays);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, support_arrays)
 #endif
-            calculate_horizontal(mi, mm, support_arrays);
+            calculate_vertical(mi, mm, support_arrays);
           }
         }
 #ifdef _OPENMP
