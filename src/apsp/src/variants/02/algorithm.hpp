@@ -121,10 +121,10 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
 
   const auto x = m.size() - size_type(1);
   for (auto i = size_type(0); i < x; ++i) {
-    const auto ix = support_arrays.drk[i];
+    const auto v = support_arrays.drk[i];
 
     __hack_ivdep
     for (auto j = size_type(0); j < x; ++j)
-      m.at(i, j) = (std::min)(m.at(i, j), ix + m.at(x, j));
+      m.at(i, j) = (std::min)(m.at(i, j), v + m.at(x, j));
   }
 };
