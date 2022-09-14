@@ -7,11 +7,9 @@
 
 #include "memory.hpp"
 #include "square-shape.hpp"
-
 #include "constants.hpp"
 
 #include <thread>
-
 #include <omp.h>
 
 template<typename T>
@@ -184,20 +182,23 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
 
   pointer im_array_prv_column = support_arrays.drk + allocation_shift;
   pointer im_array_cur_column = support_arrays.mck + allocation_shift;
-  pointer support_arrays_ckb1w = support_arrays.ckb1w + allocation_shift;
-  pointer support_arrays_ckb3w = support_arrays.ckb3w + allocation_shift;
+
+  pointer im_array_cur_weight = support_arrays.ckb1w + allocation_shift;
+  pointer mm_array_cur_weight = support_arrays.ckb3w + allocation_shift;
 
   size_type  i, j, k, k1;
   value_type  minr, sum0, sum1;
-  pointer pCkb1w  = support_arrays.ckb1w + allocation_shift,
-          pCkb3w  = support_arrays.ckb3w + allocation_shift,
-          pC, priB1_j, prk1B3, prk1B3_j, pckB3w_j, pCkB1_i, ckB1w_i, pckB3w_i;
+  pointer pC, priB1_j, prk1B3, prk1B3_j, pckB3w_j, pCkB1_i, ckB1w_i, pckB3w_i;
 
   value_type  pCk1B1_i;
-  for (i = 0; i < im.size(); ++i) {
+
+  const auto x = im.size();
+
+  __hack_ivdep
+  for (auto i = size_type(0); i < x; ++i) {
     im_array_prv_column[i] = ::apsp::constants::infinity<value_type>();
-    pCkb1w[i] = im.at(i, 1);
-    pCkb3w[i] = mm.at(i, 1);
+    im_array_cur_weight[i] = im.at(i, 1);
+    mm_array_cur_weight[i] = mm.at(i, 1);
   }
   for (k = 1; k < im.size(); ++k) {
     k1     = k - 1;
@@ -207,7 +208,7 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
       priB1_j  = im.at(i);
       prk1B3_j = prk1B3;
       pCk1B1_i = im_array_prv_column[i];
-      pckB3w_j = pCkb3w;
+      pckB3w_j = mm_array_cur_weight;
       for (j = 0; j < k; ++j, ++prk1B3_j, ++priB1_j, ++pckB3w_j) {
         sum1 = pCk1B1_i + *prk1B3_j;
         if (*priB1_j > sum1)
@@ -221,8 +222,8 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
     priB1_j  = im.at(0) + k;
     pckB3w_j = mm.at(0) + (k + 1);
     pCkB1_i  = im_array_cur_column;
-    ckB1w_i  = pCkb1w;
-    pckB3w_i = pCkb3w;
+    ckB1w_i  = im_array_cur_weight;
+    pckB3w_i = mm_array_cur_weight;
     for (i = 0; i < im.size(); ++i, priB1_j += im.size(), pckB3w_j += im.size(), ++pCkB1_i, ++ckB1w_i, ++pckB3w_i) {
       *priB1_j  = *pCkB1_i;
       *ckB1w_i  = priB1_j[1];
@@ -231,7 +232,6 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
     std::swap(im_array_prv_column, im_array_cur_column);
   }
 
-  const auto x = im.size();
   const auto z = k - 1;
   for (auto i = size_type(0); i < x; ++i) {
     auto value = im_array_prv_column[i];
