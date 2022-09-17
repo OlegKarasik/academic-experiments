@@ -195,9 +195,9 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
     mm_array_nxt_weight[i] = mm.at(i, 1);
   }
   for (auto k = size_type(1); k < x; ++k) {
+    const auto z = k - size_type(1);
     for (auto i = size_type(0); i < x; ++i) {
       const auto v = im_array_prv_weight[i];
-      const auto z = k - size_type(1);
 
       auto minimum = im.at(i, k);
 
@@ -218,14 +218,13 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
     std::swap(im_array_prv_weight, im_array_cur_weight);
   }
 
+  const auto z = x - size_type(1);
   for (auto i = size_type(0); i < x; ++i) {
     const auto v = im_array_prv_weight[i];
-    const auto z = x - size_type(1);
 
     __hack_ivdep
-    for (auto j = size_type(0); j < z; ++j) {
+    for (auto j = size_type(0); j < z; ++j)
       im.at(i, j) = (std::min)(im.at(i, j), v + mm.at(z, j));
-    }
   }
 }
 
@@ -243,49 +242,35 @@ calculate_vertical(::utilz::square_shape<T, A>& mi, ::utilz::square_shape<T, A>&
   auto allocation_shift = 0;
 #endif
 
-  size_type  k, k1;
-  value_type  sum0, sum1;
-  value_type  ck1B2i, rkB2i;
-  pointer prkB1, prkB1_j, priB1, prk1B1, prk1B1_j, prkB2, pck1B2i, priB2;
+  pointer mm_array_nxt_weight = support_arrays.ckb1 + allocation_shift;
 
-  pointer pCkb1 = support_arrays.ckb1 + allocation_shift;
+  const auto x = mi.size();
 
-  pCkb1[0] = mm.at(0, 0);
-  for (k = size_type(1); k < mi.size(); ++k) {
-    k1     = k - 1;
-    prkB1  = mi.at(k);
-    prk1B1 = mi.at(k1);
-    prkB2  = mm.at(k);
+  mm_array_nxt_weight[0] = mm.at(0, 0);
+  for (auto k = size_type(1); k < x; ++k) {
+    auto const z = k - size_type(1);
     for (auto i = size_type(0); i < k; ++i) {
-      ck1B2i   = pCkb1[i];
-      prkB1_j  = prkB1;
-      priB1    = mi.at(i);
-      prk1B1_j = prk1B1;
-      rkB2i    = prkB2[i];
-      for (auto j = size_type(0); j < mi.size(); ++j, ++prkB1_j, ++priB1, ++prk1B1_j) {
-        sum1 = ck1B2i + *prk1B1_j;
-        if (*priB1 > sum1)
-          *priB1 = sum1;
-        sum0 = rkB2i + *priB1;
-        if (*prkB1_j > sum0)
-          *prkB1_j = sum0;
+      const auto v = mm_array_nxt_weight[i];
+      const auto w = mm.at(k, i);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < x; ++j) {
+        mi.at(i, j) = (std::min)(mi.at(i, j), v + mi.at(z, j));
+        mi.at(k, j) = (std::min)(mi.at(k, j), w + mi.at(i, j));
       }
     }
-    pck1B2i = pCkb1;
-    priB2   = mm.at(0) + k;
-    for (auto i = size_type(0); i < k; ++i, ++pck1B2i, priB2 += mi.size()) {
-      *pck1B2i = *priB2;
-    }
+
+    for (auto i = size_type(0); i < k; ++i)
+      mm_array_nxt_weight[i] = mm.at(i, k);
   }
 
-  const auto x = k - size_type(1);
-  const auto z = mi.size();
-  for (auto i = size_type(0); i < x; ++i) {
-    const auto ix = pCkb1[i];
+  const auto z = x - size_type(1);
+  for (auto i = size_type(0); i < z; ++i) {
+    const auto v = mm_array_nxt_weight[i];
 
     __hack_ivdep
-    for (auto j = size_type(0); j < z; ++j)
-      mi.at(i, j) = (std::min)(mi.at(i, j), ix + mi.at(x, j));
+    for (auto j = size_type(0); j < x; ++j)
+      mi.at(i, j) = (std::min)(mi.at(i, j), v + mi.at(z, j));
   }
 }
 
