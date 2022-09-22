@@ -17,10 +17,10 @@ struct support_arrays
 {
   using pointer = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T>>::pointer;
 
-  pointer mck;
-  pointer drk;
-  pointer mrk;
-  pointer wrk;
+  pointer mm_array_cur_row;
+  pointer mm_array_prv_col;
+  pointer mm_array_cur_col;
+  pointer mm_array_nxt_row;
   pointer ckb1;
   pointer ck1b1;
   pointer ckb1w;
@@ -54,10 +54,10 @@ up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory:
 
   arrays.allocation_line = allocation_line;
   arrays.allocation_size = allocation_size;
-  arrays.mck = reinterpret_cast<T*>(b.allocate(allocation_size));
-  arrays.drk = reinterpret_cast<T*>(b.allocate(allocation_size));
-  arrays.mrk = reinterpret_cast<T*>(b.allocate(allocation_size));
-  arrays.wrk = reinterpret_cast<T*>(b.allocate(allocation_size));
+  arrays.mm_array_cur_row = reinterpret_cast<T*>(b.allocate(allocation_size));
+  arrays.mm_array_prv_col = reinterpret_cast<T*>(b.allocate(allocation_size));
+  arrays.mm_array_cur_col = reinterpret_cast<T*>(b.allocate(allocation_size));
+  arrays.mm_array_nxt_row = reinterpret_cast<T*>(b.allocate(allocation_size));
   arrays.ckb1 = reinterpret_cast<T*>(b.allocate(allocation_size));
   arrays.ck1b1 = reinterpret_cast<T*>(b.allocate(allocation_size));
   arrays.ckb1w = reinterpret_cast<T*>(b.allocate(allocation_size));
@@ -72,10 +72,10 @@ up(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memory:
   }
 
   for (size_type i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
-    arrays.mck[i] = ::apsp::constants::infinity<value_type>();
-    arrays.drk[i] = ::apsp::constants::infinity<value_type>();
-    arrays.mrk[i] = ::apsp::constants::infinity<value_type>();
-    arrays.wrk[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mm_array_prv_col[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mm_array_cur_col[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mm_array_nxt_row[i] = ::apsp::constants::infinity<value_type>();
     arrays.ckb1[i] = ::apsp::constants::infinity<value_type>();
     arrays.ck1b1[i] = ::apsp::constants::infinity<value_type>();
     arrays.ckb1w[i] = ::apsp::constants::infinity<value_type>();
@@ -97,10 +97,10 @@ down(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, ::utilz::memor
   ::utilz::procedures::square_shape_get_size<utilz::square_shape<utilz::square_shape<T, A>, U>> sz;
   ::utilz::procedures::square_shape_at<utilz::square_shape<utilz::square_shape<T, A>, U>> at;
 
-  b.deallocate(reinterpret_cast<alptr_type>(o.mck), o.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.drk), o.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.mrk), o.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.wrk), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_cur_row), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_prv_col), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_cur_col), o.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_nxt_row), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.ckb1), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.ck1b1), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.ckb1w), o.allocation_size);
@@ -121,16 +121,16 @@ calculate_diagonal(::utilz::square_shape<T, A>& mm, support_arrays<T>& support_a
   using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
-  support_arrays.drk[0] = ::apsp::constants::infinity<value_type>();
-  support_arrays.wrk[0] = mm.at(0, 1);
+  support_arrays.mm_array_prv_col[0] = ::apsp::constants::infinity<value_type>();
+  support_arrays.mm_array_nxt_row[0] = mm.at(0, 1);
 
   for (auto k = size_type(1); k < mm.size(); ++k) {
     for (auto i = size_type(0); i < k; ++i)
-      support_arrays.mck[i] = ::apsp::constants::infinity<value_type>();
+      support_arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
 
     for (auto i = size_type(0); i < k; ++i) {
       const auto x = mm.at(k, i);
-      const auto z = support_arrays.drk[i];
+      const auto z = support_arrays.mm_array_prv_col[i];
 
       auto minimum = ::apsp::constants::infinity<value_type>();
 
@@ -138,27 +138,27 @@ calculate_diagonal(::utilz::square_shape<T, A>& mm, support_arrays<T>& support_a
       for (auto j = size_type(0); j < k; ++j) {
         mm.at(i, j) = (std::min)(mm.at(i, j), z + mm.at(k - 1, j));
 
-        minimum = (std::min)(minimum, mm.at(i, j) + support_arrays.wrk[j]);
-        support_arrays.mck[j] = (std::min)(support_arrays.mck[j], mm.at(i, j) + x);
+        minimum = (std::min)(minimum, mm.at(i, j) + support_arrays.mm_array_nxt_row[j]);
+        support_arrays.mm_array_cur_row[j] = (std::min)(support_arrays.mm_array_cur_row[j], mm.at(i, j) + x);
       }
-      support_arrays.mrk[i] = minimum;
+      support_arrays.mm_array_cur_col[i] = minimum;
     }
 
     for (auto i = size_type(0); i < k; ++i) {
-      mm.at(k, i) = support_arrays.mck[i];
-      mm.at(i, k) = support_arrays.mrk[i];
+      mm.at(k, i) = support_arrays.mm_array_cur_row[i];
+      mm.at(i, k) = support_arrays.mm_array_cur_col[i];
 
-      support_arrays.drk[i] = support_arrays.mrk[i];
-      support_arrays.wrk[i] = mm.at(i, k + 1);
+      support_arrays.mm_array_prv_col[i] = support_arrays.mm_array_cur_col[i];
+      support_arrays.mm_array_nxt_row[i] = mm.at(i, k + 1);
     }
 
     if (k < (mm.size() - 1))
-      support_arrays.wrk[k] = mm.at(k, k + 1);
+      support_arrays.mm_array_nxt_row[k] = mm.at(k, k + 1);
   }
 
   const auto x = mm.size() - size_type(1);
   for (auto i = size_type(0); i < x; ++i) {
-    const auto ix = support_arrays.drk[i];
+    const auto ix = support_arrays.mm_array_prv_col[i];
 
     __hack_ivdep
     for (auto j = size_type(0); j < x; ++j)
@@ -180,8 +180,8 @@ calculate_horizontal(::utilz::square_shape<T, A>& im, ::utilz::square_shape<T, A
   auto allocation_shift = 0;
 #endif
 
-  pointer im_array_prv_weight = support_arrays.drk + allocation_shift;
-  pointer im_array_cur_weight = support_arrays.mck + allocation_shift;
+  pointer im_array_prv_weight = support_arrays.mm_array_prv_col + allocation_shift;
+  pointer im_array_cur_weight = support_arrays.mm_array_cur_row + allocation_shift;
 
   pointer im_array_nxt_weight = support_arrays.ckb1w + allocation_shift;
   pointer mm_array_nxt_weight = support_arrays.ckb3w + allocation_shift;
