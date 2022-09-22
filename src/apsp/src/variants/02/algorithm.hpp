@@ -91,18 +91,20 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
     for (auto i = size_type(0); i < k; ++i)
       support_arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
 
+    const auto z = k - size_type(1);
     for (auto i = size_type(0); i < k; ++i) {
-      const auto x = m.at(k, i);
-      const auto z = support_arrays.mm_array_prv_col[i];
+      const auto v = m.at(k, i);
+      const auto w = support_arrays.mm_array_prv_col[i];
 
       auto minimum = ::apsp::constants::infinity<value_type>();
 
       __hack_ivdep
       for (auto j = size_type(0); j < k; ++j) {
-        m.at(i, j) = (std::min)(m.at(i, j), z + m.at(k - 1, j));
+        m.at(i, j) = (std::min)(m.at(i, j), w + m.at(z, j));
 
         minimum = (std::min)(minimum, m.at(i, j) + support_arrays.mm_array_nxt_row[j]);
-        support_arrays.mm_array_cur_row[j] = (std::min)(support_arrays.mm_array_cur_row[j], m.at(i, j) + x);
+
+        support_arrays.mm_array_cur_row[j] = (std::min)(support_arrays.mm_array_cur_row[j], m.at(i, j) + v);
       }
       support_arrays.mm_array_cur_col[i] = minimum;
     }
