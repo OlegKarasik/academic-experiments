@@ -127,7 +127,7 @@ main(int argc, char* argv[])
     }
   }
 
-  if (!output.empty()) {
+  if (output.empty()) {
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
