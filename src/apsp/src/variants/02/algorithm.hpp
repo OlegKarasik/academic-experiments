@@ -101,7 +101,11 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
 
       auto minimum = ::apsp::constants::infinity<value_type>();
 
+#ifdef _OPENMP
+  #pragma omp simd
+#else
       __hack_ivdep
+#endif
       for (auto j = size_type(0); j < k; ++j) {
         m.at(i, j) = (std::min)(m.at(i, j), w + m.at(z, j));
 
@@ -135,7 +139,11 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
   for (auto i = size_type(0); i < x; ++i) {
     const auto v = support_arrays.mm_array_prv_col[i];
 
+#ifdef _OPENMP
+  #pragma omp simd
+#else
     __hack_ivdep
+#endif
     for (auto j = size_type(0); j < x; ++j)
       m.at(i, j) = (std::min)(m.at(i, j), v + m.at(x, j));
   }
