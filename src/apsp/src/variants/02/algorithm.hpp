@@ -17,7 +17,7 @@ struct support_arrays
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
   pointer mm_array_cur_col;
-  pointer mm_array_nxt_row;
+  pointer mm_array_nxt_col;
 };
 
 template<typename T, typename A>
@@ -35,7 +35,7 @@ up(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b)
   arrays.mm_array_cur_row = reinterpret_cast<pointer>(b.allocate(allocation_size));
   arrays.mm_array_prv_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
   arrays.mm_array_cur_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
-  arrays.mm_array_nxt_row = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  arrays.mm_array_nxt_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
 
   // The algorithm requires that all self-loops have non "infinite" value. This
   // doesn't affect correctness of calculations.
@@ -47,7 +47,7 @@ up(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b)
     arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
     arrays.mm_array_prv_col[i] = ::apsp::constants::infinity<value_type>();
     arrays.mm_array_cur_col[i] = ::apsp::constants::infinity<value_type>();
-    arrays.mm_array_nxt_row[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mm_array_nxt_col[i] = ::apsp::constants::infinity<value_type>();
   }
 
   return arrays;
@@ -67,7 +67,7 @@ down(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b, support_arrays<
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_cur_row), allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_prv_col), allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_cur_col), allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_nxt_row), allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_nxt_col), allocation_size);
 
   // Restoring the matrix to a state where self-loop is represented as
   // infinity instead of 0.
@@ -85,7 +85,7 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
   using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
   support_arrays.mm_array_prv_col[0] = ::apsp::constants::infinity<value_type>();
-  support_arrays.mm_array_nxt_row[0] = m.at(0, 1);
+  support_arrays.mm_array_nxt_col[0] = m.at(0, 1);
 
   for (auto k = size_type(1); k < m.size(); ++k) {
     __hack_ivdep
@@ -103,7 +103,7 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       for (auto j = size_type(0); j < k; ++j) {
         m.at(i, j) = (std::min)(m.at(i, j), w + m.at(z, j));
 
-        minimum = (std::min)(minimum, m.at(i, j) + support_arrays.mm_array_nxt_row[j]);
+        minimum = (std::min)(minimum, m.at(i, j) + support_arrays.mm_array_nxt_col[j]);
 
         support_arrays.mm_array_cur_row[j] = (std::min)(support_arrays.mm_array_cur_row[j], m.at(i, j) + v);
       }
@@ -115,11 +115,11 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       m.at(i, k) = support_arrays.mm_array_cur_col[i];
 
       support_arrays.mm_array_prv_col[i] = support_arrays.mm_array_cur_col[i];
-      support_arrays.mm_array_nxt_row[i] = m.at(i, k + 1);
+      support_arrays.mm_array_nxt_col[i] = m.at(i, k + 1);
     }
 
     if (k < (m.size() - 1))
-      support_arrays.mm_array_nxt_row[k] = m.at(k, k + 1);
+      support_arrays.mm_array_nxt_col[k] = m.at(k, k + 1);
   }
 
   const auto x = m.size() - size_type(1);
