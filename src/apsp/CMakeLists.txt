@@ -218,7 +218,7 @@ foreach(index RANGE ${length})
     target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-      target_compile_options(_benchmark-v${t_name} PRIVATE "-fopt-info-vec-optimized" "-fopt-info-loop-optimized")
+      target_compile_options(_benchmark-v${t_name} PRIVATE "-fopt-info-vec-optimized" "-fopt-info-loop-optimized" "-save-temps" "-fverbose-asm")
     endif()
   endif()
 
