@@ -87,6 +87,7 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
   support_arrays.mm_array_prv_col[0] = ::apsp::constants::infinity<value_type>();
   support_arrays.mm_array_nxt_col[0] = m.at(0, 1);
 
+  const auto x = m.size() - size_type(1);
   for (auto k = size_type(1); k < m.size(); ++k) {
     __hack_ivdep
     for (auto i = size_type(0); i < k; ++i)
@@ -115,14 +116,12 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       m.at(i, k) = support_arrays.mm_array_cur_col[i];
 
       support_arrays.mm_array_prv_col[i] = support_arrays.mm_array_cur_col[i];
-      support_arrays.mm_array_nxt_col[i] = m.at(i, k + 1);
+      support_arrays.mm_array_nxt_col[i] = m.at(i, k + size_type(1));
     }
 
-    if (k < (m.size() - 1))
-      support_arrays.mm_array_nxt_col[k] = m.at(k, k + 1);
+    if (k < x)
+      support_arrays.mm_array_nxt_col[k] = m.at(k, k + size_type(1));
   }
-
-  const auto x = m.size() - size_type(1);
 
 #ifdef _OPENMP
   #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(x)
