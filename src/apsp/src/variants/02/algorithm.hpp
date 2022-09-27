@@ -94,6 +94,10 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       support_arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
 
     const auto z = k - size_type(1);
+
+#ifdef _OPENMP
+  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(x) schedule(dynamic, 1)
+#endif
     for (auto i = size_type(0); i < k; ++i) {
       const auto v = m.at(k, i);
       const auto w = support_arrays.mm_array_prv_col[i];
