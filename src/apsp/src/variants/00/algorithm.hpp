@@ -18,7 +18,7 @@ run(::utilz::square_shape<T, A>& m)
 #endif
     for (auto i = size_type(0); i < x; ++i)
 #ifdef _OPENMP
-  #pragma omp simd
+ #pragma omp simd
 #else
       __hack_ivdep
 #endif

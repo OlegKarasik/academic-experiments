@@ -88,24 +88,18 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
   support_arrays.mm_array_nxt_row[0] = m.at(0, 1);
 
   for (auto k = size_type(1); k < m.size(); ++k) {
+    __hack_ivdep
     for (auto i = size_type(0); i < k; ++i)
       support_arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
 
     const auto z = k - size_type(1);
-#ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(z, k)
-#endif
     for (auto i = size_type(0); i < k; ++i) {
       const auto v = m.at(k, i);
       const auto w = support_arrays.mm_array_prv_col[i];
 
       auto minimum = ::apsp::constants::infinity<value_type>();
 
-#ifdef _OPENMP
-  #pragma omp simd
-#else
       __hack_ivdep
-#endif
       for (auto j = size_type(0); j < k; ++j) {
         m.at(i, j) = (std::min)(m.at(i, j), w + m.at(z, j));
 
@@ -116,9 +110,6 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       support_arrays.mm_array_cur_col[i] = minimum;
     }
 
-#ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(k)
-#endif
     for (auto i = size_type(0); i < k; ++i) {
       m.at(k, i) = support_arrays.mm_array_cur_row[i];
       m.at(i, k) = support_arrays.mm_array_cur_col[i];
