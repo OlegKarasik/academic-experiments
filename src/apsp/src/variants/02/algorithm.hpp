@@ -96,7 +96,7 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
     const auto z = k - size_type(1);
 
 #ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(k, x, z) schedule(dynamic, 1)
+  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(k, x, z)
 #endif
     for (auto i = size_type(0); i < k; ++i) {
       const auto v = m.at(k, i);
@@ -115,6 +115,9 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       support_arrays.mm_array_cur_col[i] = minimum;
     }
 
+#ifdef _OPENMP
+  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(k)
+#endif
     for (auto i = size_type(0); i < k; ++i) {
       m.at(k, i) = support_arrays.mm_array_cur_row[i];
       m.at(i, k) = support_arrays.mm_array_cur_col[i];
