@@ -6,20 +6,23 @@ param(
   [ValidateNotNullOrEmpty()]
   [string] $OutputDirectory = $(throw 'OutputDirectory parameter is required.'),
   [int]    $Repeat = 1,
+  [switch] $MeasureEnergy,
   [switch] $RunBase,
   [switch] $RunProf
 )
 # Constants
 #
 # $SourceDirectory = 'D:\Projects\Profiling';
-# $ApplicationDirectory = 'D:\Projects\GitHub\academic-experiments\src\apsp\shell\bin';
+# $ApplicationDirectory = 'D:\Projects\GitHub\academic-experiments\src\apsp\build';
 $vtune = 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest\bin64\vtune';
+$socwatch = 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest\socwatch\64\socwatch';
 
 Write-Verbose -Message "LAUNCH CONFIG PATH : $LaunchConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "RUN CONFIG PATH    : $RunConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "EVENT CONFIG PATH  : $EventConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "OUTPUT DIRECTORY   : $OutputDirectory" -ErrorAction Stop;
 Write-Verbose -Message "REPEAT             : $Repeat" -ErrorAction Stop;
+Write-Verbose -Message "MEASURE ENERGY     : $MeasureEnergy" -ErrorAction Stop;
 Write-Verbose -Message "RUN BASE           : $RunBase" -ErrorAction Stop;
 Write-Verbose -Message "RUN PROFILE        : $RunProf" -ErrorAction Stop;
 
@@ -90,10 +93,20 @@ $RunConfig | ForEach-Object {
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
 
-            & "$ApplicationDirectory\_application-$version.exe" `
-              -i $ExperimentInputFile `
-              -o $ExperimentOutputFile $arguments `
-              2> $ExperimentResultsFile;
+            if ($MeasureEnergy) {
+              $ExperimentEnergyResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'energy' -ErrorAction Stop;
+              & $socwatch -f power `
+                -o $ExperimentEnergyResultsFile `
+                --program "$ApplicationDirectory\_application-$version.exe" `
+                -i $ExperimentInputFile `
+                -o $ExperimentOutputFile $arguments `
+                2> $ExperimentResultsFile;
+            } else {
+              & "$ApplicationDirectory\_application-$version.exe" `
+                -i $ExperimentInputFile `
+                -o $ExperimentOutputFile $arguments `
+                2> $ExperimentResultsFile;
+            }
 
             if ($LastExitCode -ne 0) {
               throw "Algorithm execution has failed with exit code: '$LastExitCode'. Please investigate.";
