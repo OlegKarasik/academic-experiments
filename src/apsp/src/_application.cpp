@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <filesystem>
 
 // global C includes
 //
@@ -82,11 +83,23 @@ main(int argc, char* argv[]) __hack_noexcept
         std::cerr << "-i: " << optarg << "\n";
 
         input = optarg;
+        if (input.empty()){
+          std::cerr << "erro: missing value after '-i' option";
+          return 1;
+        }
+        if (!std::filesystem::exists(input)) {
+          std::cerr << "erro: value after '-i' option doesn't point to an existing file";
+          return 1;
+        }
         break;
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
         output = optarg;
+        if (output.empty()){
+          std::cerr << "erro: missing value after '-o' option";
+          return 1;
+        }
         break;
       case 'b':
         std::cerr << "-b: true\n";
