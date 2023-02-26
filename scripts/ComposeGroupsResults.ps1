@@ -10,6 +10,7 @@ param(
   [string[]] $DataPatterns = $(throw '-DataPatterns parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string]   $Output = $(throw '-Output parameter is required.'),
+  [string]   $Headline = $null,
   [string]   $Default = $null,
   [switch]   $Multiple,
   $LineCount = -1
@@ -46,6 +47,7 @@ Write-Verbose -Message "DATA-PATTERNS : $DataPattern" -ErrorAction Stop;
 $DataPatterns | % {
   Write-Verbose -Message "- $_" -ErrorAction Stop;
 }
+Write-Verbose -Message "HEADLINE      : $Headline" -ErrorAction Stop;
 Write-Verbose -Message "DEFAULT       : $Default" -ErrorAction Stop;
 Write-Verbose -Message "MULTIPLE      : $Multiple" -ErrorAction Stop;
 Write-Verbose -Message "LINE COUNT    : $LineCount" -ErrorAction Stop;
@@ -65,6 +67,11 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
 }
 
 Write-Host "Processing outputs from '$TargetDirectory' into '$Output'" -ErrorAction Stop;
+
+if ($null -ne $Headline) {
+  Add-Content -Path $Output -Value $Headline -ErrorAction Stop;
+}
+
 $Aliases | % {
   $Target = Join-Path -Path $TargetDirectory -ChildPath "$_.txt" -ErrorAction Stop;
 

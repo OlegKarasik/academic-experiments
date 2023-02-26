@@ -14,8 +14,11 @@ param(
 #
 # $SourceDirectory = 'D:\Projects\Profiling';
 # $ApplicationDirectory = 'D:\Projects\GitHub\academic-experiments\src\apsp\build';
-$vtune = 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest\bin64\vtune';
-$socwatch = 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest\socwatch\64\socwatch';
+
+$VTuneRoot = $(Get-Item 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest').Target;
+
+$vtune = "$VTuneRoot\bin64\vtune";
+$socwatch = "$VTuneRoot\socwatch\64\socwatch";
 
 Write-Verbose -Message "LAUNCH CONFIG PATH : $LaunchConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "RUN CONFIG PATH    : $RunConfigPath" -ErrorAction Stop;
@@ -100,12 +103,12 @@ $RunConfig | ForEach-Object {
                 --program "$ApplicationDirectory\_application-$version.exe" `
                 -i $ExperimentInputFile `
                 -o $ExperimentOutputFile $arguments `
-                2> $ExperimentResultsFile;
+                2> $ExperimentResultsFile 1> $null;
             } else {
               & "$ApplicationDirectory\_application-$version.exe" `
                 -i $ExperimentInputFile `
                 -o $ExperimentOutputFile $arguments `
-                2> $ExperimentResultsFile;
+                2> $ExperimentResultsFile 1> $null;
             }
 
             if ($LastExitCode -ne 0) {
@@ -117,9 +120,28 @@ $RunConfig | ForEach-Object {
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
             -Groups 'Exec:cout-exec' `
+            -Headline "Execution Time (ms)" `
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "cout-combined.txt" `
             -Default "0"
+
+          if ($MeasureEnergy) {
+            & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+              -NamePattern "energy\.csv" `
+              -Groups 'Power:cout-power-mW' `
+              -Headline "Average Rate (mW)" `
+              -DataPatterns 'CPU/Package_0,\s+Power\s+,\s+([\d\.]+)' `
+              -Output "cout-combined.txt" `
+              -Default "0"
+
+            & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+              -NamePattern "energy\.csv" `
+              -Groups 'Power:cout-power-mJ' `
+              -Headline "Total (mJ)" `
+              -DataPatterns 'CPU/Package_0,\s+Power\s+,\s+[\d\.]+\s+,\s+([\d\.]+)' `
+              -Output "cout-combined.txt" `
+              -Default "0"
+          }
 
           Copy-Item -Path $(Join-Path -Path $ExperimentOutputDirectory -ChildPath "cout-combined.txt" -ErrorAction Stop) `
                     -Destination $(Join-Path -Path $OutputDirectory -ChildPath "$($ExperimentCode).-cout.txt" -ErrorAction Stop) `
@@ -154,7 +176,7 @@ $RunConfig | ForEach-Object {
               -data-limit=10000 `
               --app-working-dir=$ApplicationDirectory `
               -- "$ApplicationDirectory\_application-$version-itt.exe" -i $ExperimentInputFile -o $ExperimentOutputFile $arguments `
-              2> $ExperimentResultsFile;
+              2> $ExperimentResultsFile 1> $null;
 
             if ($LastExitCode -ne 0) {
               throw "Algorithm execution (profiled) has failed with exit code: '$LastExitCode'. Please investigate.";
@@ -176,18 +198,16 @@ $RunConfig | ForEach-Object {
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune-cout\.txt" `
             -Groups 'Exec:vtune-exec' `
+            -Headline "Execution Time (ms)" `
             -DataPatterns 'Exec:\s+(\d+)ms' `
-            -Output "vtune-cout-combined.txt" `
+            -Output "vtune-combined.txt" `
             -Multiple `
             -Default "0"
-
-            Copy-Item -Path $(Join-Path -Path $ExperimentOutputDirectory -ChildPath "vtune-cout-combined.txt" -ErrorAction Stop) `
-                      -Destination $(Join-Path -Path $OutputDirectory -ChildPath "$($ExperimentCode).-vtune-cout.txt" -ErrorAction Stop) `
-                      -ErrorAction Stop
 
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune\.txt" `
             -Groups $CollectionGroups `
+            -Headline "Hardware Events" `
             -DataPatterns $CollectionPatterns `
             -Output "vtune-combined.txt" `
             -Default "0"
