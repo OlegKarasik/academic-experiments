@@ -7,11 +7,10 @@ param(
   [ValidateNotNullOrEmpty()]
   [string] $GroupPattern = $(throw '-GroupPattern parameter is required.'),
   [ValidateNotNullOrEmpty()]
-  [string] $DataPattern = $(throw '-DataPattern parameter is required.'),
+  [string[]] $DataPatterns = $(throw '-DataPattern parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string] $Output = $(throw '-Output parameter is required.'),
   [switch] $Optional,
-  [string] $OptionalDefaultGroup = $null,
   [string] $OptionalDefaultValue = $null,
   [switch] $Multiple,
   $LineCount = -1
@@ -27,13 +26,17 @@ Write-Verbose -Message "DIRECTORY              : $TargetDirectory" -ErrorAction 
 Write-Verbose -Message "OUTPUT                 : $Output" -ErrorAction Stop;
 Write-Verbose -Message "NAME-PATTERN           : $NamePattern" -ErrorAction Stop;
 Write-Verbose -Message "GROUP-PATTERN          : $GroupPattern" -ErrorAction Stop;
-Write-Verbose -Message "DATA-PATTERN           : $DataPattern" -ErrorAction Stop;
+Write-Verbose -Message "DATA-PATTERNS          :" -ErrorAction Stop;
+$DataPatterns | % {
+  Write-Verbose -Message "- $_" -ErrorAction Stop;
+}
 Write-Verbose -Message "LINE COUNT             : $LineCount" -ErrorAction Stop;
 Write-Verbose -Message "OPTIONAL               : $Optional" -ErrorAction Stop;
 Write-Verbose -Message "OPTIONAL DEFAULT GROUP : $OptionalDefaultGroup" -ErrorAction Stop;
 Write-Verbose -Message "OPTIONAL DEFAULT VALUE : $OptionalDefaultValue" -ErrorAction Stop;
 Write-Verbose -Message "MULTIPLE               : $Multiple" -ErrorAction Stop;
 
+$Result = @{};
 $Content = @();
 $Sort = { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) }
 try {
@@ -42,66 +45,54 @@ try {
     Write-Verbose -Message "Scanning: '$($_.FullName)'" -ErrorAction Stop;
     Get-ChildItem -Path $_.FullName -File -ErrorAction Stop | ? { return $_.Name -match $NamePattern; } | Sort-Object $Sort | % {
       Write-Host "- Composing results from: '$($_.Name)'" -ErrorAction Stop;
-      $Values = @();
-      $Value = $null;
-      $Group = $null;
       do {
         Get-Content -Path $_.FullName -TotalCount $LineCount -ErrorAction Stop | % {
-          if ($Group -eq $null) {
-            $match = $_ -match $GroupPattern;
-            if ($match) {
-              $match[0] -match $GroupPattern | Out-Null;
-              $Group = $matches[1];
-            };
-          };
-          if ($Value -eq $null) {
-            $match = $_ -match $DataPattern;
-            if ($match) {
-              $match[0] -match $DataPattern | Out-Null;
-              $Value = $matches[1];
-            };
-          };
-          if (($Group -ne $null) -and ($Value -ne $null)) {
-            $Values += $Value;
-            if ($Multiple -eq $true) {
-              # If we are configured to hold multiple matches then we need
-              # to make sure we aren't break and continue scan
-              $Value = $null;
-            } else {
-              break;
+          $Group = $null;
+          $Value = $null;
+
+          $gmatch = $_ -match $GroupPattern;
+          if ($gmatch) {
+            $Group = $matches[1];
+
+            for ($i = 0; $i -lt $DataPatterns.Length; $i++) {
+              $DataPattern = $DataPatterns[$i];
+
+              # We rewrite the "group key" with an internal indexing
+              # to make sure we can distinguish results from multiple
+              # "data patterns".
+
+              $GroupKey = $Group;
+              if ($DataPatterns.Length -ne 1) {
+                $GroupKey = "$Group ($i)"
+              }
+
+              $vmatch = $_ -match $DataPattern;
+              if ($vmatch) {
+                $Value = $matches[1];
+
+                if ($null -eq $Result[$GroupKey]) {
+                  $Result[$GroupKey] = @($Value);
+                } else {
+                  $Result[$GroupKey] += , $Value;
+                }
+              } else {
+                if ($null -ne $OptionalDefaultValue) {
+                  # We can specify a default value for optional parameter (ex. 0)
+                  # to have an understanding in what concrete run we had no output
+                  $Result[$GroupKey] = $OptionalDefaultValue;
+                }
+              }
             }
-          };
+          }
         };
         break;
       } while ($true);
-      if (($Group -eq $null) -or ($Values.Length -eq 0)) {
-        if ($Optional -eq $false) {
-          throw 'Pattern search failed with the following error: -GroupPattern or -DataPattern has no result';
-        }
-        if (($OptionalDefaultGroup -ne $null) -and ($OptionalDefaultValue -ne $null)) {
-          # We can specify a default value for optional parameter (ex. 0)
-          # to have an understanding in what concrete run we had no output
-          $Values += $OptionalDefaultValue;
-          $Group = $OptionalDefaultGroup;
-        } else {
-          return;
-        }
-      };
-
-      $Found = $false;
-      for ($i = 0; $i -lt $Content.Length; ++$i) {
-        if ($Content[$i][0] -eq $Group) {
-          $Found = $true;
-          $Content[$i][1] += $Values;
-
-          return;
-        };
-      };
-      if (-not $Found) {
-        $Content += , @($Group, $Values);
-      };
     };
   };
+  $Result.Keys | Sort-Object -Stable | % {
+    $Content += , @($_, $Result[$_]);
+  }
+
   $ContentLine = @();
   for ($i = 0; $i -lt $Content.Length; ++$i) {
     $ContentLine += "$($Content[$i][0]) $($($Content[$i][1]) -join ' ')";

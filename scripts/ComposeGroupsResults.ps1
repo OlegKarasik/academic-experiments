@@ -7,7 +7,7 @@ param(
   [ValidateNotNullOrEmpty()]
   [string[]] $Groups = $(throw '-Groups parameter is required.'),
   [ValidateNotNullOrEmpty()]
-  [string[]] $DataPatterns = $(throw '-DataPatterns parameter is required.'),
+  [object[]] $DataPatterns = $(throw '-DataPatterns parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string]   $Output = $(throw '-Output parameter is required.'),
   [string]   $Headline = $null,
@@ -45,7 +45,12 @@ $Aliases | % {
 }
 Write-Verbose -Message "DATA-PATTERNS : $DataPattern" -ErrorAction Stop;
 $DataPatterns | % {
-  Write-Verbose -Message "- $_" -ErrorAction Stop;
+  if ($_ -is [array]) {
+    Write-Verbose -Message "- Array:" -ErrorAction Stop;
+    $_ | % { Write-Verbose -Message "  + $_" -ErrorAction Stop; }
+  } else {
+    Write-Verbose -Message "- $_" -ErrorAction Stop;
+  }
 }
 Write-Verbose -Message "HEADLINE      : $Headline" -ErrorAction Stop;
 Write-Verbose -Message "DEFAULT       : $Default" -ErrorAction Stop;
@@ -61,7 +66,6 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
     -LineCount $LineCount `
     -ErrorAction Stop `
     -Optional `
-    -OptionalDefaultGroup $Groups[$i] `
     -OptionalDefaultValue $Default `
     -Multiple:$Multiple
 }

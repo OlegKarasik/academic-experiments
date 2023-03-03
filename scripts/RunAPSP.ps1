@@ -98,7 +98,7 @@ $RunConfig | ForEach-Object {
 
             if ($MeasureEnergy) {
               $ExperimentEnergyResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'energy' -ErrorAction Stop;
-              & $socwatch -f power `
+              & $socwatch -f power -f hw-cpu-pstate `
                 -o $ExperimentEnergyResultsFile `
                 --program "$ApplicationDirectory\_application-$version.exe" `
                 -i $ExperimentInputFile `
@@ -128,7 +128,7 @@ $RunConfig | ForEach-Object {
           if ($MeasureEnergy) {
             & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
-              -Groups 'Power:cout-power-mW' `
+              -Groups 'CPU/Package_0,\s+Power:cout-power-mW' `
               -Headline "Average Rate (mW)" `
               -DataPatterns 'CPU/Package_0,\s+Power\s+,\s+([\d\.]+)' `
               -Output "cout-combined.txt" `
@@ -136,9 +136,27 @@ $RunConfig | ForEach-Object {
 
             & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
-              -Groups 'Power:cout-power-mJ' `
+              -Groups 'CPU/Package_0,\s+Power:cout-power-mJ' `
               -Headline "Total (mJ)" `
               -DataPatterns 'CPU/Package_0,\s+Power\s+,\s+[\d\.]+\s+,\s+([\d\.]+)' `
+              -Output "cout-combined.txt" `
+              -Default "0"
+
+
+            $p = @();
+
+            $patterns = @();
+            for ($i = 0; $i -lt [System.Environment]::ProcessorCount; $i++) {
+              $patterns += , "P\d+\s+,\s+\d+\s--\s\d+\s+(?:,\s+([\d\.]+)\s+){$($i + 1)}"
+            }
+
+            $p += , $patterns;
+
+            & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+              -NamePattern "energy\.csv" `
+              -Groups 'P\d+\s+,\s+\d+\s--\s\d+:cout-hw-cpu-pstate' `
+              -Headline "Total (mJ)" `
+              -DataPatterns $p `
               -Output "cout-combined.txt" `
               -Default "0"
           }
