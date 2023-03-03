@@ -6,6 +6,8 @@ param(
   [string]   $NamePattern = $(throw '-NamePattern parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string[]] $Groups = $(throw '-Groups parameter is required.'),
+  [string[]] $PrettyGroupMatchPatterns = $null,
+  [string[]] $PrettyGroupReplacePatterns = $null,
   [ValidateNotNullOrEmpty()]
   [object[]] $DataPatterns = $(throw '-DataPatterns parameter is required.'),
   [ValidateNotNullOrEmpty()]
@@ -32,18 +34,34 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
   $Aliases[$i] = $Split[1];
 }
 
-Write-Verbose -Message "DIRECTORY     : $TargetDirectory" -ErrorAction Stop;
-Write-Verbose -Message "OUTPUT        : $Output" -ErrorAction Stop;
-Write-Verbose -Message "NAME-PATTERN  : $NamePattern" -ErrorAction Stop;
-Write-Verbose -Message "GROUPS        :";
+Write-Verbose -Message "DIRECTORY                       : $TargetDirectory" -ErrorAction Stop;
+Write-Verbose -Message "OUTPUT                          : $Output" -ErrorAction Stop;
+Write-Verbose -Message "NAME-PATTERN                    : $NamePattern" -ErrorAction Stop;
+Write-Verbose -Message "GROUPS                          :";
 $Groups | % {
   Write-Verbose -Message "- $_" -ErrorAction Stop;
 }
-Write-Verbose -Message "ALIASES       :";
+Write-Verbose -Message "ALIASES                         :";
 $Aliases | % {
   Write-Verbose -Message "- $_" -ErrorAction Stop;
 }
-Write-Verbose -Message "DATA-PATTERNS : $DataPattern" -ErrorAction Stop;
+if ($null -ne $PrettyGroupMatchPatterns) {
+  Write-Verbose -Message "PRETYY-GROUP-MATCH-PATTERNS   :";
+  $PrettyGroupMatchPatterns | % {
+    Write-Verbose -Message "- $_" -ErrorAction Stop;
+  }
+} else {
+  $PrettyGroupMatchPatterns = @($null) * $Groups.Length;
+}
+if ($null -ne $PrettyGroupReplacePatterns) {
+  Write-Verbose -Message "PRETYY-GROUP-REPLACE-PATTERNS :";
+  $PrettyGroupReplacePatterns | % {
+    Write-Verbose -Message "- $_" -ErrorAction Stop;
+  }
+} else {
+  $PrettyGroupReplacePatterns = @($null) * $Groups.Length;
+}
+Write-Verbose -Message "DATA-PATTERNS                   : $DataPattern" -ErrorAction Stop;
 $DataPatterns | % {
   if ($_ -is [array]) {
     Write-Verbose -Message "- Array:" -ErrorAction Stop;
@@ -52,15 +70,17 @@ $DataPatterns | % {
     Write-Verbose -Message "- $_" -ErrorAction Stop;
   }
 }
-Write-Verbose -Message "HEADLINE      : $Headline" -ErrorAction Stop;
-Write-Verbose -Message "DEFAULT       : $Default" -ErrorAction Stop;
-Write-Verbose -Message "MULTIPLE      : $Multiple" -ErrorAction Stop;
-Write-Verbose -Message "LINE COUNT    : $LineCount" -ErrorAction Stop;
+Write-Verbose -Message "HEADLINE                        : $Headline" -ErrorAction Stop;
+Write-Verbose -Message "DEFAULT                         : $Default" -ErrorAction Stop;
+Write-Verbose -Message "MULTIPLE                        : $Multiple" -ErrorAction Stop;
+Write-Verbose -Message "LINE COUNT                      : $LineCount" -ErrorAction Stop;
 
 for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
   & "$PSScriptRoot/ComposeResults.ps1" -TargetDirectory $TargetDirectory `
     -NamePattern $NamePattern `
     -GroupPattern "($($Groups[$i]))" `
+    -PrettyGroupMatchPattern $PrettyGroupMatchPatterns[$i] `
+    -PrettyGroupReplacePattern $PrettyGroupReplacePatterns[$i] `
     -DataPattern $DataPatterns[$i] `
     -Output "$($($Aliases[$i])).txt" `
     -LineCount $LineCount `
@@ -72,7 +92,7 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
 
 Write-Host "Processing outputs from '$TargetDirectory' into '$Output'" -ErrorAction Stop;
 
-if ($null -ne $Headline) {
+if (($null -ne $Headline) -and ($Headline.Length -ne 0)){
   Add-Content -Path $Output -Value $Headline -ErrorAction Stop;
 }
 

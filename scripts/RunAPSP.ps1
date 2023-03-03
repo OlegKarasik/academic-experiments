@@ -120,7 +120,8 @@ $RunConfig | ForEach-Object {
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
             -Groups 'Exec:cout-exec' `
-            -Headline "Execution Time (ms)" `
+            -PrettyGroupMatchPatterns 'Exec' `
+            -PrettyGroupReplacePatterns 'Execution Time (ms)' `
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "cout-combined.txt" `
             -Default "0"
@@ -129,7 +130,8 @@ $RunConfig | ForEach-Object {
             & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
               -Groups 'CPU/Package_0,\s+Power:cout-power-mW' `
-              -Headline "Average Rate (mW)" `
+              -PrettyGroupMatchPatterns 'CPU/Package_0, Power' `
+              -PrettyGroupReplacePatterns 'Average Rate (mW)' `
               -DataPatterns 'CPU/Package_0,\s+Power\s+,\s+([\d\.]+)' `
               -Output "cout-combined.txt" `
               -Default "0"
@@ -137,11 +139,11 @@ $RunConfig | ForEach-Object {
             & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
               -Groups 'CPU/Package_0,\s+Power:cout-power-mJ' `
-              -Headline "Total (mJ)" `
+              -PrettyGroupMatchPatterns 'CPU/Package_0, Power' `
+              -PrettyGroupReplacePatterns 'Total (mJ)' `
               -DataPatterns 'CPU/Package_0,\s+Power\s+,\s+[\d\.]+\s+,\s+([\d\.]+)' `
               -Output "cout-combined.txt" `
               -Default "0"
-
 
             $p = @();
 
@@ -154,8 +156,10 @@ $RunConfig | ForEach-Object {
 
             & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
+              -Headline "P-States" `
               -Groups 'P\d+\s+,\s+\d+\s--\s\d+:cout-hw-cpu-pstate' `
-              -Headline "Total (mJ)" `
+              -PrettyGroupMatchPatterns 'P(\d+)\s+,' `
+              -PrettyGroupReplacePatterns 'P$1:' `
               -DataPatterns $p `
               -Output "cout-combined.txt" `
               -Default "0"
@@ -216,7 +220,8 @@ $RunConfig | ForEach-Object {
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune-cout\.txt" `
             -Groups 'Exec:vtune-exec' `
-            -Headline "Execution Time (ms)" `
+            -PrettyGroupMatchPatterns 'Exec' `
+            -PrettyGroupReplacePatterns 'Execution Time (ms)' `
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "vtune-combined.txt" `
             -Multiple `
@@ -224,8 +229,8 @@ $RunConfig | ForEach-Object {
 
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune\.txt" `
-            -Groups $CollectionGroups `
             -Headline "Hardware Events" `
+            -Groups $CollectionGroups `
             -DataPatterns $CollectionPatterns `
             -Output "vtune-combined.txt" `
             -Default "0"

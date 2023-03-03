@@ -6,6 +6,8 @@ param(
   [string] $NamePattern = $(throw '-NamePattern parameter is required.'),
   [ValidateNotNullOrEmpty()]
   [string] $GroupPattern = $(throw '-GroupPattern parameter is required.'),
+  [string] $PrettyGroupMatchPattern = $null,
+  [string] $PrettyGroupReplacePattern = $null,
   [ValidateNotNullOrEmpty()]
   [string[]] $DataPatterns = $(throw '-DataPattern parameter is required.'),
   [ValidateNotNullOrEmpty()]
@@ -19,22 +21,28 @@ param(
 if (-not (Test-Path -Path $TargetDirectory -PathType Container -ErrorAction Stop)) {
   throw "Directory '$TargetDirectory' does not exist";
 };
+if ((($null -eq $PrettyGroupMatchPattern) -and ($null -ne $PrettyGroupReplacePattern)) -or
+    (($null -ne $PrettyGroupMatchPattern) -and ($null -eq $PrettyGroupReplacePattern))) {
+  throw "-PrettyGroupMatchPattern and -PrettyGroupReplacePattern must be specified both or none";
+};
 
 $Output = Join-Path -Path $TargetDirectory -ChildPath $Output -ErrorAction Stop;
 
-Write-Verbose -Message "DIRECTORY              : $TargetDirectory" -ErrorAction Stop;
-Write-Verbose -Message "OUTPUT                 : $Output" -ErrorAction Stop;
-Write-Verbose -Message "NAME-PATTERN           : $NamePattern" -ErrorAction Stop;
-Write-Verbose -Message "GROUP-PATTERN          : $GroupPattern" -ErrorAction Stop;
-Write-Verbose -Message "DATA-PATTERNS          :" -ErrorAction Stop;
+Write-Verbose -Message "DIRECTORY                    : $TargetDirectory" -ErrorAction Stop;
+Write-Verbose -Message "OUTPUT                       : $Output" -ErrorAction Stop;
+Write-Verbose -Message "NAME-PATTERN                 : $NamePattern" -ErrorAction Stop;
+Write-Verbose -Message "GROUP-PATTERN                : $GroupPattern" -ErrorAction Stop;
+Write-Verbose -Message "PRETTY-GROUP-MATCH-PATTERN   : $PrettyGroupMatchPattern" -ErrorAction Stop;
+Write-Verbose -Message "PRETYY-GROUP-REPLACE-PATTERN : $PrettyGroupReplacePattern" -ErrorAction Stop;
+Write-Verbose -Message "DATA-PATTERNS                :" -ErrorAction Stop;
 $DataPatterns | % {
   Write-Verbose -Message "- $_" -ErrorAction Stop;
 }
-Write-Verbose -Message "LINE COUNT             : $LineCount" -ErrorAction Stop;
-Write-Verbose -Message "OPTIONAL               : $Optional" -ErrorAction Stop;
-Write-Verbose -Message "OPTIONAL DEFAULT GROUP : $OptionalDefaultGroup" -ErrorAction Stop;
-Write-Verbose -Message "OPTIONAL DEFAULT VALUE : $OptionalDefaultValue" -ErrorAction Stop;
-Write-Verbose -Message "MULTIPLE               : $Multiple" -ErrorAction Stop;
+Write-Verbose -Message "LINE COUNT                   : $LineCount" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL                     : $Optional" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL DEFAULT GROUP       : $OptionalDefaultGroup" -ErrorAction Stop;
+Write-Verbose -Message "OPTIONAL DEFAULT VALUE       : $OptionalDefaultValue" -ErrorAction Stop;
+Write-Verbose -Message "MULTIPLE                     : $Multiple" -ErrorAction Stop;
 
 $Result = @{};
 $Content = @();
@@ -65,6 +73,9 @@ try {
               if ($DataPatterns.Length -ne 1) {
                 $GroupKey = "$Group ($i)"
               }
+              if (($null -ne $PrettyGroupMatchPattern) -and ($null -ne $PrettyGroupReplacePattern)) {
+                $GroupKey = $GroupKey -replace $PrettyGroupMatchPattern,$PrettyGroupReplacePattern
+              }
 
               $vmatch = $_ -match $DataPattern;
               if ($vmatch) {
@@ -89,7 +100,7 @@ try {
       } while ($true);
     };
   };
-  $Result.Keys | Sort-Object -Stable | % {
+  $Result.Keys | Sort-Object { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) } -Stable | % {
     $Content += , @($_, $Result[$_]);
   }
 
