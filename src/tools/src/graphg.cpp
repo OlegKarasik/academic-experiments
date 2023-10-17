@@ -25,6 +25,8 @@
 #include "graphs-io.hpp"
 #include "square-shape.hpp"
 
+// This is a tiny program which generates random graphs
+//
 int
 main(int argc, char* argv[])
 {
@@ -199,7 +201,9 @@ main(int argc, char* argv[])
 
   // We use uniform distribution to get random weight values
   //
-  std::mt19937_64                    weight_distribution_engine;
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+
+  std::mt19937_64                    weight_distribution_engine(seed);
   std::uniform_int_distribution<int> weight_distribution(opt_low_weight, opt_high_weight);
 
   // Update adjacency matrix with weight values, effectively transforming
