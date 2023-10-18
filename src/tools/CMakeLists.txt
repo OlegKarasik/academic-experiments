@@ -18,6 +18,7 @@ include_directories(${INC_LIST})
 # Initialise targets
 add_executable(graphg   src/graphg.cpp)
 add_executable(graphw   src/graphw.cpp)
+add_executable(graphm   src/graphm.cpp)
 add_executable(mempagei src/mempagei.cpp)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
