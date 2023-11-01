@@ -35,9 +35,9 @@ main(int argc, char* argv[])
   std::string output;
 
   // Supported options
-  // g: <path>,   path to input graph (without weights, only edges)
-  // c: <path>,   path to input clusters (without weights, only edges)
-  // o:  <path>,   path to output graph (without weights, only edges)
+  // g: <path>, path to input graph (without weights, only edges)
+  // c: <path>, path to input clusters (without weights, only edges)
+  // o: <path>, path to output
   //
   const char* options = "g:c:o:";
 
@@ -123,6 +123,9 @@ main(int argc, char* argv[])
         auto _f = it_f->find(f);
         if (_f != it_f->end()) {
           for (auto it_t = clusters.begin(); it_t != clusters.end() && !found; ++it_t) {
+            if (it_f == it_t)
+              continue;
+
             auto _t = it_t->find(t);
             if (_t != it_t->end()) {
               std::pair<int, int> key(std::distance(clusters.begin(), it_f), std::distance(clusters.begin(), it_t));
@@ -146,6 +149,13 @@ main(int argc, char* argv[])
   }
   // Save
   //
+  for (auto kv : intersections) {
+    outs << kv.first.first << ' ' << kv.first.second << " | ";
+    for (auto v : kv.second) {
+      outs << v << ' ';
+    }
+    outs << '\n';
+  }
 
   outs.flush();
 }
