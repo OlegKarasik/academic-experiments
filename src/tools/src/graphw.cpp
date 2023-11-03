@@ -36,7 +36,7 @@
 int
 main(int argc, char* argv[])
 {
-  bool opt_graph       = false;
+  bool opt_print_size  = false;
   int  opt_low_weight  = 1;
   int  opt_high_weight = 20;
 
@@ -46,7 +46,7 @@ main(int argc, char* argv[])
   // Supported options
   // i: <path>, path to input graph (without weights, only edges)
   // o: <path>, path to output graph (with generated weights)
-  // g: <flag>, indicates whether application should output size (number of vertexes) of the graph as the first line
+  // s: <flag>, indicates whether application should output size (number of vertexes) of the graph as the first line
   // l: <int>,  minimal weight of an edge
   //    Supported values:
   //    - 0 to 'h' with step 1
@@ -54,7 +54,7 @@ main(int argc, char* argv[])
   //    Supported values:
   //    - 'l' to any with step 1
   //
-  const char* options = "i:o:l:h:g";
+  const char* options = "i:o:l:h:s";
 
   std::cerr << "Options:\n";
 
@@ -71,10 +71,10 @@ main(int argc, char* argv[])
 
         output = optarg;
         break;
-      case 'g':
-        std::cerr << "-g: true\n";
+      case 's':
+        std::cerr << "-s: true\n";
 
-        opt_graph = true;
+        opt_print_size = true;
         break;
       case 'l':
         std::cerr << "-l: " << optarg << "\n";
@@ -128,7 +128,7 @@ main(int argc, char* argv[])
   // Read (`from vertex` `to vertex`) and write (`from vertex` `to vertex` `weight`)
   //
   int f, t;
-  if (opt_graph) {
+  if (opt_print_size) {
     int min = 1, max = 0;
     while (inps >> f >> t) {
       max = std::max({ max, f, t });

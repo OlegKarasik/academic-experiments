@@ -150,10 +150,9 @@ main(int argc, char* argv[])
   // Save
   //
   for (auto kv : intersections) {
-    outs << kv.first.first << ' ' << kv.first.second << " | ";
-    for (auto v : kv.second) {
-      outs << v << ' ';
-    }
+    outs << kv.first.first   << ' ' << kv.first.second << " "
+         << kv.second.size() << " " << clusters[kv.first.first].size();
+
     outs << '\n';
   }
 

@@ -22,8 +22,8 @@
   #include <unistd.h>
 #endif
 
-// This is a tiny program which modifies the graph by either
-// incrementing or decrementing all numbers by 1
+// This is a tiny program which can modify the graph or
+// clusters described in a simple text format
 //
 int
 main(int argc, char* argv[])
