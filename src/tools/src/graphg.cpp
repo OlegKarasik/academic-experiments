@@ -30,14 +30,13 @@
 int
 main(int argc, char* argv[])
 {
-  bool opt_binary       = false;
-  int  opt_algorithm    = -1;
-  int  opt_vertex_count = -1;
-  int  opt_edge_percent = -1;
-  int  opt_low_weight   = 1;
-  int  opt_high_weight  = 20;
-
-  std::string output;
+  std::string opt_output;
+  bool        opt_binary       = false;
+  int         opt_algorithm    = -1;
+  int         opt_vertex_count = -1;
+  int         opt_edge_percent = -1;
+  int         opt_low_weight   = 1;
+  int         opt_high_weight  = 20;
 
   // Supported options
   // o: <path>, path to store generated graph
@@ -69,7 +68,7 @@ main(int argc, char* argv[])
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
-        output = optarg;
+        opt_output = optarg;
         break;
       case 'b':
         std::cerr << "-b: true\n";
@@ -129,7 +128,7 @@ main(int argc, char* argv[])
     }
   }
 
-  if (output.empty()) {
+  if (opt_output.empty()) {
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
@@ -145,9 +144,9 @@ main(int argc, char* argv[])
   std::ofstream outs;
 
   if (opt_binary) {
-    outs.open(output, std::ios_base::binary);
+    outs.open(opt_output, std::ios_base::binary);
   } else {
-    outs.open(output);
+    outs.open(opt_output);
   }
 
   // All graph generators do fill adjacency matrix with edges information

@@ -27,32 +27,35 @@
 int
 main(int argc, char* argv[])
 {
-  std::string opt_graph_path;
-  std::string opt_clusters_path;
+  std::string opt_input_edges;
+  std::string opt_input_clusters;
   std::string opt_output_path;
 
   // Supported options
-  // g: <path>, path to graph
-  // c: <path>, path to clusters
+  // i: <path>, path to input edges (no size, no weights), if specified twice then
+  //            first one is interpreted as a path to edges and second as a path to clusters
   // o: <path>, path to output
   //
-  const char* options = "g:c:o:";
+  const char* options = "i:o:";
 
   std::cerr << "Options:\n";
 
   int opt;
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
-      case 'g':
-        std::cerr << "-g: " << optarg << "\n";
+      case 'i':
+        std::cerr << "-i: " << optarg << "\n";
 
-        opt_graph_path = optarg;
-        break;
-      case 'c':
-        std::cerr << "-c: " << optarg << "\n";
-
-        opt_clusters_path = optarg;
-        break;
+        if (opt_input_edges.empty()) {
+          opt_input_edges = optarg;
+          break;
+        }
+        if (opt_input_clusters.empty()) {
+          opt_input_clusters = optarg;
+          break;
+        }
+        std::cerr << "erro: unexpected '-i' option detected" << '\n';
+        return 1;
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
@@ -61,8 +64,8 @@ main(int argc, char* argv[])
     }
   }
 
-  if (opt_graph_path.empty()) {
-    std::cerr << "erro: the -g parameter is required";
+  if (opt_input_edges.empty()) {
+    std::cerr << "erro: the -i parameter is required";
     return 1;
   }
   if (opt_output_path.empty()) {
@@ -70,22 +73,16 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  std::ifstream graph_stream;
-  std::ifstream clusters_stream;
-  std::ofstream output_stream;
-
-  graph_stream.open(opt_graph_path);
-  output_stream.open(opt_output_path);
-
-  if (!opt_clusters_path.empty()) {
-    clusters_stream.open(opt_clusters_path);
-  }
+  std::ifstream edges_stream(opt_input_edges);
+  std::ofstream output_stream(opt_output_path);
 
   output_stream << "digraph cats {\n";
 
+  // Print edges
+  //
   {
     std::string line;
-    while (std::getline(graph_stream, line)) {
+    while (std::getline(edges_stream, line)) {
       std::istringstream iss(line);
 
       int f, t;
@@ -94,8 +91,12 @@ main(int argc, char* argv[])
       output_stream << "  " << f << " -> " << t << "\n";
     }
   }
+  // Print clusters
+  //
   {
-    if (clusters_stream.is_open()) {
+    if (!opt_input_clusters.empty()) {
+      std::ifstream clusters_stream(opt_input_clusters);
+
       int index = 0;
 
       std::string line;
