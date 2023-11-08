@@ -143,6 +143,26 @@ main(int argc, char* argv[])
         ++id;
       }
 
+      output_stream << "Count of clusters with count of vertex within\n"
+                    << "Read as following: <vertex count> <cluster count>\n";
+
+      std::map<int, int> cluster_counts;
+      for (auto cluster : clusters) {
+        auto _m = cluster_counts.find(cluster.size());
+        if (_m == cluster_counts.end()) {
+          cluster_counts.emplace(cluster.size(), 1);
+        } else {
+          ++_m->second;
+        }
+      }
+      for (auto kv : cluster_counts) {
+        output_stream << kv.first << ' ' << kv.second << " ";
+
+        output_stream << '\n';
+      }
+
+      output_stream << '\n';
+
       output_stream << "Count of edges between clusters\n"
                     << "Read as following: <source> <destination> <edges in between> <edges in source>\n";
 
