@@ -1,14 +1,21 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <chrono>
+#include <deque>
+#include <map>
 #include <random>
+#include <set>
 #include <stdexcept>
 #include <vector>
 
 namespace utilz {
 namespace graphs {
 namespace generators {
+
+struct directed_graph_tag
+{};
 
 struct directed_acyclic_graph_tag
 {};
@@ -28,6 +35,209 @@ struct promised_path
     , t(t)
     , h(h)
   {
+  }
+};
+
+struct graph_options
+{
+  bool is_acyclic;
+  bool is_connected;
+};
+
+template<
+  typename Matrix,
+  typename MatrixSetSizeOperation,
+  typename MatrixSetValueOperation>
+void
+random_graph(
+  typename MatrixSetSizeOperation::result_type                              v,
+  typename MatrixSetSizeOperation::result_type                              e,
+  std::vector<promised_path<typename MatrixSetSizeOperation::result_type>>& p,
+  Matrix&                                                                   m,
+  MatrixSetSizeOperation&                                                   set_size,
+  MatrixSetValueOperation&                                                  set_value,
+  graph_options                                                             options)
+{
+  using size_type  = typename MatrixSetSizeOperation::result_type;
+  using value_type = typename MatrixSetValueOperation::result_type;
+
+  static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
+
+  if (e <= 0)
+    throw std::logic_error(
+      "erro: edge count can't be zero or negative.");
+
+  if (options.is_acyclic) {
+    if (e >= (v * (v - size_type(1)) / size_type(2)))
+      throw std::logic_error(
+        "erro: edge count in directed acyclic graph can't exceed: `((v) * (v - 1) / 2)`, where `v` is a vertex count.");
+  }
+
+  // Initialise vertex distribution
+  //
+  std::mt19937_64                          distribution_engine;
+  std::uniform_int_distribution<size_type> distribution(size_type(0), v - size_type(1));
+
+  distribution_engine.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+
+  // Initialize vector of vertexes with vertex indexes
+  // i.e. `vector[0]` represents vertex `0`, `vector[1]` vertex `1` and so on and so forth
+  //
+  std::vector<size_type> vertexes(v);
+  std::generate(vertexes.begin(), vertexes.end(), [n = size_type(0)]() mutable { return n++; });
+
+  // Initialize vector of edges between vertexes
+  // i.e. vector contains true in `[i * v + j]` if there is an edge between
+  // `i` and `j`
+  //
+  std::vector<bool> edges(v * v);
+  std::fill(edges.begin(), edges.end(), false);
+
+  // Initialize a map of paths to be used to prevent cycles in the graph
+  //
+  std::map<size_type, std::set<size_type>> paths;
+
+  // Permutate vector of vertexes
+  //
+  for (size_type i = size_type(0); i < (v - size_type(1)); ++i)
+    std::swap(vertexes[distribution(distribution_engine)], vertexes[i]);
+
+  // Set output matrix size and start writing edges
+  //
+  set_size(m, size_type(v));
+
+  // Initialise common lambdas to be used across the algorithm
+  //
+  auto has_edge = [&edges, &paths, options, v](size_type i, size_type j) -> bool {
+    if (edges[i * v + j])
+      return true;
+
+    if (options.is_acyclic) {
+      // If we are working with acyclic graphs then we
+      // has to ensure before creating `i` -> `j` edge that there is
+      // no path from `j` to `i`
+      //
+      // So, we locate all paths from `j`.
+      //
+      // If there is a path from `j` to `i` we return `true` and saying that
+      // there is an "edge" between them and we can't continue, also, if we are working
+      // with undirected graphs we need to ensure that there is no path from `i` to `j` through other vertexes
+      //
+      auto items = std::vector<std::pair<size_type, size_type>>({ std::make_pair(i, j) });
+      for (auto kv : items) {
+        auto p = paths.find(kv.second);
+        if (p != paths.end() && p->second.find(kv.first) != p->second.end())
+          return true;
+      }
+    }
+    return false;
+  };
+  auto reg_edge = [&edges, &paths, options, v](size_type i, size_type j) -> void {
+    // Register an edge from `i` to `j`
+    //
+    edges[i * v + j] = true;
+
+    if (options.is_acyclic || options.is_connected) {
+      // If the graph is acyclic or commented we have to make sure that all paths are tracked
+      //
+      // That is why we get all paths of `j` and insert them to all paths of
+      // all vertexes who has a path to `i` including `i` itself
+      //
+      auto paths_j = paths.find(j);
+
+      std::deque<size_type> search({ i });
+      std::set<size_type> visits;
+
+      do {
+        auto s = search.front();
+        search.pop_front();
+
+        auto paths_s = paths.find(s);
+        if (paths_s == paths.end())
+          paths_s = paths.emplace(s, std::set<size_type>()).first;
+
+        paths_s->second.emplace(j);
+        if (paths_j != paths.end())
+          paths_s->second.insert(paths_j->second.begin(), paths_j->second.end());
+
+        for (auto& kv : paths) {
+          if (kv.first == s)
+            continue;
+
+          if (kv.second.find(s) != kv.second.end()) {
+            if (visits.find(kv.first) == visits.end()) {
+              search.push_back(kv.first);
+
+              visits.emplace(kv.first);
+            }
+          }
+        }
+      } while (!search.empty());
+    }
+  };
+
+  // Pick two random vertexts indexes and create an edge between them.
+  // Repeat until required number of edges.
+  //
+  for (size_type i = size_type(0), j = size_type(0), c = size_type(0), a = size_type(0); c < e;) {
+    // Don't create self-cycles
+    //
+    if ((i = distribution(distribution_engine)) == (j = distribution(distribution_engine)))
+      continue;
+
+    i = vertexes[i];
+    j = vertexes[j];
+
+    if (!has_edge(i, j)) {
+      // If there is no edges, we have to ensure, that introducing the edge won't introduce
+      // a cycle in the graph
+      //
+
+      set_value(m, i, j, value_type(1));
+    } else if (a != e) {
+      ++a;
+      continue;
+    } else {
+      // If output has i -> j edge and we have tried to much to create
+      // an edge (i.e. number of failed attempts is equal to required number of edges)
+      // we simply perform a direct search to insert an edge
+      //
+      bool found = false;
+      for (size_type _i = size_type(0); _i < v && !found; ++_i)
+        for (size_type _j = size_type(0); _j < v && !found; ++_j) {
+          i = vertexes[_i];
+          j = vertexes[_j];
+
+          // Ensure we aren't creating self-cycles
+          //
+          if (i == j)
+            continue;
+
+          if (!has_edge(i, j)) {
+            set_value(m, i, j, value_type(1));
+
+            found = true;
+          }
+        }
+
+      a = size_type(0);
+
+      if (!found)
+        throw std::logic_error(
+          "erro: unable to create a edge between two vertexes without breaking the constrains, blame random or relax the parameters");
+    }
+
+    // Indicate that we have created an edge between `i` -> `j`
+    //
+    ++c;
+    reg_edge(i, j);
+  };
+
+  // In case we need a connected graph we first need to make sure that
+  // all subgraphs (if there are) are connected
+  //
+  if (options.is_connected) {
+
   }
 };
 
@@ -231,10 +441,10 @@ template<
   typename MatrixSetValueOperation>
 void
 random_graph(
-  typename MatrixSetSizeOperation::result_type                              v,
-  Matrix&                                                                   m,
-  MatrixSetSizeOperation&                                                   set_size,
-  MatrixSetValueOperation&                                                  set_value,
+  typename MatrixSetSizeOperation::result_type v,
+  Matrix&                                      m,
+  MatrixSetSizeOperation&                      set_size,
+  MatrixSetValueOperation&                     set_value,
   complete_graph_tag)
 {
   using size_type  = typename MatrixSetSizeOperation::result_type;
@@ -250,17 +460,17 @@ random_graph(
   // with cycles and number of edges the logic behind algorithm
   // is straightforward - allow all edges except self-loops
   //
-	for (auto i = size_type(0); i < v; ++i) {
-		for (auto j = size_type(0); j < v; ++j) {
-			if (i == j) {
+  for (auto i = size_type(0); i < v; ++i) {
+    for (auto j = size_type(0); j < v; ++j) {
+      if (i == j) {
         // We aren't generating self-loops in complete graph
         //
-				set_value(m, i, j, value_type(0));
-			} else {
+        set_value(m, i, j, value_type(0));
+      } else {
         set_value(m, i, j, value_type(1));
-			}
-		}
-	}
+      }
+    }
+  }
 };
 
 } // namespace generators
