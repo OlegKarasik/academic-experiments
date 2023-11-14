@@ -93,9 +93,15 @@ random_graph(
   std::vector<bool> edges(v * v);
   std::fill(edges.begin(), edges.end(), false);
 
-  // Initialize a map of paths to be used to prevent cycles in the graph
+  // Initialize a vector of paths between vertexes
+  // i.e. vector contains true in `[i * v + j]` if there is a path between
+  // `i` and `j`
   //
-  std::map<size_type, std::set<size_type>> paths;
+  std::vector<char> paths(v * v);
+  std::fill(paths.begin(), paths.end(), 0);
+
+  std::vector<size_type> paths_from(v);
+  std::vector<size_type> paths_to(v);
 
   // Permutate vector of vertexes
   //
@@ -120,19 +126,13 @@ random_graph(
       // So, we locate all paths from `j`.
       //
       // If there is a path from `j` to `i` we return `true` and saying that
-      // there is an "edge" between them and we can't continue, also, if we are working
-      // with undirected graphs we need to ensure that there is no path from `i` to `j` through other vertexes
+      // there is an "edge" between them and we can't continue.
       //
-      auto items = std::vector<std::pair<size_type, size_type>>({ std::make_pair(i, j) });
-      for (auto kv : items) {
-        auto p = paths.find(kv.second);
-        if (p != paths.end() && p->second.find(kv.first) != p->second.end())
-          return true;
-      }
+      return paths[j * v + i];
     }
     return false;
   };
-  auto reg_edge = [&edges, &paths, options, v](size_type i, size_type j) -> void {
+  auto reg_edge = [&edges, &paths, &paths_from, &paths_to, options, v](size_type i, size_type j) -> void {
     // Register an edge from `i` to `j`
     //
     edges[i * v + j] = true;
@@ -143,36 +143,44 @@ random_graph(
       // That is why we get all paths of `j` and insert them to all paths of
       // all vertexes who has a path to `i` including `i` itself
       //
-      auto paths_j = paths.find(j);
 
-      std::deque<size_type> search({ i });
-      std::set<size_type> visits;
+      size_type from_count = size_type(0),
+                to_count   = size_type(0);
 
-      do {
-        auto s = search.front();
-        search.pop_front();
+      paths[i * v + j] = char(1);
 
-        auto paths_s = paths.find(s);
-        if (paths_s == paths.end())
-          paths_s = paths.emplace(s, std::set<size_type>()).first;
+      #pragma omp parallel for shared(from_count, to_count)
+      for (size_type x = size_type(0); x < v; ++x) {
+        if (paths[x * v + i] && !paths[x * v + j]) {
+          paths[x * v + j] = char(1);
 
-        paths_s->second.emplace(j);
-        if (paths_j != paths.end())
-          paths_s->second.insert(paths_j->second.begin(), paths_j->second.end());
+          size_type idx;
 
-        for (auto& kv : paths) {
-          if (kv.first == s)
-            continue;
+          #pragma omp atomic capture
+          idx = from_count++;
 
-          if (kv.second.find(s) != kv.second.end()) {
-            if (visits.find(kv.first) == visits.end()) {
-              search.push_back(kv.first);
-
-              visits.emplace(kv.first);
-            }
-          }
+          paths_from[idx] = x;
         }
-      } while (!search.empty());
+        if (paths[j * v + x] && !paths[i * v + x]) {
+          paths[i * v + x] = char(1);
+
+          size_type idx;
+
+          #pragma omp atomic capture
+          idx = to_count++;
+
+          paths_to[idx] = x;
+        }
+      }
+      for (size_type f = size_type(0); f < from_count; ++f) {
+        size_type from = paths_from[f];
+
+        for (size_type t = size_type(0); t < to_count; ++t) {
+          size_type to = paths_to[t];
+
+          paths[from * v + to] = char(1);
+        }
+      }
     }
   };
 
@@ -237,7 +245,6 @@ random_graph(
   // all subgraphs (if there are) are connected
   //
   if (options.is_connected) {
-
   }
 };
 

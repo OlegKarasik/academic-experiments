@@ -171,6 +171,10 @@ main(int argc, char* argv[])
         //
         size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
 
+        utilz::graphs::generators::graph_options opt;
+        opt.is_acyclic = true;
+        opt.is_connected = true;
+
         // Random Directed Acyclic Graph (DAG)
         //
         utilz::graphs::generators::random_graph(
@@ -180,7 +184,7 @@ main(int argc, char* argv[])
           adjacency_matrix,
           set_size,
           set_value,
-          utilz::graphs::generators::directed_acyclic_graph_tag());
+          opt);
       } break;
       case 1:
         // Random Complete Graph
