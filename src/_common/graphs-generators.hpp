@@ -100,6 +100,9 @@ random_graph(
   std::vector<bool> paths(v * v);
   std::fill(paths.begin(), paths.end(), false);
 
+  // These are two shared, preallocated vectors to keep
+  // temporary store paths during path registration process
+  //
   std::vector<size_type> paths_from(v);
   std::vector<size_type> paths_to(v);
 
