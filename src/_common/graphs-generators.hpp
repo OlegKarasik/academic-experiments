@@ -97,8 +97,8 @@ random_graph(
   // i.e. vector contains true in `[i * v + j]` if there is a path between
   // `i` and `j`
   //
-  std::vector<char> paths(v * v);
-  std::fill(paths.begin(), paths.end(), 0);
+  std::vector<bool> paths(v * v);
+  std::fill(paths.begin(), paths.end(), false);
 
   std::vector<size_type> paths_from(v);
   std::vector<size_type> paths_to(v);
@@ -147,12 +147,12 @@ random_graph(
       size_type from_count = size_type(0),
                 to_count   = size_type(0);
 
-      paths[i * v + j] = char(1);
+      paths[i * v + j] = true;
 
       #pragma omp parallel for shared(from_count, to_count)
       for (size_type x = size_type(0); x < v; ++x) {
         if (paths[x * v + i] && !paths[x * v + j]) {
-          paths[x * v + j] = char(1);
+          paths[x * v + j] = true;
 
           size_type idx;
 
@@ -162,7 +162,7 @@ random_graph(
           paths_from[idx] = x;
         }
         if (paths[j * v + x] && !paths[i * v + x]) {
-          paths[i * v + x] = char(1);
+          paths[i * v + x] = true;
 
           size_type idx;
 
@@ -178,7 +178,7 @@ random_graph(
         for (size_type t = size_type(0); t < to_count; ++t) {
           size_type to = paths_to[t];
 
-          paths[from * v + to] = char(1);
+          paths[from * v + to] = true;
         }
       }
     }
