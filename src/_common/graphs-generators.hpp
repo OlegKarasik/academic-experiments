@@ -147,7 +147,7 @@ random_graph(
     edges[i * v + j] = true;
 
     if (options.is_acyclic || options.is_connected) {
-      // If the graph is acyclic or commented we have to make sure that all paths are tracked
+      // If the graph is acyclic or connected we have to make sure that all paths are tracked
       //
       // That is why we get all paths of `j` and insert them to all paths of
       // all vertexes who has a path to `i` including `i` itself
@@ -167,20 +167,23 @@ random_graph(
         // Fix all paths from rest of vertex by including `j` and
         // all of it's vertexes
         //
-        for (size_type y = size_type(0); y < v; ++y)
-          if (paths[y * v + i]) {
-            paths[y * v + j] = 1;
+        if (has_in[i]) {
+          for (size_type y = size_type(0); y < v; ++y)
+            if (paths[y * v + i]) {
+              paths[y * v + j] = 1;
 
-             __hack_ivdep
-            for (size_type x = size_type(0); x < v; ++x)
-              paths[y * v + x] = paths[y * v + x] | paths[j * v + x];
-          }
+              __hack_ivdep
+              for (size_type x = size_type(0); x < v; ++x)
+                paths[y * v + x] = paths[y * v + x] | paths[j * v + x];
+            }
+        }
       } else {
         // Fix all paths from rest of vertex by including `j`
         //
         for (size_type y = size_type(0); y < v; ++y)
           paths[y * v + j] = paths[y * v + j] | paths[y * v + i];
       }
+      has_in[j] = true;
       has_out[i] = true;
     }
   };
