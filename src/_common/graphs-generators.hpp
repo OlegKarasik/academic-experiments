@@ -100,6 +100,12 @@ random_graph(
   std::vector<bool> paths(v * v);
   std::fill(paths.begin(), paths.end(), false);
 
+  std::vector<bool> has_in(v);
+  std::fill(has_in.begin(), has_in.end(), false);
+
+  std::vector<bool> has_out(v);
+  std::fill(has_out.begin(), has_out.end(), false);
+
   // These are two shared, preallocated vectors to keep
   // temporary store paths during path registration process
   //
@@ -135,7 +141,7 @@ random_graph(
     }
     return false;
   };
-  auto reg_edge = [&edges, &paths, &paths_from, &paths_to, options, v](size_type i, size_type j) -> void {
+  auto reg_edge = [&edges, &paths, &paths_from, &paths_to, &has_in, &has_out, options, v](size_type i, size_type j) -> void {
     // Register an edge from `i` to `j`
     //
     edges[i * v + j] = true;
@@ -152,38 +158,42 @@ random_graph(
 
       paths[i * v + j] = true;
 
-      #pragma omp parallel for shared(from_count, to_count)
-      for (size_type x = size_type(0); x < v; ++x) {
-        if (paths[x * v + i] && !paths[x * v + j]) {
-          paths[x * v + j] = true;
+      if (has_in[i] || has_out[j]) {
+#pragma omp parallel for shared(from_count, to_count)
+        for (size_type x = size_type(0); x < v; ++x) {
+          if (paths[x * v + i] && !paths[x * v + j]) {
+            paths[x * v + j] = true;
 
-          size_type idx;
+            size_type idx;
 
-          #pragma omp atomic capture
-          idx = from_count++;
+#pragma omp atomic capture
+            idx = from_count++;
 
-          paths_from[idx] = x;
+            paths_from[idx] = x;
+          }
+          if (paths[j * v + x] && !paths[i * v + x]) {
+            paths[i * v + x] = true;
+
+            size_type idx;
+
+#pragma omp atomic capture
+            idx = to_count++;
+
+            paths_to[idx] = x;
+          }
         }
-        if (paths[j * v + x] && !paths[i * v + x]) {
-          paths[i * v + x] = true;
+        for (size_type f = size_type(0); f < from_count; ++f) {
+          size_type from = paths_from[f];
 
-          size_type idx;
+          for (size_type t = size_type(0); t < to_count; ++t) {
+            size_type to = paths_to[t];
 
-          #pragma omp atomic capture
-          idx = to_count++;
-
-          paths_to[idx] = x;
+            paths[from * v + to] = true;
+          }
         }
       }
-      for (size_type f = size_type(0); f < from_count; ++f) {
-        size_type from = paths_from[f];
-
-        for (size_type t = size_type(0); t < to_count; ++t) {
-          size_type to = paths_to[t];
-
-          paths[from * v + to] = true;
-        }
-      }
+      has_in[j]  = true;
+      has_out[i] = true;
     }
   };
 
