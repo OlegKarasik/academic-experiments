@@ -97,8 +97,8 @@ random_graph(
   // i.e. vector contains true in `[i * v + j]` if there is a path between
   // `i` and `j`
   //
-  std::vector<bool> paths(v * v);
-  std::fill(paths.begin(), paths.end(), false);
+  std::vector<char> paths(v * v);
+  std::fill(paths.begin(), paths.end(), 0);
 
   std::vector<bool> has_in(v);
   std::fill(has_in.begin(), has_in.end(), false);
@@ -152,47 +152,35 @@ random_graph(
       // That is why we get all paths of `j` and insert them to all paths of
       // all vertexes who has a path to `i` including `i` itself
       //
+      paths[i * v + j] = 1;
 
-      size_type from_count = size_type(0),
-                to_count   = size_type(0);
+      // If there are output from `j` then we need to copy them
+      // to all of the dependencies
+      //
+      if (has_out[j]) {
+        // Fix all paths from `i` by including `j`
+        //
+        __hack_ivdep
+        for (size_type x = size_type(0); x < v; ++x)
+          paths[i * v + x] = paths[i * v + x] | paths[j * v + x];
 
-      paths[i * v + j] = true;
+        // Fix all paths from rest of vertex by including `j` and
+        // all of it's vertexes
+        //
+        for (size_type y = size_type(0); y < v; ++y)
+          if (paths[y * v + i]) {
+            paths[y * v + j] = 1;
 
-      if (has_in[i] || has_out[j]) {
-#pragma omp parallel for shared(from_count, to_count)
-        for (size_type x = size_type(0); x < v; ++x) {
-          if (paths[x * v + i] && !paths[x * v + j]) {
-            paths[x * v + j] = true;
-
-            size_type idx;
-
-#pragma omp atomic capture
-            idx = from_count++;
-
-            paths_from[idx] = x;
+             __hack_ivdep
+            for (size_type x = size_type(0); x < v; ++x)
+              paths[y * v + x] = paths[y * v + x] | paths[j * v + x];
           }
-          if (paths[j * v + x] && !paths[i * v + x]) {
-            paths[i * v + x] = true;
-
-            size_type idx;
-
-#pragma omp atomic capture
-            idx = to_count++;
-
-            paths_to[idx] = x;
-          }
-        }
-        for (size_type f = size_type(0); f < from_count; ++f) {
-          size_type from = paths_from[f];
-
-          for (size_type t = size_type(0); t < to_count; ++t) {
-            size_type to = paths_to[t];
-
-            paths[from * v + to] = true;
-          }
-        }
+      } else {
+        // Fix all paths from rest of vertex by including `j`
+        //
+        for (size_type y = size_type(0); y < v; ++y)
+          paths[y * v + j] = paths[y * v + j] | paths[y * v + i];
       }
-      has_in[j]  = true;
       has_out[i] = true;
     }
   };
