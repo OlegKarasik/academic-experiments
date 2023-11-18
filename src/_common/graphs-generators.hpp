@@ -106,12 +106,6 @@ random_graph(
   std::vector<bool> has_out(v);
   std::fill(has_out.begin(), has_out.end(), false);
 
-  // These are two shared, preallocated vectors to keep
-  // temporary store paths during path registration process
-  //
-  std::vector<size_type> paths_from(v);
-  std::vector<size_type> paths_to(v);
-
   // Permutate vector of vertexes
   //
   for (size_type i = size_type(0); i < (v - size_type(1)); ++i)
@@ -141,7 +135,7 @@ random_graph(
     }
     return false;
   };
-  auto reg_edge = [&edges, &paths, &paths_from, &paths_to, &has_in, &has_out, options, v](size_type i, size_type j) -> void {
+  auto reg_edge = [&edges, &paths, &has_in, &has_out, options, v](size_type i, size_type j) -> void {
     // Register an edge from `i` to `j`
     //
     edges[i * v + j] = true;
