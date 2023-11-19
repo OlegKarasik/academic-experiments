@@ -185,7 +185,7 @@ random_graph(
   // Pick two random vertexts indexes and create an edge between them.
   // Repeat until required number of edges.
   //
-  for (size_type i = size_type(0), j = size_type(0), c = size_type(0), a = size_type(0); c < e;) {
+  for (size_type i = size_type(0), j = size_type(0), c = size_type(0), a = size_type(0), z = size_type(0); c < e;) {
     // Don't create self-cycles
     //
     if ((i = distribution(distribution_engine)) == (j = distribution(distribution_engine)))
@@ -209,7 +209,7 @@ random_graph(
       // we simply perform a direct search to insert an edge
       //
       bool found = false;
-      for (size_type _i = size_type(0); _i < v && !found; ++_i)
+      for (size_type _i = z; _i < v && !found; ++_i, ++z) {
         for (size_type _j = size_type(0); _j < v && !found; ++_j) {
           i = vertexes[_i];
           j = vertexes[_j];
@@ -225,6 +225,7 @@ random_graph(
             found = true;
           }
         }
+      }
 
       a = size_type(0);
 
