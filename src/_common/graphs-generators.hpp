@@ -146,7 +146,7 @@ random_graph(
       // That is why we get all paths of `j` and insert them to all paths of
       // all vertexes who has a path to `i` including `i` itself
       //
-      paths[i * v + j] = 1;
+      paths[i * v + j] = char(1);
 
       // If there are output from `j` then we need to copy them
       // to all of the dependencies
@@ -164,7 +164,7 @@ random_graph(
         if (has_in[i]) {
           for (size_type y = size_type(0); y < v; ++y)
             if (paths[y * v + i]) {
-              paths[y * v + j] = 1;
+              paths[y * v + j] = char(1);
 
               __hack_ivdep
               for (size_type x = size_type(0); x < v; ++x)
