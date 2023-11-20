@@ -44,6 +44,85 @@ struct graph_options
   bool is_connected;
 };
 
+class paths_bits
+{
+public:
+  using size_type  = size_t;
+  using value_type = int;
+  using pointer    = value_type*;
+
+private:
+  const size_type m_stride = sizeof(value_type) * 8; // 8-bits
+
+  pointer   m_m;
+  size_type m_msz;
+  size_type m_sz;
+
+private:
+  std::pair<size_type, size_type>
+  navigate_access(size_type i, size_type j) const noexcept
+  {
+    return std::make_pair(i * this->m_sz + j / this->m_stride, 1 << j % this->m_stride);
+  };
+
+  std::pair<size_type, size_type>
+  navigate_join(size_type i, size_type j) const noexcept
+  {
+    return std::make_pair(i * this->m_sz, j * this->m_sz);
+  };
+
+public:
+  paths_bits()
+    : m_m(nullptr)
+    , m_sz(size_type(0))
+    , m_msz(size_type(0)){};
+
+  paths_bits(size_type count)
+    : m_m(nullptr)
+    , m_sz(size_type(0))
+    , m_msz(size_type(0))
+  {
+    this->m_sz  = count % this->m_stride == 0
+      ? count / this->m_stride
+      : count / this->m_stride + 1;
+
+    this->m_msz = this->m_sz * count;
+
+    this->m_m = new value_type[this->m_msz]();
+  };
+  ~paths_bits()
+  {
+    if (this->m_m != nullptr)
+      delete[] this->m_m;
+  };
+
+  bool
+  exists(size_type i, size_type j) noexcept
+  {
+    auto nav = this->navigate_access(i, j);
+
+    return this->m_m[nav.first] & nav.second;
+  };
+
+  void
+  set(size_type i, size_type j) noexcept
+  {
+    auto nav = this->navigate_access(i, j);
+
+    this->m_m[nav.first] = this->m_m[nav.first] | nav.second;
+  };
+
+  void
+  join(size_type i, size_type j) noexcept
+  {
+    auto nav = navigate_join(i, j);
+
+    __hack_ivdep
+    for (size_type x = size_type(0); x < this->m_sz; ++x)
+      this->m_m[nav.first + x] = this->m_m[nav.first + x] | this->m_m[nav.second + x];
+  };
+};
+
 template<
   typename Matrix,
   typename MatrixSetSizeOperation,
@@ -97,8 +176,7 @@ random_graph(
   // i.e. vector contains true in `[i * v + j]` if there is a path between
   // `i` and `j`
   //
-  std::vector<char> paths(v * v);
-  std::fill(paths.begin(), paths.end(), 0);
+  paths_bits paths(v);
 
   std::vector<bool> has_in(v);
   std::fill(has_in.begin(), has_in.end(), false);
@@ -131,7 +209,7 @@ random_graph(
       // If there is a path from `j` to `i` we return `true` and saying that
       // there is an "edge" between them and we can't continue.
       //
-      return paths[j * v + i];
+      return paths.exists(j, i);
     }
     return false;
   };
@@ -146,7 +224,7 @@ random_graph(
       // That is why we get all paths of `j` and insert them to all paths of
       // all vertexes who has a path to `i` including `i` itself
       //
-      paths[i * v + j] = char(1);
+      paths.set(i, j);
 
       // If there are output from `j` then we need to copy them
       // to all of the dependencies
@@ -154,30 +232,28 @@ random_graph(
       if (has_out[j]) {
         // Fix all paths from `i` by including `j`
         //
-        __hack_ivdep
-        for (size_type x = size_type(0); x < v; ++x)
-          paths[i * v + x] = paths[i * v + x] | paths[j * v + x];
+        paths.join(i, j);
 
         // Fix all paths from rest of vertex by including `j` and
         // all of it's vertexes
         //
         if (has_in[i]) {
           for (size_type y = size_type(0); y < v; ++y)
-            if (paths[y * v + i]) {
-              paths[y * v + j] = char(1);
-
-              __hack_ivdep
-              for (size_type x = size_type(0); x < v; ++x)
-                paths[y * v + x] = paths[y * v + x] | paths[j * v + x];
+            if (paths.exists(y, i)) {
+              paths.set(y, j);
+              paths.join(y, j);
             }
         }
       } else {
         // Fix all paths from rest of vertex by including `j`
         //
-        for (size_type y = size_type(0); y < v; ++y)
-          paths[y * v + j] = paths[y * v + j] | paths[y * v + i];
+        if (has_in[i]) {
+          for (size_type y = size_type(0); y < v; ++y)
+            if (paths.exists(y, i))
+              paths.set(y, j);
+        }
       }
-      has_in[j] = true;
+      has_in[j]  = true;
       has_out[i] = true;
     }
   };
