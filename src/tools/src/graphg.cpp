@@ -43,14 +43,18 @@ main(int argc, char* argv[])
   // b: <flag>, indicates whether graph should be stored in binary or textual representation
   // a: <int>,  graph generation algorithm to use
   //    Supported values:
-  //    - 0: Random Directed Acyclic Graph (DAG)
+  //    - 0: Random Directed Acyclic Graph (DAG / S)
   //    - 1: Random Complete Graph
+  //    - 2: Random Directed Acyclic Graph (DAG / P)
+  //    - 3: Random Undirected Connected Graph
   // v: <int>,  number of vertex in a graph
   // e: <int>,  percentage of edges in a graph (based on vertex count)
   //    Supported values:
   //    - 0 to 100 with step 1
   //    Required in algorithms:
-  //    - 0: Random Directed Acyclic Graph (DAG)
+  //    - 0: Random Directed Acyclic Graph (DAG / S)
+  //    - 2: Random Directed Acyclic Graph (DAG / P)
+  //    - 3: Random Undirected Connected Graph
   // l: <int>,  minimal weight of an edge
   //    Supported values:
   //    - 0 to 'h' with step 1
@@ -80,7 +84,7 @@ main(int argc, char* argv[])
 
         opt_algorithm = atoi(optarg);
 
-        if (opt_algorithm < 0 || opt_algorithm > 1) {
+        if (opt_algorithm < 0 || opt_algorithm > 3) {
           std::cerr << "erro: unsupported algorithm specified in '-a' option";
           return 1;
         }
@@ -165,17 +169,13 @@ main(int argc, char* argv[])
       case 0: {
         // Promised paths to include in a graph (current not implemented from CLI)
         //
-        std::vector<utilz::graphs::generators::promised_path<utilz::square_shape<int>::size_type>> promised_paths;
+        std::vector<utilz::graphs::generators::generation_promised_path<utilz::square_shape<int>::size_type>> promised_paths;
 
         // Calculate edge count based on requested edge percent
         //
         size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
 
-        utilz::graphs::generators::graph_options opt;
-        opt.is_acyclic = true;
-        opt.is_connected = true;
-
-        // Random Directed Acyclic Graph (DAG)
+        // Random Directed Acyclic Graph (DAG / S)
         //
         utilz::graphs::generators::random_graph(
           opt_vertex_count,
@@ -184,8 +184,10 @@ main(int argc, char* argv[])
           adjacency_matrix,
           set_size,
           set_value,
-          opt);
-      } break;
+          utilz::graphs::generators::directed_acyclic_graph_swap_tag());
+
+        break;
+      }
       case 1:
         // Random Complete Graph
         //
@@ -196,6 +198,40 @@ main(int argc, char* argv[])
           set_value,
           utilz::graphs::generators::complete_graph_tag());
         break;
+      case 2: {
+        // Calculate edge count based on requested edge percent
+        //
+        size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
+
+        // Random Directed Acyclic Graph (DAG / S)
+        //
+        utilz::graphs::generators::random_graph(
+          opt_vertex_count,
+          edge_count,
+          adjacency_matrix,
+          set_size,
+          set_value,
+          utilz::graphs::generators::directed_acyclic_graph_path_tag());
+
+        break;
+      }
+      case 3: {
+        // Calculate edge count based on requested edge percent
+        //
+        size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
+
+        // Random Undirected Connected Graph
+        //
+        utilz::graphs::generators::random_graph(
+          opt_vertex_count,
+          edge_count,
+          adjacency_matrix,
+          set_size,
+          set_value,
+          utilz::graphs::generators::connected_graph_tag());
+
+        break;
+      }
     }
   } catch (const std::logic_error& e) {
     std::cerr << e.what() << std::endl;
