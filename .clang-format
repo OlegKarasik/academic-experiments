@@ -5,7 +5,11 @@ AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: true
 AlignOperands: AlignAfterOperator
-AllowShortFunctionsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
 AlwaysBreakAfterReturnType: All
 AlwaysBreakTemplateDeclarations: Yes
 BinPackParameters: false
