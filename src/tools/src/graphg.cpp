@@ -43,18 +43,16 @@ main(int argc, char* argv[])
   // b: <flag>, indicates whether graph should be stored in binary or textual representation
   // a: <int>,  graph generation algorithm to use
   //    Supported values:
-  //    - 0: Random Directed Acyclic Graph (DAG / S)
+  //    - 0: Random Directed Acyclic Graph
   //    - 1: Random Complete Graph
-  //    - 2: Random Directed Acyclic Graph (DAG / P)
-  //    - 3: Random Undirected Connected Graph
+  //    - 2: Random Connected Graph
   // v: <int>,  number of vertex in a graph
   // e: <int>,  percentage of edges in a graph (based on vertex count)
   //    Supported values:
   //    - 0 to 100 with step 1
   //    Required in algorithms:
   //    - 0: Random Directed Acyclic Graph (DAG / S)
-  //    - 2: Random Directed Acyclic Graph (DAG / P)
-  //    - 3: Random Undirected Connected Graph
+  //    - 2: Random Connected Graph
   // l: <int>,  minimal weight of an edge
   //    Supported values:
   //    - 0 to 'h' with step 1
@@ -84,7 +82,7 @@ main(int argc, char* argv[])
 
         opt_algorithm = atoi(optarg);
 
-        if (opt_algorithm < 0 || opt_algorithm > 3) {
+        if (opt_algorithm < 0 || opt_algorithm > 2) {
           std::cerr << "erro: unsupported algorithm specified in '-a' option";
           return 1;
         }
@@ -155,47 +153,28 @@ main(int argc, char* argv[])
 
   // All graph generators do fill adjacency matrix with edges information
   //
-  utilz::square_shape<int> adjacency_matrix;
-
-  // Matrix accesors
-  //
-  utilz::procedures::square_shape_set_size<utilz::square_shape<int>> set_size;
-  utilz::procedures::square_shape_set<utilz::square_shape<int>>      set_value;
-  utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_size;
-  utilz::procedures::square_shape_get<utilz::square_shape<int>>      get_value;
+  utilz::square_shape<bool> adjacency_matrix;
 
   try {
     switch (opt_algorithm) {
       case 0: {
-        // Promised paths to include in a graph (current not implemented from CLI)
-        //
-        std::vector<utilz::graphs::generators::generation_promised_path<utilz::square_shape<int>::size_type>> promised_paths;
-
         // Calculate edge count based on requested edge percent
         //
         size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
 
         // Random Directed Acyclic Graph (DAG / S)
         //
-        utilz::graphs::generators::random_graph(
+        adjacency_matrix = utilz::graphs::generators::random_graph(
           opt_vertex_count,
           edge_count,
-          promised_paths,
-          adjacency_matrix,
-          set_size,
-          set_value,
-          utilz::graphs::generators::directed_acyclic_graph_swap_tag());
-
+          utilz::graphs::generators::directed_acyclic_graph_tag());
         break;
       }
       case 1:
         // Random Complete Graph
         //
-        utilz::graphs::generators::random_graph(
+        adjacency_matrix = utilz::graphs::generators::random_graph(
           opt_vertex_count,
-          adjacency_matrix,
-          set_size,
-          set_value,
           utilz::graphs::generators::complete_graph_tag());
         break;
       case 2: {
@@ -203,31 +182,11 @@ main(int argc, char* argv[])
         //
         size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
 
-        // Random Directed Acyclic Graph (DAG / S)
+        // Random Connected Graph
         //
-        utilz::graphs::generators::random_graph(
+        adjacency_matrix = utilz::graphs::generators::random_graph(
           opt_vertex_count,
           edge_count,
-          adjacency_matrix,
-          set_size,
-          set_value,
-          utilz::graphs::generators::directed_acyclic_graph_path_tag());
-
-        break;
-      }
-      case 3: {
-        // Calculate edge count based on requested edge percent
-        //
-        size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
-
-        // Random Undirected Connected Graph
-        //
-        utilz::graphs::generators::random_graph(
-          opt_vertex_count,
-          edge_count,
-          adjacency_matrix,
-          set_size,
-          set_value,
           utilz::graphs::generators::connected_graph_tag());
 
         break;
@@ -240,20 +199,29 @@ main(int argc, char* argv[])
 
   // We use uniform distribution to get random weight values
   //
-  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-
-  std::mt19937_64                    weight_distribution_engine(seed);
+  std::mt19937_64                    weight_distribution_engine;
   std::uniform_int_distribution<int> weight_distribution(opt_low_weight, opt_high_weight);
+
+  weight_distribution_engine.seed(std::chrono::system_clock::now().time_since_epoch().count());
+
+  // Weight matrix
+  //
+  utilz::square_shape<int> weight_matrix(adjacency_matrix.size());
+
+  // Matrix accesors
+  //
+  utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_size;
+  utilz::procedures::square_shape_get<utilz::square_shape<int>>      get_value;
 
   // Update adjacency matrix with weight values, effectively transforming
   // it to representation of directed, weighted graph
   //
   for (auto i = 0; i < adjacency_matrix.size(); ++i)
     for (auto j = 0; j < adjacency_matrix.size(); ++j)
-      if (adjacency_matrix.at(i, j) == 1)
-        adjacency_matrix.at(i, j) = weight_distribution(weight_distribution_engine);
+      if (adjacency_matrix.at(i, j))
+        weight_matrix.at(i, j) = weight_distribution(weight_distribution_engine);
 
   // Save
   //
-  utilz::graphs::io::print_matrix(outs, opt_binary, adjacency_matrix, get_size, get_value);
+  utilz::graphs::io::print_graph(outs, opt_binary, weight_matrix, get_size, get_value);
 }
