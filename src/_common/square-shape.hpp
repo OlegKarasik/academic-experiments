@@ -153,18 +153,21 @@ private:
 
 public:
   square_shape()
-    : m_m(nullptr)
-    , m_msize(0)
-    , m_size(0)
-    , m_a(allocator_type())
-  {}
+    : square_shape(allocator_type())
+  {
+  }
   square_shape(const allocator_type& a)
     : m_m(nullptr)
     , m_msize(0)
     , m_size(0)
     , m_a(a)
-  {}
+  {
+  }
 
+  square_shape(size_type s)
+    : square_shape(s, allocator_type())
+  {
+  }
   square_shape(size_type s, const allocator_type& a)
     : m_m(nullptr)
     , m_msize(s * s)
@@ -191,7 +194,8 @@ public:
     , m_msize(std::exchange(o.m_msize, 0))
     , m_size(std::exchange(o.m_size, 0))
     , m_a(std::move(o.m_a))
-  {}
+  {
+  }
   square_shape(square_shape&& o, const allocator_type& a)
     : m_m(nullptr)
     , m_msize(o.m_msize)
