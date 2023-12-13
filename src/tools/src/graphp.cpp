@@ -88,7 +88,7 @@ main(int argc, char* argv[])
       int f, t;
       iss >> f >> t;
 
-      output_stream << "  " << f << " -> " << t << "\n";
+      output_stream << "  \"" << f << "\" -> \"" << t << "\"\n";
     }
   }
   // Print clusters
