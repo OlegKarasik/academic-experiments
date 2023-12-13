@@ -28,7 +28,7 @@ scan_matrix(std::istream& s, bool binary, S& m, TArgs... args)
   set_fn set;
   rep_fn rep;
 
-  ::utilz::graphs::io::scan_matrix(s, binary, m, sz, set);
+  ::utilz::graphs::io::scan_graph(s, binary, m, sz, set);
 
   // Replace 'zero' values with corresponding 'infinity' value to ensure correct
   // execution of APSP Floyd-Warshall algorithm
@@ -57,7 +57,7 @@ print_matrix(std::ostream& s, bool binary, S& m)
   //
   rep(m, apsp::constants::infinity<value_type>(), value_type(0));
 
-  ::utilz::graphs::io::print_matrix(s, binary, m, sz, get);
+  ::utilz::graphs::io::print_graph(s, binary, m, sz, get);
 };
 
 } // namespace io
