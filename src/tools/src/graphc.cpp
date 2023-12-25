@@ -123,6 +123,14 @@ main(int argc, char* argv[])
   auto is = igstream.get();
   auto os = ogstream.get();
 
+  utilz::graphs::io::graph_preamble<int> preamble;
+  if (is >> preamble) {
+    if (!(os << preamble)) {
+      std::cerr << "erro: can't write preamble information to output file";
+      return 1;
+    }
+  }
+
   utilz::graphs::io::graph_edge<int, int> edge;
   while (is >> edge) {
     if (!(os << edge)) {
