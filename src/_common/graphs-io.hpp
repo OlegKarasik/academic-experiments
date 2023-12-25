@@ -11,28 +11,102 @@ namespace io {
 
 enum graph_stream_format
 {
-  none,
-  edgelist,
-  weightlist,
-  dimacs
+  fmt_none,
+  fmt_edgelist,
+  fmt_weightlist,
+  fmt_dimacs,
+  fmt_binary
 };
 
 bool
 parse_graph_stream_format(const std::string& format, utilz::graphs::io::graph_stream_format& out_format)
 {
   if (format == "edgelist") {
-    out_format = utilz::graphs::io::graph_stream_format::edgelist;
+    out_format = utilz::graphs::io::graph_stream_format::fmt_edgelist;
     return true;
   }
   if (format == "weightlist") {
-    out_format = utilz::graphs::io::graph_stream_format::weightlist;
+    out_format = utilz::graphs::io::graph_stream_format::fmt_weightlist;
     return true;
   }
   if (format == "dimacs") {
-    out_format = utilz::graphs::io::graph_stream_format::dimacs;
+    out_format = utilz::graphs::io::graph_stream_format::fmt_dimacs;
+    return true;
+  }
+  if (format == "binary") {
+    out_format = utilz::graphs::io::graph_stream_format::fmt_binary;
     return true;
   }
   return false;
+};
+
+template<typename TIndex, typename TWeight>
+class graph_edge
+{
+private:
+  TIndex  m_f;
+  TIndex  m_t;
+  TWeight m_w;
+
+public:
+  graph_edge()
+    : m_f(TIndex(0))
+    , m_t(TIndex(0))
+    , m_w(TWeight(0))
+  {
+  }
+
+  graph_edge(TIndex from, TIndex to, TWeight weight)
+    : m_f(from)
+    , m_t(to)
+    , m_w(weight)
+  {
+  }
+
+  TIndex
+  from() const
+  {
+    return this->m_f;
+  }
+
+  TIndex
+  to() const
+  {
+    return this->m_t;
+  }
+
+  TWeight
+  weight() const
+  {
+    return this->m_w;
+  }
+};
+
+template<typename TIndex>
+class graph_preamble
+{
+private:
+  TIndex m_vc;
+  TIndex m_ec;
+
+public:
+  graph_preamble(TIndex vertex_count, TIndex edge_count)
+    : m_vc(vertex_count)
+    , m_ec(edge_count)
+  {
+  }
+
+  TIndex
+  vertex_count() const
+  {
+    return this->m_vc;
+  }
+
+  TIndex
+  edge_count() const
+  {
+    return this->m_ec;
+  }
 };
 
 template<typename TIndex, typename TWeight>
@@ -40,7 +114,11 @@ class graph_istream;
 
 template<typename TIndex, typename TWeight>
 bool
-operator>>(graph_istream<TIndex, TWeight>* is, std::tuple<TIndex, TIndex, TWeight>& obj);
+operator>>(graph_istream<TIndex, TWeight>* s, graph_edge<TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+bool
+operator>>(graph_istream<TIndex, TWeight>* s, graph_preamble<TIndex>& preamble);
 
 template<typename TIndex, typename TWeight>
 class graph_istream
@@ -48,46 +126,61 @@ class graph_istream
 private:
   std::istream& m_s;
 
-  bool m_eof;
-  bool m_err;
-
 protected:
-  virtual bool
-  read_edge(std::istream& s, std::tuple<TIndex, TIndex, TWeight>& obj) = 0;
+  virtual void
+  read_edge(std::istream& s, graph_edge<TIndex, TWeight>& edge) = 0;
+
+  virtual void
+  read_preamble(std::istream& s, graph_preamble<TIndex>& preamble) = 0;
 
 public:
   graph_istream(std::istream& s)
-    : m_s(s)
-    , m_eof(s.eof())
-    , m_err(s.fail()){};
+    : m_s(s){};
 
   bool
-  eof()
+  eof() const
   {
-    return this->m_eof;
-  };
+    return this->m_s.eof();
+  }
 
   bool
-  err()
+  fail() const
   {
-    return this->m_err;
-  };
+    return this->m_s.fail();
+  }
+
+  bool
+  good() const
+  {
+    return this->m_s.good();
+  }
 
   operator bool() const
   {
-    return this->m_eof || this->m_err;
+    return this->m_s.good();
   }
 
   friend bool
-  operator>><TIndex, TWeight>(graph_istream<TIndex, TWeight>* is, std::tuple<TIndex, TIndex, TWeight>& obj);
+  operator>><TIndex, TWeight>(graph_istream<TIndex, TWeight>* is, graph_edge<TIndex, TWeight>& edge);
+
+  friend bool
+  operator>><TIndex, TWeight>(graph_istream<TIndex, TWeight>* is, graph_preamble<TIndex>& preamble);
 };
 
 template<typename TIndex, typename TWeight>
 bool
-operator>>(graph_istream<TIndex, TWeight>* s, std::tuple<TIndex, TIndex, TWeight>& obj)
+operator>>(graph_istream<TIndex, TWeight>* s, graph_edge<TIndex, TWeight>& edge)
 {
-  if (!s->read_edge(s->m_s, obj))
-    s->m_s.setstate(std::ios::failbit);
+  s->read_edge(s->m_s, edge);
+
+  return s->m_s.good();
+};
+
+template<typename TIndex, typename TWeight>
+bool
+operator>>(graph_istream<TIndex, TWeight>* s, graph_preamble<TIndex>& preamble)
+{
+  s->read_preamble(s->m_s, preamble);
 
   return s->m_s.good();
 };
@@ -97,7 +190,11 @@ class graph_ostream;
 
 template<typename TIndex, typename TWeight>
 bool
-operator<<(graph_ostream<TIndex, TWeight>* is, std::tuple<TIndex, TIndex, TWeight>& obj);
+operator<<(graph_ostream<TIndex, TWeight>* s, graph_edge<TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+bool
+operator<<(graph_ostream<TIndex, TWeight>* s, graph_preamble<TIndex>& preamble);
 
 template<typename TIndex, typename TWeight>
 class graph_ostream
@@ -105,38 +202,55 @@ class graph_ostream
 private:
   std::ostream& m_s;
 
-  bool m_err;
-
 protected:
-  virtual bool
-  write_edge(std::ostream& s, std::tuple<TIndex, TIndex, TWeight>& obj) = 0;
+  virtual void
+  write_edge(std::ostream& s, graph_edge<TIndex, TWeight>& edge) = 0;
+
+  virtual void
+  write_preamble(std::ostream& s, graph_preamble<TIndex>& preamble) = 0;
 
 public:
   graph_ostream(std::ostream& s)
-    : m_s(s)
-    , m_err(s.fail()){};
+    : m_s(s){};
 
   bool
-  err()
+  fail() const
   {
-    return this->m_err;
-  };
+    return this->m_s.fail();
+  }
+
+  bool
+  good() const
+  {
+    return this->m_s.good();
+  }
 
   operator bool() const
   {
-    return this->m_err;
+    return this->m_s.good();
   }
 
   friend bool
-  operator<<<TIndex, TWeight>(graph_ostream<TIndex, TWeight>* os, std::tuple<TIndex, TIndex, TWeight>& obj);
+  operator<<<TIndex, TWeight>(graph_ostream<TIndex, TWeight>* s, graph_edge<TIndex, TWeight>& edge);
+
+  friend bool
+  operator<<<TIndex, TWeight>(graph_ostream<TIndex, TWeight>* s, graph_preamble<TIndex>& preamble);
 };
 
 template<typename TIndex, typename TWeight>
 bool
-operator<<(graph_ostream<TIndex, TWeight>* s, std::tuple<TIndex, TIndex, TWeight>& obj)
+operator<<(graph_ostream<TIndex, TWeight>* s, graph_edge<TIndex, TWeight>& edge)
 {
-  if (!s->write_edge(s->m_s, obj))
-    s->m_s.setstate(std::ios::failbit);
+  s->write_edge(s->m_s, edge);
+
+  return s->m_s.good();
+};
+
+template<typename TIndex, typename TWeight>
+bool
+operator<<(graph_ostream<TIndex, TWeight>* s, graph_preamble<TIndex> preamble)
+{
+  s->write_preamble(s->m_s, preamble);
 
   return s->m_s.good();
 };
@@ -145,16 +259,23 @@ template<typename TIndex, typename TWeight>
 class graph_istream_edgelist : public graph_istream<TIndex, TWeight>
 {
 protected:
-  bool
-  read_edge(std::istream& s, std::tuple<TIndex, TIndex, TWeight>& obj) override
+  void
+  read_edge(std::istream& s, graph_edge<TIndex, TWeight>& edge) override
   {
     TIndex f, t;
-    if (!(s >> f >> t))
-      return false;
+    if (s >> f) {
+      if (s >> t) {
+        edge = graph_edge<TIndex, TWeight>(f, t, TWeight(1));
+      } else {
+        s.setstate(std::ios::failbit);
+      }
+    }
+  }
 
-    obj = std::make_tuple(f, t, TWeight(1));
-    return true;
-  };
+  void
+  read_preamble(std::istream& s, graph_preamble<TIndex>& preamble) override
+  {
+  }
 
 public:
   graph_istream_edgelist(std::istream& s)
@@ -162,42 +283,22 @@ public:
 };
 
 template<typename TIndex, typename TWeight>
-class graph_ostream_edgelist : public graph_ostream<TIndex, TWeight>
-{
-protected:
-  bool
-  write_edge(std::ostream& s, std::tuple<TIndex, TIndex, TWeight>& obj) override
-  {
-    TIndex  f, t;
-    TWeight w;
-
-    std::tie(f, t, w) = obj;
-
-    return (bool)(s << f << ' ' << t << '\n');
-  };
-
-public:
-  graph_ostream_edgelist(std::ostream& s)
-    : graph_ostream<TIndex, TWeight>(s){};
-};
-
-template<typename TIndex, typename TWeight>
 class graph_istream_dimacs : public graph_istream<TIndex, TWeight>
 {
 protected:
-  bool
-  read_edge(std::istream& s, std::tuple<TIndex, TIndex, TWeight>& obj) override
+  void
+  read_edge(std::istream& s, graph_edge<TIndex, TWeight>& edge) override
   {
     char        c;
     std::string v;
 
     for (;;) {
       if (!std::getline(s, v))
-        return false;
+        return;
 
       std::stringstream ss(v);
       if (!(ss >> c))
-        return false;
+        return;
 
       switch (c) {
         case 'c':
@@ -206,17 +307,26 @@ protected:
         case 'a': {
           TIndex  f, t;
           TWeight w;
-          if (!(ss >> f >> t >> w))
-            return false;
-
-          obj = std::make_tuple(f, t, w);
-          return true;
+          if (s >> f) {
+            if (s >> t >> w) {
+              edge = graph_edge<TIndex, TWeight>(f, t, w);
+            } else {
+              s.setstate(std::ios::failbit);
+            }
+          }
+          return;
         }
         default:
-          return false;
+          s.setstate(std::ios::failbit);
+          return;
       }
     }
-  };
+  }
+
+  void
+  read_preamble(std::istream& s, graph_preamble<TIndex>& preamble) override
+  {
+  }
 
 public:
   graph_istream_dimacs(std::istream& s)
@@ -227,17 +337,24 @@ template<typename TIndex, typename TWeight>
 class graph_istream_weightlist : public graph_istream<TIndex, TWeight>
 {
 protected:
-  bool
-  read_edge(std::istream& s, std::tuple<TIndex, TIndex, TWeight>& obj) override
+  void
+  read_edge(std::istream& s, graph_edge<TIndex, TWeight>& edge) override
   {
     TIndex  f, t;
     TWeight w;
-    if (!(s >> f >> t >> w))
-      return false;
+    if (s >> f) {
+      if (s >> t >> w) {
+        edge = graph_edge<TIndex, TWeight>(f, t, w);
+      } else {
+        s.setstate(std::ios::failbit);
+      }
+    }
+  }
 
-    obj = std::make_tuple(f, t, w);
-    return true;
-  };
+  void
+  read_preamble(std::istream& s, graph_preamble<TIndex>& preamble) override
+  {
+  }
 
 public:
   graph_istream_weightlist(std::istream& s)
@@ -245,16 +362,147 @@ public:
 };
 
 template<typename TIndex, typename TWeight>
+class graph_istream_binary : public graph_istream<TIndex, TWeight>
+{
+protected:
+  void
+  read_edge(std::istream& s, graph_edge<TIndex, TWeight>& edge) override
+  {
+    TIndex  f, t;
+    TWeight w;
+
+    if (!s.read(reinterpret_cast<char*>(&f), sizeof(TIndex)))
+      return;
+
+    if (!s.read(reinterpret_cast<char*>(&t), sizeof(TIndex)))
+      return;
+
+    if (!s.read(reinterpret_cast<char*>(&w), sizeof(TWeight)))
+      return;
+
+    edge = graph_edge<TIndex, TWeight>(f, t, w);
+  }
+
+  void
+  read_preamble(std::istream& s, graph_preamble<TIndex>& preamble) override
+  {
+  }
+
+public:
+  graph_istream_binary(std::istream& s)
+    : graph_istream<TIndex, TWeight>(s){};
+};
+
+template<typename TIndex, typename TWeight>
+class graph_ostream_edgelist : public graph_ostream<TIndex, TWeight>
+{
+protected:
+  void
+  write_edge(std::ostream& s, graph_edge<TIndex, TWeight>& edge) override
+  {
+    s << edge.from() << ' ' << edge.to() << '\n';
+  }
+
+  void
+  write_preamble(std::ostream& s, graph_preamble<TIndex>& preamble) override
+  {
+    s << preamble.vertex_count() << '\n';
+  }
+
+public:
+  graph_ostream_edgelist(std::ostream& s)
+    : graph_ostream<TIndex, TWeight>(s){};
+};
+
+template<typename TIndex, typename TWeight>
+class graph_ostream_dimacs : public graph_ostream<TIndex, TWeight>
+{
+protected:
+  void
+  write_edge(std::ostream& s, graph_edge<TIndex, TWeight>& edge) override
+  {
+    s << 'a' << ' ' << edge.from() << ' ' << edge.to() << ' ' << edge.weight() << '\n';
+  }
+
+  void
+  write_preamble(std::ostream& s, graph_preamble<TIndex>& preamble) override
+  {
+    s << 'p' << ' ' << preamble.vertex_count() << ' ' << preamble.edge_count() << '\n';
+  }
+
+public:
+  graph_ostream_dimacs(std::ostream& s)
+    : graph_ostream<TIndex, TWeight>(s){};
+};
+
+template<typename TIndex, typename TWeight>
+class graph_ostream_weightlist : public graph_ostream<TIndex, TWeight>
+{
+protected:
+  void
+  write_edge(std::ostream& s, graph_edge<TIndex, TWeight>& edge) override
+  {
+    s << edge.from() << ' ' << edge.to() << ' ' << edge.weight() << '\n';
+  }
+
+  void
+  write_preamble(std::ostream& s, graph_preamble<TIndex>& preamble) override
+  {
+    s << 'p' << ' ' << preamble.vertex_count() << '\n';
+  }
+
+public:
+  graph_ostream_weightlist(std::ostream& s)
+    : graph_ostream<TIndex, TWeight>(s){};
+};
+
+template<typename TIndex, typename TWeight>
+class graph_ostream_binary : public graph_ostream<TIndex, TWeight>
+{
+protected:
+  void
+  write_edge(std::ostream& s, graph_edge<TIndex, TWeight>& edge) override
+  {
+    TIndex  f = edge.from(), t = edge.to();
+    TWeight w = edge.weight();
+
+    if (!s.write(reinterpret_cast<char*>(&f), sizeof(TIndex)))
+      return;
+
+    if (!s.write(reinterpret_cast<char*>(&t), sizeof(TIndex)))
+      return;
+
+    if (!s.write(reinterpret_cast<char*>(&w), sizeof(TWeight)))
+      return;
+  }
+
+  void
+  write_preamble(std::ostream& s, graph_preamble<TIndex>& preamble) override
+  {
+    TIndex f = preamble.vertex_count();
+
+    if (!s.write(reinterpret_cast<char*>(&f), sizeof(TIndex)))
+      return;
+  }
+
+public:
+  graph_ostream_binary(std::ostream& s)
+    : graph_ostream<TIndex, TWeight>(s){};
+};
+
+template<typename TIndex, typename TWeight>
 std::unique_ptr<graph_istream<TIndex, TWeight>>
 make_graph_istream(std::istream& s, graph_stream_format format)
 {
   switch (format) {
-    case graph_stream_format::edgelist:
+    case graph_stream_format::fmt_edgelist:
       return std::unique_ptr<graph_istream<TIndex, TWeight>>(new graph_istream_edgelist<TIndex, TWeight>(s));
-    case graph_stream_format::weightlist:
+    case graph_stream_format::fmt_weightlist:
       return std::unique_ptr<graph_istream<TIndex, TWeight>>(new graph_istream_weightlist<TIndex, TWeight>(s));
-    case graph_stream_format::dimacs:
+    case graph_stream_format::fmt_dimacs:
       return std::unique_ptr<graph_istream<TIndex, TWeight>>(new graph_istream_dimacs<TIndex, TWeight>(s));
+    case graph_stream_format::fmt_binary:
+      return std::unique_ptr<graph_istream<TIndex, TWeight>>(new graph_istream_binary<TIndex, TWeight>(s));
   };
   throw std::logic_error("erro: unknown graph format");
 };
@@ -264,8 +512,14 @@ std::unique_ptr<graph_ostream<TIndex, TWeight>>
 make_graph_ostream(std::ostream& s, graph_stream_format format)
 {
   switch (format) {
-    case graph_stream_format::edgelist:
+    case graph_stream_format::fmt_edgelist:
       return std::unique_ptr<graph_ostream<TIndex, TWeight>>(new graph_ostream_edgelist<TIndex, TWeight>(s));
+    case graph_stream_format::fmt_dimacs:
+      return std::unique_ptr<graph_ostream<TIndex, TWeight>>(new graph_ostream_dimacs<TIndex, TWeight>(s));
+    case graph_stream_format::fmt_weightlist:
+      return std::unique_ptr<graph_ostream<TIndex, TWeight>>(new graph_ostream_weightlist<TIndex, TWeight>(s));
+    case graph_stream_format::fmt_binary:
+      return std::unique_ptr<graph_ostream<TIndex, TWeight>>(new graph_ostream_binary<TIndex, TWeight>(s));
   };
   throw std::logic_error("erro: unknown graph format");
 };
