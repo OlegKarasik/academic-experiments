@@ -16,3 +16,16 @@ BinPackParameters: false
 BreakInheritanceList: BeforeComma
 AlignEscapedNewlines: Left
 IndentPPDirectives: BeforeHash
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterEnum: true
+  AfterStruct: true
+  AfterControlStatement: Never
+  AfterFunction: true
+  AfterNamespace: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
