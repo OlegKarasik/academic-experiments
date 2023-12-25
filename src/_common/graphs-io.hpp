@@ -90,6 +90,12 @@ private:
   TIndex m_ec;
 
 public:
+  graph_preamble()
+    : m_vc(TIndex(0))
+    , m_ec(TIndex(0))
+  {
+  }
+
   graph_preamble(TIndex vertex_count, TIndex edge_count)
     : m_vc(vertex_count)
     , m_ec(edge_count)
@@ -248,7 +254,7 @@ operator<<(graph_ostream<TIndex, TWeight>* s, graph_edge<TIndex, TWeight>& edge)
 
 template<typename TIndex, typename TWeight>
 bool
-operator<<(graph_ostream<TIndex, TWeight>* s, graph_preamble<TIndex> preamble)
+operator<<(graph_ostream<TIndex, TWeight>* s, graph_preamble<TIndex>& preamble)
 {
   s->write_preamble(s->m_s, preamble);
 
@@ -258,6 +264,9 @@ operator<<(graph_ostream<TIndex, TWeight>* s, graph_preamble<TIndex> preamble)
 template<typename TIndex, typename TWeight>
 class graph_istream_edgelist : public graph_istream<TIndex, TWeight>
 {
+private:
+  std::string m_pline;
+
 protected:
   void
   read_edge(std::istream& s, graph_edge<TIndex, TWeight>& edge) override
