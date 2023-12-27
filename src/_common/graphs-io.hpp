@@ -18,6 +18,14 @@ enum graph_stream_format
   fmt_binary
 };
 
+enum graph_stream_format_preamble
+{
+  fmt_preamble_none         = 0,
+  fmt_preamble_vertex_count = 1,
+  fmt_preamble_edge_count   = 2,
+  fmt_preamble_full         = 3
+};
+
 bool
 parse_graph_stream_format(const std::string& format, utilz::graphs::io::graph_stream_format& out_format)
 {
@@ -38,6 +46,52 @@ parse_graph_stream_format(const std::string& format, utilz::graphs::io::graph_st
     return true;
   }
   return false;
+};
+
+class graph_stream_format_details
+{
+private:
+  graph_stream_format_preamble m_preamble;
+
+public:
+  graph_stream_format_details(graph_stream_format_preamble preamble)
+    : m_preamble(preamble)
+  {
+  }
+
+  bool
+  preamble_required() const
+  {
+    return this->m_preamble != 0;
+  }
+
+  bool
+  preamble_includes_vertex_count() const
+  {
+    return this->m_preamble & graph_stream_format_preamble::fmt_preamble_vertex_count;
+  }
+
+  bool
+  preamble_includes_edge_count() const
+  {
+    return this->m_preamble & graph_stream_format_preamble::fmt_preamble_edge_count;
+  }
+};
+
+graph_stream_format_details
+get_graph_stream_format_details(utilz::graphs::io::graph_stream_format format)
+{
+  switch (format) {
+    case graph_stream_format::fmt_edgelist:
+      return graph_stream_format_details(graph_stream_format_preamble::fmt_preamble_none);
+    case graph_stream_format::fmt_weightlist:
+      return graph_stream_format_details(graph_stream_format_preamble::fmt_preamble_none);
+    case graph_stream_format::fmt_dimacs:
+      return graph_stream_format_details(graph_stream_format_preamble::fmt_preamble_full);
+    case graph_stream_format::fmt_binary:
+      return graph_stream_format_details(graph_stream_format_preamble::fmt_preamble_vertex_count);
+  };
+  throw std::logic_error("erro: unknown graph format");
 };
 
 template<typename TIndex, typename TWeight>
