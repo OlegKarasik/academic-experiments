@@ -123,11 +123,34 @@ main(int argc, char* argv[])
   auto is = igstream.get();
   auto os = ogstream.get();
 
+  auto isf = utilz::graphs::io::get_graph_stream_format_details(opt_input_format);
+  auto osf = utilz::graphs::io::get_graph_stream_format_details(opt_output_format);
+
   utilz::graphs::io::graph_preamble<int> preamble;
-  if (is >> preamble) {
-    if (!(os << preamble)) {
-      std::cerr << "erro: can't write preamble information to output file";
+  if (isf.preamble_required()) {
+    if (!(is >> preamble)) {
+      std::cerr << "erro: can't read preamble information from input file";
       return 1;
+    }
+  }
+  if (osf.preamble_required()) {
+    bool needs_vertexes = osf.preamble_includes_vertex_count() && !isf.preamble_includes_vertex_count(),
+         needs_edges    = osf.preamble_includes_edge_count() && !isf.preamble_includes_edge_count();
+
+    if (!needs_vertexes && !needs_edges) {
+      // This condition might seem a bit tricky but it isn't
+      //   the result is determined by the following:
+      //   - if output needs preamble then 'false' in both cases can be only when
+      //     input preamble includes everything output needs
+      //   - if input has no preamble and output needs it then these two want be 'false'
+      //     and at least one of them will be true
+      //
+      if (!(os << preamble)) {
+        std::cerr << "erro: can't write preamble information to output file";
+        return 1;
+      }
+    } else {
+
     }
   }
 
