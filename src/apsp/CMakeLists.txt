@@ -128,6 +128,7 @@ list(APPEND omp_targets "00-omp")
 list(APPEND omp_targets "01-omp")
 list(APPEND omp_targets "02-omp")
 list(APPEND omp_targets "03-omp")
+list(APPEND omp_targets "04-omp")
 
 # Initialise algorithms targets
 #
@@ -139,6 +140,8 @@ list(APPEND targets_names "02")
 list(APPEND targets_names "02-omp")
 list(APPEND targets_names "03")
 list(APPEND targets_names "03-omp")
+list(APPEND targets_names "04")
+list(APPEND targets_names "04-omp")
 
 # Initialise algorithms aliases
 #
@@ -150,6 +153,8 @@ list(APPEND targets_alias "02")
 list(APPEND targets_alias "02")
 list(APPEND targets_alias "03")
 list(APPEND targets_alias "03")
+list(APPEND targets_alias "04")
+list(APPEND targets_alias "04")
 
 # Initialise ITT targets if ITT is enabled
 #
@@ -162,11 +167,14 @@ if (ITT_FOUND)
   list(APPEND itt_targets "02-omp-itt")
   list(APPEND itt_targets "03-itt")
   list(APPEND itt_targets "03-omp-itt")
+  list(APPEND itt_targets "04-itt")
+  list(APPEND itt_targets "04-omp-itt")
 
   list(APPEND omp_targets "00-omp-itt")
   list(APPEND omp_targets "01-omp-itt")
   list(APPEND omp_targets "02-omp-itt")
   list(APPEND omp_targets "03-omp-itt")
+  list(APPEND omp_targets "04-omp-itt")
 
   list(APPEND targets_names "00-itt")
   list(APPEND targets_names "00-omp-itt")
@@ -176,6 +184,8 @@ if (ITT_FOUND)
   list(APPEND targets_names "02-omp-itt")
   list(APPEND targets_names "03-itt")
   list(APPEND targets_names "03-omp-itt")
+  list(APPEND targets_names "04-itt")
+  list(APPEND targets_names "04-omp-itt")
 
   list(APPEND targets_alias "00")
   list(APPEND targets_alias "00")
@@ -185,6 +195,8 @@ if (ITT_FOUND)
   list(APPEND targets_alias "02")
   list(APPEND targets_alias "03")
   list(APPEND targets_alias "03")
+  list(APPEND targets_alias "04")
+  list(APPEND targets_alias "04")
 endif()
 
 # Initialise length
