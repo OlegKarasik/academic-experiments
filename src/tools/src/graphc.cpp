@@ -137,21 +137,38 @@ main(int argc, char* argv[])
     bool needs_vertexes = osf.preamble_includes_vertex_count() && !isf.preamble_includes_vertex_count(),
          needs_edges    = osf.preamble_includes_edge_count() && !isf.preamble_includes_edge_count();
 
-    if (!needs_vertexes && !needs_edges) {
+    if (needs_vertexes || needs_edges) {
       // This condition might seem a bit tricky but it isn't
       //   the result is determined by the following:
       //   - if output needs preamble then 'false' in both cases can be only when
       //     input preamble includes everything output needs
-      //   - if input has no preamble and output needs it then these two want be 'false'
-      //     and at least one of them will be true
+      //   - if input has no preamble or has not full preamble and output needs
+      //     it then these two wont be 'false' and at least one of them will be true
       //
-      if (!(os << preamble)) {
-        std::cerr << "erro: can't write preamble information to output file";
-        return 1;
-      }
-    } else {
+      int vmin = 0, vmax = 0, edge_count = 0;
 
+      utilz::graphs::io::graph_edge<int, int> edge;
+      while (is >> edge) {
+        vmin = std::min({ vmin, edge.from(), edge.to() });
+        vmax = std::max({ vmax, edge.from(), edge.to() });
+
+        ++edge_count;
+      }
+      preamble = utilz::graphs::io::graph_preamble<int>(vmin == 0 ? vmax + 1 : vmax, edge_count);
     }
+    if (!(os << preamble)) {
+      std::cerr << "erro: can't write preamble information to output file";
+      return 1;
+    }
+
+    // Now we need to rewind the input stream and re-create the graph stream
+    // in case it has any kind of internal state.
+    //
+    input_stream.clear();
+    input_stream.seekg(0);
+
+    igstream = utilz::graphs::io::make_graph_istream<int, int>(input_stream, opt_input_format);
+    is = igstream.get();
   }
 
   utilz::graphs::io::graph_edge<int, int> edge;
