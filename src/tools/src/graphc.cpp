@@ -25,6 +25,7 @@
 #endif
 
 #include "graphs-io.hpp"
+#include "square-shape.hpp"
 
 // This is a tiny program which converts graphs to a different formats
 //
@@ -73,11 +74,11 @@ main(int argc, char* argv[])
         std::stringstream ss(optarg);
 
         if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_stream_format(v, opt_input_format)) {
-          std::cerr << "erro: missed or unsupported input format in '-f' option, must be 'edgelist' or 'dimacs";
+          std::cerr << "erro: missed or unsupported input format in '-f' option";
           return 1;
         }
         if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_stream_format(v, opt_output_format)) {
-          std::cerr << "erro: missed or unsupported output format in '-f' option, must be 'edgelist' or 'dimacs";
+          std::cerr << "erro: missed or unsupported output format in '-f' option";
           return 1;
         }
 
@@ -117,71 +118,37 @@ main(int argc, char* argv[])
     return 1;
   };
 
-  auto igstream = utilz::graphs::io::make_graph_istream<int, int>(input_stream, opt_input_format);
-  auto ogstream = utilz::graphs::io::make_graph_ostream<int, int>(output_stream, opt_output_format);
+  // Weight matrix
+  //
+  utilz::square_shape<int> matrix;
 
-  auto is = igstream.get();
-  auto os = ogstream.get();
+  // Scan accesors
+  //
+  utilz::procedures::square_shape_set_size<utilz::square_shape<int>> set_vertex_count;
+  utilz::graphs::io::null_set_function<utilz::square_shape<int>>     set_edge_count;
+  utilz::procedures::square_shape_set<utilz::square_shape<int>>      set_value;
 
-  auto isf = utilz::graphs::io::get_graph_stream_format_details(opt_input_format);
-  auto osf = utilz::graphs::io::get_graph_stream_format_details(opt_output_format);
+  utilz::graphs::io::scan_graph(
+    input_stream,
+    opt_input_format,
+    matrix,
+    set_vertex_count,
+    set_edge_count,
+    set_value);
 
-  utilz::graphs::io::graph_preamble<int> preamble;
-  if (isf.preamble_required()) {
-    if (!(is >> preamble)) {
-      std::cerr << "erro: can't read preamble information from input file";
-      return 1;
-    }
-  }
-  if (osf.preamble_required()) {
-    bool needs_vertexes = osf.preamble_includes_vertex_count() && !isf.preamble_includes_vertex_count(),
-         needs_edges    = osf.preamble_includes_edge_count() && !isf.preamble_includes_edge_count();
+  // Print accesors
+  //
+  utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_vertex_count;
+  utilz::graphs::io::null_get_function<utilz::square_shape<int>>     get_edge_count;
+  utilz::procedures::square_shape_get<utilz::square_shape<int>>      get_value;
 
-    if (needs_vertexes || needs_edges) {
-      // This condition might seem a bit tricky but it isn't
-      //   the result is determined by the following:
-      //   - if output needs preamble then 'false' in both cases can be only when
-      //     input preamble includes everything output needs
-      //   - if input has no preamble or has not full preamble and output needs
-      //     it then these two wont be 'false' and at least one of them will be true
-      //
-      int vmin = 0, vmax = 0, edge_count = 0;
+  utilz::graphs::io::print_graph(
+    output_stream,
+    opt_output_format,
+    matrix,
+    get_vertex_count,
+    get_edge_count,
+    get_value);
 
-      utilz::graphs::io::graph_edge<int, int> edge;
-      while (is >> edge) {
-        vmin = std::min({ vmin, edge.from(), edge.to() });
-        vmax = std::max({ vmax, edge.from(), edge.to() });
-
-        ++edge_count;
-      }
-      preamble = utilz::graphs::io::graph_preamble<int>(vmin == 0 ? vmax + 1 : vmax, edge_count);
-    }
-    if (!(os << preamble)) {
-      std::cerr << "erro: can't write preamble information to output file";
-      return 1;
-    }
-
-    // Now we need to rewind the input stream and re-create the graph stream
-    // in case it has any kind of internal state.
-    //
-    input_stream.clear();
-    input_stream.seekg(0);
-
-    igstream = utilz::graphs::io::make_graph_istream<int, int>(input_stream, opt_input_format);
-    is = igstream.get();
-  }
-
-  utilz::graphs::io::graph_edge<int, int> edge;
-  while (is >> edge) {
-    if (!(os << edge)) {
-      std::cerr << "erro: can't write edge information to output file";
-      return 1;
-    }
-  }
-  if (is->fail()) {
-    std::cerr << "erro: the input file is in the invalid format or incomplete";
-    return 1;
-  }
-
-  output_stream.flush();
+  return 0;
 }

@@ -587,86 +587,145 @@ make_graph_ostream(std::ostream& s, graph_stream_format format)
   throw std::logic_error("erro: unknown graph format");
 };
 
-template<typename Graph, typename GraphSetSizeOperation, typename GraphSetValueOperation>
-void
-scan_graph(std::istream& s, bool binary, Graph& g, GraphSetSizeOperation& set_size, GraphSetValueOperation& set_value)
+template<typename G>
+struct null_set_function
 {
-  using size_type  = typename GraphSetSizeOperation::result_type;
-  using value_type = typename GraphSetValueOperation::result_type;
-
-  // Read vertex and edge count
-  //
-  size_type sz = size_type(0);
-  if (binary) {
-    if (!s.read(reinterpret_cast<char*>(&sz), sizeof(size_type)))
-      throw std::logic_error("erro: can't scan adjacency matrix size from binary file");
-  } else {
-    if (!(s >> sz))
-      throw std::logic_error("erro: can't scan adjacency matrix size; expected format: <size>");
-  }
-
-  // Resize graph
-  //
-  set_size(g, sz);
-
-  if (binary) {
-    // Read exact number of items from stream
-    //
-    for (size_type i = size_type(0); i < sz; ++i)
-      for (size_type j = size_type(0); j < sz; ++j) {
-        value_type v;
-        if (!s.read(reinterpret_cast<char*>(&v), sizeof(value_type)))
-          throw std::logic_error("erro: can't scan matrix from binary file - the stream ended unexpectadly.");
-
-        set_value(g, i, j, v);
-      }
-  } else {
-    // Keep reading edges (`from vertex` `to vertex` `the weight`)
-    // as many as possible
-    //
-    value_type v;
-    size_type  f, t;
-    while (s >> f >> t >> v)
-      if (v != value_type())
-        set_value(g, f, t, v);
+public:
+  void
+  operator()(G&, typename G::size_type&)
+  {
   }
 };
 
-template<typename Graph, typename GraphGetSizeOperation, typename GraphGetValueOperation>
-void
-print_graph(std::ostream& s, bool binary, Graph& g, GraphGetSizeOperation& get_size, GraphGetValueOperation& get_value)
+template<typename G>
+struct null_get_function
 {
-  using size_type  = typename GraphGetSizeOperation::result_type;
-  using value_type = typename GraphGetValueOperation::result_type;
-
-  // Obtain size of the adjacency matrix
-  //
-  size_type sz = get_size(g);
-  if (sz == size_type(0))
-    return;
-
-  if (binary) {
-    if (!s.write(reinterpret_cast<char*>(&sz), sizeof(size_type)))
-      throw std::logic_error("erro: can't print adjacency matrix size");
-
-    for (size_type i = size_type(0); i < sz; ++i)
-      for (size_type j = size_type(0); j < sz; ++j) {
-        value_type v = get_value(g, i, j);
-        if (!s.write(reinterpret_cast<char*>(&v), sizeof(value_type)))
-          throw std::logic_error("erro: can't print adjacency matrix cell value");
-      }
-  } else {
-    if (!(s << sz << '\n'))
-      throw std::logic_error("erro: can't print adjacency matrix size");
-
-    for (size_type i = size_type(0); i < sz; ++i)
-      for (size_type j = size_type(0); j < sz; ++j) {
-        value_type v = get_value(g, i, j);
-        if (v != value_type())
-          if (!(s << i << ' ' << j << ' ' << v << '\n'))
-            throw std::logic_error("erro: can't print adjacency matrix cell value");
-      }
+public:
+  typename G::size_type
+  operator()(G&)
+  {
+    return typename G::size_type(0);
   }
+};
+
+template<typename Graph, typename GraphSetVertexCountOperation, typename GraphSetEdgeCountOperation, typename GraphSetValueOperation>
+void
+scan_graph(
+  std::istream&                 s,
+  graph_stream_format           format,
+  Graph&                        g,
+  GraphSetVertexCountOperation& set_vertex_count,
+  GraphSetEdgeCountOperation&   set_edge_count,
+  GraphSetValueOperation&       set_value)
+{
+  using size_type  = typename Graph::size_type;
+  using value_type = typename Graph::value_type;
+
+  auto gdetails = get_graph_stream_format_details(format);
+  auto gistream = make_graph_istream<size_type, value_type>(s, format);
+  auto gis      = gistream.get();
+
+  graph_preamble<size_type> preamble;
+  if (gdetails.preamble_required()) {
+    if (!(gis >> preamble))
+      throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
+  }
+
+  if (!gdetails.preamble_includes_vertex_count() || !gdetails.preamble_includes_edge_count()) {
+    // Read all of the data into temporary buffer of edges
+    // and calculate number of vertex at the same time
+    //
+    std::vector<graph_edge<size_type, value_type>> edges;
+
+    size_type vmin = size_type(0),
+              vmax = size_type(0);
+
+    graph_edge<size_type, value_type> edge;
+    while (gis >> edge) {
+      edges.push_back(edge);
+
+      vmin = std::min({ vmin, edge.from(), edge.to() });
+      vmax = std::max({ vmax, edge.from(), edge.to() });
+    }
+    if (gis->fail())
+      throw std::logic_error("erro: input is invalid or incomplete");
+
+    size_type vertex_count = vmin == size_type(0) ? vmax + size_type(1) : vmax,
+              edge_count   = size_type(edges.size());
+
+    set_vertex_count(g, vertex_count);
+    set_edge_count(g, edge_count);
+
+    for (auto edge : edges)
+      set_value(g, edge.from(), edge.to(), edge.weight());
+  } else {
+    // Resize graph
+    //
+    size_type vertex_count = preamble.vertex_count(),
+              edge_count   = preamble.edge_count();
+
+    set_vertex_count(g, vertex_count);
+    set_edge_count(g, edge_count);
+
+    // Keep reading edges (`from vertex` `to vertex` `the weight`)
+    // as many as possible
+    //
+    graph_edge<size_type, value_type> edge;
+    while (gis >> edge)
+      set_value(g, edge.from(), edge.to(), edge.weight());
+
+    if (gis->fail())
+      throw std::logic_error("erro: input is invalid or incomplete");
+  }
+};
+
+template<typename Graph, typename GraphGetVertexOperation, typename GraphGetEdgeCountOperation, typename GraphGetValueOperation>
+void
+print_graph(
+  std::ostream&               s,
+  graph_stream_format         format,
+  Graph&                      g,
+  GraphGetVertexOperation&    get_vertex_count,
+  GraphGetEdgeCountOperation& get_edge_count,
+  GraphGetValueOperation&     get_value)
+{
+  using size_type  = typename Graph::size_type;
+  using value_type = typename Graph::value_type;
+
+  auto gdetails = get_graph_stream_format_details(format);
+  auto gostream = make_graph_ostream<size_type, value_type>(s, format);
+  auto gos      = gostream.get();
+
+  size_type vertex_count = get_vertex_count(g);
+  size_type edge_count   = get_edge_count(g);
+
+  if (vertex_count == size_type(0))
+    throw std::logic_error("erro: 'get_vertex_count()' must return vertex count");
+
+  if (gdetails.preamble_required()) {
+    if (gdetails.preamble_includes_edge_count() && edge_count == size_type(0)) {
+      for (size_type i = size_type(0); i < vertex_count; ++i)
+        for (size_type j = size_type(0); j < vertex_count; ++j) {
+          value_type v = get_value(g, i, j);
+          if (v != value_type(0))
+            ++edge_count;
+        }
+    }
+
+    graph_preamble<size_type> preamble(vertex_count, edge_count);
+    if (!(gos << preamble))
+      throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
+  }
+
+  for (size_type i = size_type(0); i < vertex_count; ++i)
+    for (size_type j = size_type(0); j < vertex_count; ++j) {
+      value_type v = get_value(g, i, j);
+      if (v != value_type(0)) {
+        graph_edge<size_type, value_type> edge(i, j, v);
+        if (!(gos << edge))
+          throw std::logic_error("erro: can't print 'graph_edge' because of IO problem");
+      }
+    }
 
   s.flush();
 };

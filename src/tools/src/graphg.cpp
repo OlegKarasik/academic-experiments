@@ -30,8 +30,9 @@
 int
 main(int argc, char* argv[])
 {
+  utilz::graphs::io::graph_stream_format opt_output_format = utilz::graphs::io::graph_stream_format::fmt_none;
+
   std::string opt_output;
-  bool        opt_binary       = false;
   int         opt_algorithm    = -1;
   int         opt_vertex_count = -1;
   int         opt_edge_percent = -1;
@@ -40,7 +41,12 @@ main(int argc, char* argv[])
 
   // Supported options
   // o: <path>, path to store generated graph
-  // b: <flag>, indicates whether graph should be stored in binary or textual representation
+  // f: <enum>, output format
+  //    Supported values:
+  //    - 'edgelist'
+  //    - 'dimacs'
+  //    - 'weightlist'
+  //    - 'binary'
   // a: <int>,  graph generation algorithm to use
   //    Supported values:
   //    - 0: Random Directed Acyclic Graph
@@ -60,7 +66,7 @@ main(int argc, char* argv[])
   //    Supported values:
   //    - 'l' to any with step 1
   //
-  const char* options = "o:ba:v:e:l:h:";
+  const char* options = "o:a:v:e:l:h:f:";
 
   std::cerr << "Options:\n";
 
@@ -72,11 +78,15 @@ main(int argc, char* argv[])
 
         opt_output = optarg;
         break;
-      case 'b':
-        std::cerr << "-b: true\n";
+      case 'f': {
+        std::cerr << "-f: " << optarg << "\n";
 
-        opt_binary = true;
+        if (!utilz::graphs::io::parse_graph_stream_format(optarg, opt_output_format)) {
+          std::cerr << "erro: missed or unsupported output format in '-f' option";
+          return 1;
+        }
         break;
+      }
       case 'a':
         std::cerr << "-a: " << optarg << "\n";
 
@@ -143,13 +153,7 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  std::ofstream outs;
-
-  if (opt_binary) {
-    outs.open(opt_output, std::ios_base::binary);
-  } else {
-    outs.open(opt_output);
-  }
+  std::ofstream outs(opt_output);
 
   // All graph generators do fill adjacency matrix with edges information
   //
@@ -210,7 +214,8 @@ main(int argc, char* argv[])
 
   // Matrix accesors
   //
-  utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_size;
+  utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_vertex_count;
+  utilz::graphs::io::null_get_function<utilz::square_shape<int>>     get_edge_count;
   utilz::procedures::square_shape_get<utilz::square_shape<int>>      get_value;
 
   // Update adjacency matrix with weight values, effectively transforming
@@ -223,5 +228,11 @@ main(int argc, char* argv[])
 
   // Save
   //
-  utilz::graphs::io::print_graph(outs, opt_binary, weight_matrix, get_size, get_value);
+  utilz::graphs::io::print_graph(
+    outs,
+    opt_output_format,
+    weight_matrix,
+    get_vertex_count,
+    get_edge_count,
+    get_value);
 }
