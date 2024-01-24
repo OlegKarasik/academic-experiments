@@ -122,10 +122,13 @@ main(int argc, char* argv[])
   //
   utilz::square_shape<int> matrix;
 
+  // Shared accessors
+  //
+  utilz::graphs::io::value_move_function<utilz::square_shape<int>> move_edge_count;
+
   // Scan accesors
   //
   utilz::procedures::square_shape_set_size<utilz::square_shape<int>> set_vertex_count;
-  utilz::graphs::io::null_set_function<utilz::square_shape<int>>     set_edge_count;
   utilz::procedures::square_shape_set<utilz::square_shape<int>>      set_value;
 
   utilz::graphs::io::scan_graph(
@@ -133,13 +136,12 @@ main(int argc, char* argv[])
     opt_input_format,
     matrix,
     set_vertex_count,
-    set_edge_count,
+    move_edge_count,
     set_value);
 
   // Print accesors
   //
   utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_vertex_count;
-  utilz::graphs::io::null_get_function<utilz::square_shape<int>>     get_edge_count;
   utilz::procedures::square_shape_get<utilz::square_shape<int>>      get_value;
 
   utilz::graphs::io::print_graph(
@@ -147,7 +149,7 @@ main(int argc, char* argv[])
     opt_output_format,
     matrix,
     get_vertex_count,
-    get_edge_count,
+    move_edge_count,
     get_value);
 
   return 0;
