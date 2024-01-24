@@ -608,6 +608,65 @@ public:
   }
 };
 
+template<typename G>
+struct value_set_function
+{
+private:
+  typename G::size_type m_value;
+
+public:
+  typename G::size_type
+  value()
+  {
+    return this->m_value;
+  }
+
+  void
+  operator()(G&, typename G::size_type& value)
+  {
+    this->m_value = value;
+  }
+};
+
+template<typename G>
+struct value_get_function
+{
+private:
+  typename G::size_type m_value;
+
+public:
+  value_get_function(typename G::size_type& value)
+    : m_value(value)
+  {
+  }
+
+  typename G::size_type
+  operator()(G&)
+  {
+    return this->m_value;
+  }
+};
+
+template<typename G>
+struct value_move_function
+{
+private:
+  typename G::size_type m_value;
+
+public:
+  void
+  operator()(G&, typename G::size_type& value)
+  {
+    this->m_value = value;
+  }
+
+  typename G::size_type
+  operator()(G&)
+  {
+    return this->m_value;
+  }
+};
+
 template<typename Graph, typename GraphSetVertexCountOperation, typename GraphSetEdgeCountOperation, typename GraphSetValueOperation>
 void
 scan_graph(
