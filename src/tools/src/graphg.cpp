@@ -30,7 +30,7 @@
 int
 main(int argc, char* argv[])
 {
-  utilz::graphs::io::graph_stream_format opt_output_format = utilz::graphs::io::graph_stream_format::fmt_none;
+  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::fmt_none;
 
   std::string opt_output;
   int         opt_algorithm    = -1;

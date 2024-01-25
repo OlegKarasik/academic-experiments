@@ -24,17 +24,19 @@
   #include <unistd.h>
 #endif
 
+#include "graphs-io.hpp"
+
 // This is a tiny program which performs an analysis of graphs
 //
 int
 main(int argc, char* argv[])
 {
-  std::string opt_input_edges;
+  std::string opt_input_graph;
   std::string opt_input_clusters;
   std::string opt_output;
 
   // Supported options
-  // i: <path>, path to input edges (no size, no weights), if specified twice then
+  // i: <path>, path to input graph, if specified twice then
   //            first one is interpreted as a path to edges and second as a path to clusters
   // o: <path>, path to output
   //
@@ -48,8 +50,8 @@ main(int argc, char* argv[])
       case 'i':
         std::cerr << "-i: " << optarg << "\n";
 
-        if (opt_input_edges.empty()) {
-          opt_input_edges = optarg;
+        if (opt_input_graph.empty()) {
+          opt_input_graph = optarg;
           break;
         }
         if (opt_input_clusters.empty()) {
@@ -66,7 +68,7 @@ main(int argc, char* argv[])
     }
   }
 
-  if (opt_input_edges.empty()) {
+  if (opt_input_graph.empty()) {
     std::cerr << "erro: the -i parameter is required";
     return 1;
   }
@@ -75,8 +77,29 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  std::ifstream edges_stream(opt_input_edges);
+  std::ifstream graph_stream(opt_input_graph);
   std::ofstream output_stream(opt_output);
+
+  utilz::graphs::io::graph_edge<utilz::graphs::io::graph_format::fmt_edgelist, int, int> edzz;
+  graph_stream >> edzz;
+
+  auto set_weight = [](std::vector<long> v, long f, long t, long w) -> void { };
+
+  std::vector<long> vec;
+
+  utilz::graphs::io::scan_graph(
+    utilz::graphs::io::graph_format::fmt_edgelist,
+    graph_stream,
+    vec,
+    set_weight);
+
+  // utilz::graphs::io::scan_graph(
+  //   graph_stream,
+  //   utilz::graphs::io::graph_stream_format::fmt_binary,
+  //   g,
+  //   fn,
+  //   fn,
+  //   set);
 
   std::vector<std::set<int>>                      clusters;
   std::map<std::pair<int, int>, std::vector<int>> intersections;
@@ -107,7 +130,7 @@ main(int argc, char* argv[])
       int id = 0;
 
       std::string line;
-      while (std::getline(edges_stream, line)) {
+      while (std::getline(graph_stream, line)) {
         int f, t;
 
         std::istringstream iss(line);

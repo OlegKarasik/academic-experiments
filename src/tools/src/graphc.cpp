@@ -35,8 +35,8 @@ main(int argc, char* argv[])
   std::string opt_input;
   std::string opt_output;
 
-  utilz::graphs::io::graph_stream_format opt_input_format  = utilz::graphs::io::graph_stream_format::fmt_none;
-  utilz::graphs::io::graph_stream_format opt_output_format = utilz::graphs::io::graph_stream_format::fmt_none;
+  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::fmt_none;
+  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::fmt_none;
 
   char opt_type = 'g';
 
@@ -95,7 +95,7 @@ main(int argc, char* argv[])
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
-  if (opt_input_format == utilz::graphs::io::graph_stream_format::fmt_none || opt_output_format == utilz::graphs::io::graph_stream_format::fmt_none) {
+  if (opt_input_format == utilz::graphs::io::graph_format::fmt_none || opt_output_format == utilz::graphs::io::graph_format::fmt_none) {
     std::cerr << "erro: the -f parameter is required";
     return 1;
   }
