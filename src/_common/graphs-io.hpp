@@ -9,21 +9,25 @@ namespace utilz {
 namespace graphs {
 namespace io {
 
+// ---
+// Forward declarations
+//
+
 enum graph_format
 {
-  fmt_none       = 0,
-  fmt_edgelist   = 1,
-  fmt_weightlist = 2,
-  fmt_dimacs     = 3,
-  fmt_binary     = 4
+  graph_fmt_none       = 0,
+  graph_fmt_edgelist   = 1,
+  graph_fmt_weightlist = 2,
+  graph_fmt_dimacs     = 3,
+  graph_fmt_binary     = 4
 };
 
 enum graph_preamble_format
 {
-  fmt_preamble_none         = 0,
-  fmt_preamble_vertex_count = 1,
-  fmt_preamble_edge_count   = 2,
-  fmt_preamble_full         = 3
+  graph_preamble_fmt_none         = 0,
+  graph_preamble_fmt_vertex_count = 1,
+  graph_preamble_fmt_edge_count   = 2,
+  graph_preamble_fmt_full         = 3
 };
 
 namespace impl {
@@ -49,7 +53,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
 
 template<graph_format F, typename G, typename V, typename E, typename W>
 void
@@ -59,7 +63,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_vertex_count>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
 
 template<graph_format F, typename G, typename V, typename E, typename W>
 void
@@ -69,7 +73,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_edge_count>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
 
 template<graph_format F, typename G, typename V, typename E, typename W>
 void
@@ -79,7 +83,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
 
 template<graph_format F, typename G, typename V, typename E, typename W>
 void
@@ -96,7 +100,7 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
 
 template<graph_format F, typename G, typename W>
 void
@@ -104,7 +108,7 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_vertex_count>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
 
 template<graph_format F, typename G, typename W>
 void
@@ -112,7 +116,7 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_edge_count>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
 
 template<graph_format F, typename G, typename W>
 void
@@ -120,7 +124,7 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>);
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
 
 template<graph_format F, typename G, typename W>
 void
@@ -128,7 +132,8 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w);
-}
+
+} // namespace impl
 
 template<graph_format TFormat>
 class graph_traits
@@ -149,83 +154,83 @@ class graph_edge
 };
 
 template<>
-class graph_traits<graph_format::fmt_edgelist>
+class graph_traits<graph_format::graph_fmt_edgelist>
 {
 public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>;
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>;
 };
 
 template<>
-class graph_traits<graph_format::fmt_weightlist>
+class graph_traits<graph_format::graph_fmt_weightlist>
 {
 public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>;
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>;
 };
 
 template<>
-class graph_traits<graph_format::fmt_dimacs>
+class graph_traits<graph_format::graph_fmt_dimacs>
 {
 public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>;
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>;
 };
 
 template<>
-class graph_traits<graph_format::fmt_binary>
+class graph_traits<graph_format::graph_fmt_binary>
 {
 public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>;
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>;
 };
 
 template<typename TIndex>
 std::istream&
-operator>>(std::istream& is, graph_preamble<graph_format::fmt_dimacs, TIndex>& preamble);
+operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
 
 template<typename TIndex>
 std::istream&
-operator>>(std::istream& is, graph_preamble<graph_format::fmt_binary, TIndex>& preamble);
+operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
 
 template<typename TIndex>
 std::ostream&
-operator<<(std::ostream& os, const graph_preamble<graph_format::fmt_dimacs, TIndex>& preamble);
+operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
 
 template<typename TIndex>
 std::ostream&
-operator<<(std::ostream& os, const graph_preamble<graph_format::fmt_binary, TIndex>& preamble);
+operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>& edge);
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>& edge);
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>& edge);
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_binary, TIndex, TWeight>& edge);
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>& edge);
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>& edge);
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>& edge);
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_binary, TIndex, TWeight>& edge);
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
 
 template<typename TIndex>
-class graph_preamble<graph_format::fmt_dimacs, TIndex> : public impl::graph_preamble<TIndex>
+class graph_preamble<graph_format::graph_fmt_dimacs, TIndex> : public impl::graph_preamble<TIndex>
 {
 public:
   graph_preamble()
@@ -239,14 +244,14 @@ public:
   }
 
   friend std::istream&
-  operator>><TIndex>(std::istream& is, graph_preamble<graph_format::fmt_dimacs, TIndex>& preamble);
+  operator>><TIndex>(std::istream& is, graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
 
   friend std::ostream&
-  operator<<<TIndex>(std::ostream& os, const graph_preamble<graph_format::fmt_dimacs, TIndex>& preamble);
+  operator<<<TIndex>(std::ostream& os, const graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
 };
 
 template<typename TIndex>
-class graph_preamble<graph_format::fmt_binary, TIndex> : public impl::graph_preamble<TIndex>
+class graph_preamble<graph_format::graph_fmt_binary, TIndex> : public impl::graph_preamble<TIndex>
 {
 public:
   graph_preamble()
@@ -260,14 +265,14 @@ public:
   }
 
   friend std::istream&
-  operator>><TIndex>(std::istream& is, graph_preamble<graph_format::fmt_binary, TIndex>& preamble);
+  operator>><TIndex>(std::istream& is, graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
 
   friend std::ostream&
-  operator<<<TIndex>(std::ostream& os, const graph_preamble<graph_format::fmt_binary, TIndex>& preamble);
+  operator<<<TIndex>(std::ostream& os, const graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
 };
 
 template<typename TIndex, typename TWeight>
-class graph_edge<graph_format::fmt_edgelist, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
+class graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
 {
 public:
   graph_edge()
@@ -281,14 +286,14 @@ public:
   }
 
   friend std::istream&
-  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>& edge);
+  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
 
   friend std::ostream&
-  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>& edge);
+  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
 };
 
 template<typename TIndex, typename TWeight>
-class graph_edge<graph_format::fmt_weightlist, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
+class graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
 {
 public:
   graph_edge()
@@ -302,14 +307,14 @@ public:
   }
 
   friend std::istream&
-  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>& edge);
+  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
 
   friend std::ostream&
-  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>& edge);
+  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
 };
 
 template<typename TIndex, typename TWeight>
-class graph_edge<graph_format::fmt_dimacs, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
+class graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
 {
 public:
   graph_edge()
@@ -323,14 +328,14 @@ public:
   }
 
   friend std::istream&
-  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>& edge);
+  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
 
   friend std::ostream&
-  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>& edge);
+  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
 };
 
 template<typename TIndex, typename TWeight>
-class graph_edge<graph_format::fmt_binary, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
+class graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight> : public impl::graph_edge<TIndex, TWeight>
 {
 public:
   graph_edge()
@@ -344,37 +349,37 @@ public:
   }
 
   friend std::istream&
-  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::fmt_binary, TIndex, TWeight>& edge);
+  operator>><TIndex, TWeight>(std::istream& is, graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
 
   friend std::ostream&
-  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::fmt_binary, TIndex, TWeight>& edge);
+  operator<<<TIndex, TWeight>(std::ostream& os, const graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
 };
 
-template<typename TIndex, typename TWeight>
+template<typename TIndex>
 std::istream&
-operator>>(std::istream& is, graph_preamble<graph_format::fmt_dimacs, TIndex>& preamble)
+operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble)
 {
   return is;
 };
 
-template<typename TIndex, typename TWeight>
+template<typename TIndex>
 std::istream&
-operator>>(std::istream& is, graph_preamble<graph_format::fmt_binary, TIndex>& preamble)
+operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble)
 {
   return is;
 };
 
-template<typename TIndex, typename TWeight>
+template<typename TIndex>
 std::ostream&
-operator<<(std::ostream& os, const graph_preamble<graph_format::fmt_dimacs, TIndex>& preamble)
+operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble)
 {
   os << 'p' << ' ' << preamble.vertex_count() << ' ' << preamble.edge_count() << '\n';
   return os;
 };
 
-template<typename TIndex, typename TWeight>
+template<typename TIndex>
 std::ostream&
-operator<<(std::ostream& os, const graph_preamble<graph_format::fmt_binary, TIndex>& preamble)
+operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble)
 {
   TIndex v = preamble.vertex_count(), e = preamble.edge_count();
 
@@ -386,12 +391,12 @@ operator<<(std::ostream& os, const graph_preamble<graph_format::fmt_binary, TInd
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>& edge)
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge)
 {
   TIndex f, t;
   if (is >> f) {
     if (is >> t) {
-      edge = graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>(f, t, TWeight(1));
+      edge = graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>(f, t, TWeight(1));
     } else {
       is.setstate(std::ios::failbit);
     }
@@ -401,13 +406,13 @@ operator>>(std::istream& is, graph_edge<graph_format::fmt_edgelist, TIndex, TWei
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>& edge)
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge)
 {
   TIndex  f, t;
   TWeight w;
   if (is >> f) {
     if (is >> t >> w) {
-      edge = graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>(f, t, w);
+      edge = graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>(f, t, w);
     } else {
       is.setstate(std::ios::failbit);
     }
@@ -417,7 +422,7 @@ operator>>(std::istream& is, graph_edge<graph_format::fmt_weightlist, TIndex, TW
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>& edge)
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge)
 {
   char        c;
   std::string v;
@@ -439,7 +444,7 @@ operator>>(std::istream& is, graph_edge<graph_format::fmt_dimacs, TIndex, TWeigh
         TWeight w;
         if (ss >> f) {
           if (ss >> t >> w) {
-            edge = graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>(f, t, w);
+            edge = graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>(f, t, w);
           } else {
             is.setstate(std::ios::failbit);
           }
@@ -456,7 +461,7 @@ operator>>(std::istream& is, graph_edge<graph_format::fmt_dimacs, TIndex, TWeigh
 
 template<typename TIndex, typename TWeight>
 std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::fmt_binary, TIndex, TWeight>& edge)
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge)
 {
   TIndex  f, t;
   TWeight w;
@@ -470,14 +475,14 @@ operator>>(std::istream& is, graph_edge<graph_format::fmt_binary, TIndex, TWeigh
   if (!is.read(reinterpret_cast<char*>(&w), sizeof(TWeight)))
     return is;
 
-  edge = graph_edge<graph_format::fmt_binary, TIndex, TWeight>(f, t, w);
+  edge = graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>(f, t, w);
 
   return is;
 };
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_edgelist, TIndex, TWeight>& edge)
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge)
 {
   os << edge.from() << ' ' << edge.to() << '\n';
   return os;
@@ -485,7 +490,7 @@ operator<<(std::ostream& os, const graph_edge<graph_format::fmt_edgelist, TIndex
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_weightlist, TIndex, TWeight>& edge)
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge)
 {
   os << edge.from() << ' ' << edge.to() << ' ' << edge.weight() << '\n';
   return os;
@@ -493,7 +498,7 @@ operator<<(std::ostream& os, const graph_edge<graph_format::fmt_weightlist, TInd
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_dimacs, TIndex, TWeight>& edge)
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge)
 {
   os << 'a' << ' ' << edge.from() << ' ' << edge.to() << ' ' << edge.weight() << '\n';
   return os;
@@ -501,7 +506,7 @@ operator<<(std::ostream& os, const graph_edge<graph_format::fmt_dimacs, TIndex, 
 
 template<typename TIndex, typename TWeight>
 std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::fmt_binary, TIndex, TWeight>& edge)
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge)
 {
   TIndex  f = edge.from(), t = edge.to();
   TWeight w = edge.weight();
@@ -513,25 +518,29 @@ operator<<(std::ostream& os, const graph_edge<graph_format::fmt_binary, TIndex, 
   return os;
 };
 
+//
+// Forward declarations
+// ---
+
 bool
-parse_graph_stream_format(
+parse_graph_format(
   const std::string& format,
-  utilz::graphs::io::graph_format& out_format)
+  graph_format& out_format)
 {
   if (format == "edgelist") {
-    out_format = utilz::graphs::io::graph_format::fmt_edgelist;
+    out_format = graph_format::graph_fmt_edgelist;
     return true;
   }
   if (format == "weightlist") {
-    out_format = utilz::graphs::io::graph_format::fmt_weightlist;
+    out_format = graph_format::graph_fmt_weightlist;
     return true;
   }
   if (format == "dimacs") {
-    out_format = utilz::graphs::io::graph_format::fmt_dimacs;
+    out_format = graph_format::graph_fmt_dimacs;
     return true;
   }
   if (format == "binary") {
-    out_format = utilz::graphs::io::graph_format::fmt_binary;
+    out_format = graph_format::graph_fmt_binary;
     return true;
   }
   return false;
@@ -548,17 +557,17 @@ scan_graph(
   W&            set_w)
 {
   switch (format) {
-    case graph_format::fmt_edgelist:
-      impl::scan_graph<graph_format::fmt_edgelist>(is, graph, set_vc, set_ec, set_w);
+    case graph_format::graph_fmt_edgelist:
+      impl::scan_graph<graph_format::graph_fmt_edgelist>(is, graph, set_vc, set_ec, set_w);
       break;
-    case graph_format::fmt_weightlist:
-      impl::scan_graph<graph_format::fmt_weightlist>(is, graph, set_vc, set_ec, set_w);
+    case graph_format::graph_fmt_weightlist:
+      impl::scan_graph<graph_format::graph_fmt_weightlist>(is, graph, set_vc, set_ec, set_w);
       break;
-    case graph_format::fmt_dimacs:
-      impl::scan_graph<graph_format::fmt_dimacs>(is, graph, set_vc, set_ec, set_w);
+    case graph_format::graph_fmt_dimacs:
+      impl::scan_graph<graph_format::graph_fmt_dimacs>(is, graph, set_vc, set_ec, set_w);
       break;
-    case graph_format::fmt_binary:
-      impl::scan_graph<graph_format::fmt_binary>(is, graph, set_vc, set_ec, set_w);
+    case graph_format::graph_fmt_binary:
+      impl::scan_graph<graph_format::graph_fmt_binary>(is, graph, set_vc, set_ec, set_w);
       break;
     default:
       throw std::logic_error("erro: The format is not supported");
@@ -574,17 +583,17 @@ scan_graph(
   W&            set_w)
 {
   switch (format) {
-    case graph_format::fmt_edgelist:
-      impl::scan_graph<graph_format::fmt_edgelist>(is, graph, set_w);
+    case graph_format::graph_fmt_edgelist:
+      impl::scan_graph<graph_format::graph_fmt_edgelist>(is, graph, set_w);
       break;
-    case graph_format::fmt_weightlist:
-      impl::scan_graph<graph_format::fmt_weightlist>(is, graph, set_w);
+    case graph_format::graph_fmt_weightlist:
+      impl::scan_graph<graph_format::graph_fmt_weightlist>(is, graph, set_w);
       break;
-    case graph_format::fmt_dimacs:
-      impl::scan_graph<graph_format::fmt_dimacs>(is, graph, set_w);
+    case graph_format::graph_fmt_dimacs:
+      impl::scan_graph<graph_format::graph_fmt_dimacs>(is, graph, set_w);
       break;
-    case graph_format::fmt_binary:
-      impl::scan_graph<graph_format::fmt_binary>(is, graph, set_w);
+    case graph_format::graph_fmt_binary:
+      impl::scan_graph<graph_format::graph_fmt_binary>(is, graph, set_w);
       break;
     default:
       throw std::logic_error("erro: The format is not supported");
@@ -758,7 +767,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
   using st = typename G::size_type;
   using vt = typename G::value_type;
@@ -787,7 +796,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_vertex_count>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
   scan_graph<F, G, V, E, W>(
     is,
@@ -795,7 +804,7 @@ scan_graph(
     set_vc,
     set_ec,
     set_w,
-    std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>());
+    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>());
 };
 
 template<graph_format F, typename G, typename V, typename E, typename W>
@@ -806,7 +815,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_edge_count>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
 {
   scan_graph<F, G, V, E, W>(
     is,
@@ -814,7 +823,7 @@ scan_graph(
     set_vc,
     set_ec,
     set_w,
-    std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>());
+    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>());
 };
 
 template<graph_format F, typename G, typename V, typename E, typename W>
@@ -825,7 +834,7 @@ scan_graph(
   V&            set_vc,
   E&            set_ec,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
 {
   using st = typename G::size_type;
 
@@ -863,7 +872,7 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
 {
   using st = typename G::size_type;
 
@@ -880,13 +889,13 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_vertex_count>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
   scan_graph<F, G, W>(
     is,
     graph,
     set_w,
-    std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>());
+    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
 };
 
 template<graph_format F, typename G, typename W>
@@ -895,13 +904,13 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_edge_count>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
 {
   scan_graph<F, G, W>(
     is,
     graph,
     set_w,
-    std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_full>());
+    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
 };
 
 template<graph_format F, typename G, typename W>
@@ -910,7 +919,7 @@ scan_graph(
   std::istream& is,
   G&            graph,
   W&            set_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::fmt_preamble_none>)
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
   scan_graph_edges<F, G, W>(is, graph, set_w);
 };
@@ -925,7 +934,7 @@ scan_graph(
   scan_graph<F, G, W>(is, graph, set_w, typename graph_traits<F>::preamble_format());
 };
 
-} // namespace ___graphs
+} // namespace impl
 
 } // namespace io
 } // namespace graphs

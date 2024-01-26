@@ -35,8 +35,8 @@ main(int argc, char* argv[])
   std::string opt_input;
   std::string opt_output;
 
-  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::fmt_none;
-  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::fmt_none;
+  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
 
   char opt_type = 'g';
 
@@ -73,11 +73,11 @@ main(int argc, char* argv[])
         std::string       v;
         std::stringstream ss(optarg);
 
-        if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_stream_format(v, opt_input_format)) {
+        if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_format(v, opt_input_format)) {
           std::cerr << "erro: missed or unsupported input format in '-f' option";
           return 1;
         }
-        if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_stream_format(v, opt_output_format)) {
+        if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_format(v, opt_output_format)) {
           std::cerr << "erro: missed or unsupported output format in '-f' option";
           return 1;
         }
@@ -95,7 +95,7 @@ main(int argc, char* argv[])
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
-  if (opt_input_format == utilz::graphs::io::graph_format::fmt_none || opt_output_format == utilz::graphs::io::graph_format::fmt_none) {
+  if (opt_input_format == utilz::graphs::io::graph_format::graph_fmt_none || opt_output_format == utilz::graphs::io::graph_format::graph_fmt_none) {
     std::cerr << "erro: the -f parameter is required";
     return 1;
   }

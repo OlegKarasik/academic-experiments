@@ -30,7 +30,7 @@
 int
 main(int argc, char* argv[])
 {
-  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::fmt_none;
+  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
 
   std::string opt_output;
   int         opt_algorithm    = -1;
@@ -81,7 +81,7 @@ main(int argc, char* argv[])
       case 'f': {
         std::cerr << "-f: " << optarg << "\n";
 
-        if (!utilz::graphs::io::parse_graph_stream_format(optarg, opt_output_format)) {
+        if (!utilz::graphs::io::parse_graph_format(optarg, opt_output_format)) {
           std::cerr << "erro: missed or unsupported output format in '-f' option";
           return 1;
         }

@@ -25,6 +25,7 @@
 #endif
 
 #include "graphs-io.hpp"
+#include "communities-io.hpp"
 
 // This is a tiny program which performs an analysis of graphs
 //
@@ -80,7 +81,7 @@ main(int argc, char* argv[])
   std::ifstream graph_stream(opt_input_graph);
   std::ofstream output_stream(opt_output);
 
-  utilz::graphs::io::graph_edge<utilz::graphs::io::graph_format::fmt_edgelist, int, int> edzz;
+  utilz::graphs::io::graph_edge<utilz::graphs::io::graph_format::graph_fmt_edgelist, int, int> edzz;
   graph_stream >> edzz;
 
   auto set_weight = [](std::vector<long> v, long f, long t, long w) -> void { };
@@ -88,18 +89,10 @@ main(int argc, char* argv[])
   std::vector<long> vec;
 
   utilz::graphs::io::scan_graph(
-    utilz::graphs::io::graph_format::fmt_edgelist,
+    utilz::graphs::io::graph_format::graph_fmt_edgelist,
     graph_stream,
     vec,
     set_weight);
-
-  // utilz::graphs::io::scan_graph(
-  //   graph_stream,
-  //   utilz::graphs::io::graph_stream_format::fmt_binary,
-  //   g,
-  //   fn,
-  //   fn,
-  //   set);
 
   std::vector<std::set<int>>                      clusters;
   std::map<std::pair<int, int>, std::vector<int>> intersections;
@@ -108,7 +101,17 @@ main(int argc, char* argv[])
     // Read all clusters
     //
     {
+      auto set_vertex = [](std::vector<long> v, long f, long t, long w) -> void { };
+
+      std::vector<long> vec_p;
+
       std::ifstream clusters_stream(opt_input_clusters);
+
+      utilz::communities::io::scan_communities(
+        utilz::communities::io::communities_format::communities_fmt_rlang,
+        clusters_stream,
+        vec_p,
+        set_vertex);
 
       std::string line;
       while (std::getline(clusters_stream, line)) {

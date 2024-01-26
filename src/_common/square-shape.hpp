@@ -24,25 +24,25 @@ struct square_shape_traits<square_shape<T, A>>;
 
 namespace procedures {
 
-namespace ___get_size {
+namespace get_size {
 
 template<typename S>
-struct __impl;
+struct impl;
 
-} // namespace ___get_size
+} // namespace get_size
 
-namespace ___set_size {
+namespace set_size {
 
 template<std::size_t I, typename S>
-struct __impl;
+struct impl;
 
-} // namespace ___set_size
-
-template<typename S>
-using square_shape_get_size = ___get_size::__impl<S>;
+} // namespace set_size
 
 template<typename S>
-using square_shape_set_size = ___set_size::__impl<std::size_t(0), S>;
+using square_shape_get_size = get_size::impl<S>;
+
+template<typename S>
+using square_shape_set_size = set_size::impl<std::size_t(0), S>;
 
 template<typename S>
 struct square_shape_at;
@@ -70,7 +70,7 @@ class square_shape
 #else
   template<std::size_t I, T>
 #endif
-  friend struct ::utilz::procedures::___set_size::__impl;
+  friend struct ::utilz::procedures::set_size::impl;
 
 public:
   using value_type      = T;
@@ -355,16 +355,16 @@ public:
 
 namespace procedures {
 
-namespace ___get_size {
+namespace get_size {
 
 template<typename S>
-struct __impl
+struct impl
 {
   static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
 };
 
 template<typename T, typename A>
-struct __impl<square_shape<T, A>>
+struct impl<square_shape<T, A>>
 {
 public:
   using result_type = typename traits::square_shape_traits<square_shape<T, A>>::size_type;
@@ -378,7 +378,7 @@ public:
 };
 
 template<typename T, typename A, typename U>
-struct __impl<square_shape<square_shape<T, A>, U>>
+struct impl<square_shape<square_shape<T, A>, U>>
 {
 public:
   using result_type = typename traits::square_shape_traits<square_shape<square_shape<T, A>, U>>::size_type;
@@ -387,15 +387,15 @@ public:
   result_type
   operator()(const square_shape<square_shape<T, A>, U>& s)
   {
-    __impl<square_shape<T, A>> r;
+    impl<square_shape<T, A>> r;
 
     return s.size() * r(s.at(0, 0));
   }
 };
 
-} // namespace ___get_size
+} // namespace get_size
 
-namespace ___set_size {
+namespace set_size {
 
 template<std::size_t I, typename T>
 struct __value
@@ -405,13 +405,13 @@ public:
 };
 
 template<std::size_t I, typename S>
-struct __impl
+struct impl
 {
   static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
 };
 
 template<std::size_t I, typename T, typename A>
-struct __impl<I, square_shape<T, A>>
+struct impl<I, square_shape<T, A>>
 {
 public:
   using result_type = typename traits::square_shape_traits<square_shape<T, A>>::size_type;
@@ -425,17 +425,17 @@ public:
 };
 
 template<std::size_t I, typename T, typename A, typename U>
-struct __impl<I, square_shape<square_shape<T, A>, U>>
+struct impl<I, square_shape<square_shape<T, A>, U>>
   : public __value<I, typename traits::square_shape_traits<square_shape<square_shape<T, A>, U>>::size_type>
-  , public __impl<I + 1, square_shape<T, A>>
+  , public impl<I + 1, square_shape<T, A>>
 {
 public:
   using result_type = typename traits::square_shape_traits<square_shape<square_shape<T, A>, U>>::size_type;
 
 public:
   template<typename... TArgs>
-  __impl(result_type sz, TArgs... args)
-    : __impl<I + 1, square_shape<T, A>>(args...)
+  impl(result_type sz, TArgs... args)
+    : impl<I + 1, square_shape<T, A>>(args...)
   {
     this->__value<I, result_type>::value = sz;
   }
@@ -457,14 +457,14 @@ public:
 
         auto in_s = square_shape<T, A>(in_a);
 
-        this->__impl<I + 1, square_shape<T, A>>::operator()(in_s, in_sz);
+        this->impl<I + 1, square_shape<T, A>>::operator()(in_s, in_sz);
 
         s.at(i, j) = std::move(in_s);
       }
   }
 };
 
-} // namespace ___set_size
+} // namespace set_size
 
 template<typename S>
 struct square_shape_at
