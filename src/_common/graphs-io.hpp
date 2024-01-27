@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -38,100 +39,100 @@ class graph_preamble;
 template<typename TIndex, typename TWeight>
 class graph_edge;
 
-template<graph_format F, typename G, typename W>
-std::tuple<typename G::size_type, typename G::size_type>
+template<graph_format F, typename G, typename I, typename W, typename SW>
+std::tuple<I, I>
 scan_graph_edges(
   std::istream& is,
   G&            graph,
-  W&            set_w);
+  SW&           set_w);
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w);
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w);
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w);
+  SW&           set_w);
 
 } // namespace impl
 
@@ -394,12 +395,8 @@ std::istream&
 operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge)
 {
   TIndex f, t;
-  if (is >> f) {
-    if (is >> t) {
-      edge = graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>(f, t, TWeight(1));
-    } else {
-      is.setstate(std::ios::failbit);
-    }
+  if (is >> f >> t) {
+    edge = graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>(f, t, TWeight(1));
   }
   return is;
 };
@@ -525,7 +522,7 @@ operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_binary, TI
 bool
 parse_graph_format(
   const std::string& format,
-  graph_format& out_format)
+  graph_format&      out_format)
 {
   if (format == "edgelist") {
     out_format = graph_format::graph_fmt_edgelist;
@@ -546,54 +543,60 @@ parse_graph_format(
   return false;
 };
 
-template<typename G, typename V, typename E, typename W>
+template<typename G, typename I, typename W>
 void
 scan_graph(
-  graph_format  format,
-  std::istream& is,
-  G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w)
+  graph_format                      format,
+  std::istream&                     is,
+  G&                                graph,
+  std::function<void(G&, I)>&       set_vc,
+  std::function<void(G&, I)>&       set_ec,
+  std::function<void(G&, I, I, W)>& set_w)
 {
+  using SE = typename std::function<void(G&, I)>;
+  using SV = typename std::function<void(G&, I)>;
+  using SW = typename std::function<void(G&, I, I, W)>;
+
   switch (format) {
     case graph_format::graph_fmt_edgelist:
-      impl::scan_graph<graph_format::graph_fmt_edgelist>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_edgelist, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     case graph_format::graph_fmt_weightlist:
-      impl::scan_graph<graph_format::graph_fmt_weightlist>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_weightlist, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     case graph_format::graph_fmt_dimacs:
-      impl::scan_graph<graph_format::graph_fmt_dimacs>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_dimacs, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     case graph_format::graph_fmt_binary:
-      impl::scan_graph<graph_format::graph_fmt_binary>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_binary, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     default:
       throw std::logic_error("erro: The format is not supported");
   }
 };
 
-template<typename G, typename W>
+template<typename G, typename I, typename W>
 void
 scan_graph(
-  graph_format  format,
-  std::istream& is,
-  G&            graph,
-  W&            set_w)
+  graph_format                      format,
+  std::istream&                     is,
+  G&                                graph,
+  std::function<void(G&, I, I, W)>& set_w)
 {
+  using SW = typename std::function<void(G&, I, I, W)>;
+
   switch (format) {
     case graph_format::graph_fmt_edgelist:
-      impl::scan_graph<graph_format::graph_fmt_edgelist>(is, graph, set_w);
+      impl::scan_graph<graph_format::graph_fmt_edgelist, G, I, W, SW>(is, graph, set_w);
       break;
     case graph_format::graph_fmt_weightlist:
-      impl::scan_graph<graph_format::graph_fmt_weightlist>(is, graph, set_w);
+      impl::scan_graph<graph_format::graph_fmt_weightlist, G, I, W, SW>(is, graph, set_w);
       break;
     case graph_format::graph_fmt_dimacs:
-      impl::scan_graph<graph_format::graph_fmt_dimacs>(is, graph, set_w);
+      impl::scan_graph<graph_format::graph_fmt_dimacs, G, I, W, SW>(is, graph, set_w);
       break;
     case graph_format::graph_fmt_binary:
-      impl::scan_graph<graph_format::graph_fmt_binary>(is, graph, set_w);
+      impl::scan_graph<graph_format::graph_fmt_binary, G, I, W, SW>(is, graph, set_w);
       break;
     default:
       throw std::logic_error("erro: The format is not supported");
@@ -730,19 +733,16 @@ public:
   }
 };
 
-template<graph_format F, typename G, typename W>
-std::tuple<typename G::size_type, typename G::size_type>
+template<graph_format F, typename G, typename I, typename W, typename SW>
+std::tuple<I, I>
 scan_graph_edges(
   std::istream& is,
   G&            graph,
-  W&            set_w)
+  SW&           set_w)
 {
-  using st  = typename G::size_type;
-  using vt = typename G::value_type;
+  I vmin = I(0), vmax = I(0), vc = I(0), ec = I(0);
 
-  st vmin = st(0), vmax = st(0), vc = st(0), ec = st(0);
-
-  io::graph_edge<F, st, vt> edge;
+  io::graph_edge<F, I, W> edge;
   while (is >> edge) {
     set_w(graph, edge.from(), edge.to(), edge.weight());
 
@@ -751,35 +751,29 @@ scan_graph_edges(
 
     ec++;
   }
-  vc = vmin == st(0) ? vmax + st(1) : vmax;
-
-  if (is.fail())
-    throw std::logic_error("erro: input is incomplete or mailformed");
+  vc = vmin == I(0) ? vmax + I(1) : vmax;
 
   return std::make_tuple(vc, ec);
 };
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
-  using st = typename G::size_type;
-  using vt = typename G::value_type;
-
-  auto cache_w = [](std::vector<io::graph_edge<F, st, vt>> v, st f, st t, vt w) -> void {
-    v.emplace_back(io::graph_edge<F, st, vt>(f, t, w));
+  auto cache_w = [](std::vector<io::graph_edge<F, I, W>> v, I f, I t, W w) -> void {
+    v.emplace_back(io::graph_edge<F, I, W>(f, t, w));
   };
 
-  std::vector<io::graph_edge<F, st, vt>> cache;
+  std::vector<io::graph_edge<F, I, W>> cache;
 
-  st vc, ec;
-  std::tie(vc, ec) = scan_graph_edges<F, G, W>(is, cache, cache_w);
+  I vc, ec;
+  std::tie(vc, ec) = scan_graph_edges<F, G, I, W, SW>(is, cache, cache_w);
 
   set_vc(graph, vc);
   set_ec(graph, ec);
@@ -788,17 +782,17 @@ scan_graph(
     set_w(graph, e.from(), e.to(), e.weight());
 };
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
-  scan_graph<F, G, V, E, W>(
+  scan_graph<F, G, I, W, SV, SE, SW>(
     is,
     graph,
     set_vc,
@@ -807,17 +801,17 @@ scan_graph(
     std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>());
 };
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
 {
-  scan_graph<F, G, V, E, W>(
+  scan_graph<F, G, I, W, SV, SE, SW>(
     is,
     graph,
     set_vc,
@@ -826,38 +820,36 @@ scan_graph(
     std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>());
 };
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w,
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
 {
-  using st = typename G::size_type;
-
-  io::graph_preamble<F, st> preamble;
+  io::graph_preamble<F, I> preamble;
   if (!(is >> preamble))
     throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
 
   set_vc(graph, preamble.vertex_count());
   set_ec(graph, preamble.edge_count());
 
-  scan_graph_edges<F, G, W>(is, graph, set_w);
+  scan_graph_edges<F, G, I, W, SW>(is, graph, set_w);
 };
 
-template<graph_format F, typename G, typename V, typename E, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  V&            set_vc,
-  E&            set_ec,
-  W&            set_w)
+  SV&           set_vc,
+  SE&           set_ec,
+  SW&           set_w)
 {
-  scan_graph<F, G, V, E, W>(
+  scan_graph<F, G, I, W, SV, SE, SW>(
     is,
     graph,
     set_vc,
@@ -866,72 +858,70 @@ scan_graph(
     typename graph_traits<F>::preamble_format());
 };
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
 {
-  using st = typename G::size_type;
-
-  io::graph_preamble<F, st> preamble;
+  io::graph_preamble<F, I> preamble;
   if (!(is >> preamble))
     throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
 
-  scan_graph_edges<F, G, W>(is, graph, set_w);
+  scan_graph_edges<F, G, I, W, SW>(is, graph, set_w);
 };
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
-  scan_graph<F, G, W>(
+  scan_graph<F, G, I, W, SW>(
     is,
     graph,
     set_w,
     std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
 };
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
 {
-  scan_graph<F, G, W>(
+  scan_graph<F, G, I, W, SW>(
     is,
     graph,
     set_w,
     std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
 };
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w,
+  SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
-  scan_graph_edges<F, G, W>(is, graph, set_w);
+  scan_graph_edges<F, G, I, W, SW>(is, graph, set_w);
 };
 
-template<graph_format F, typename G, typename W>
+template<graph_format F, typename G, typename I, typename W, typename SW>
 void
 scan_graph(
   std::istream& is,
   G&            graph,
-  W&            set_w)
+  SW&           set_w)
 {
-  scan_graph<F, G, W>(is, graph, set_w, typename graph_traits<F>::preamble_format());
+  scan_graph<F, G, I, W, SW>(is, graph, set_w, typename graph_traits<F>::preamble_format());
 };
 
 } // namespace impl

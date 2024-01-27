@@ -24,58 +24,153 @@
   #include <unistd.h>
 #endif
 
-#include "graphs-io.hpp"
 #include "communities-io.hpp"
+#include "graphs-io.hpp"
+#include "square-shape.hpp"
+
+using Index = long;
+using Value = long;
+
+enum analysis_options
+{
+  analysis_opt_communities_intersections
+};
+
+void
+analyse_communities_intersections(
+  std::vector<std::tuple<Index, Index>> graph_vector,
+  std::vector<std::set<Index>>          communities_vector);
 
 // This is a tiny program which performs an analysis of graphs
 //
 int
 main(int argc, char* argv[])
 {
+  utilz::graphs::io::graph_format            opt_graph_format       = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::communities::io::communities_format opt_communities_format = utilz::communities::io::communities_format::communities_fmt_none;
+
   std::string opt_input_graph;
-  std::string opt_input_clusters;
+  std::string opt_input_communities;
   std::string opt_output;
 
   // Supported options
-  // i: <path>, path to input graph, if specified twice then
-  //            first one is interpreted as a path to edges and second as a path to clusters
-  // o: <path>, path to output
+  // g: <path>, path to a graph file
+  // G: <enum>, format of a graph file
+  //    Supported values:
+  //    - 'edgelist'
+  //    - 'dimacs'
+  //    - 'weightlist'
+  //    - 'binary'
+  // c: <path>, path to a communities file
+  // C: <enum>, format of a communities file
+  //    Supported values:
+  //    - 'rlang'
+
+  // o: <path>, path to output file
   //
-  const char* options = "i:o:";
+  const char* options = "g:G:c:C:o:";
 
   std::cerr << "Options:\n";
 
   int opt;
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
-      case 'i':
-        std::cerr << "-i: " << optarg << "\n";
-
+      case 'g':
         if (opt_input_graph.empty()) {
+          std::cerr << "-g: " << optarg << "\n";
+
           opt_input_graph = optarg;
           break;
         }
-        if (opt_input_clusters.empty()) {
-          opt_input_clusters = optarg;
+        std::cerr << "erro: unexpected '-g' option detected" << '\n';
+        return 1;
+      case 'c':
+        if (opt_input_communities.empty()) {
+          std::cerr << "-c: " << optarg << "\n";
+
+          opt_input_communities = optarg;
           break;
         }
-        std::cerr << "erro: unexpected '-i' option detected" << '\n';
+        std::cerr << "erro: unexpected '-c' option detected" << '\n';
+        return 1;
+      case 'G':
+        if (opt_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+          std::cerr << "-G: " << optarg << "\n";
+
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_graph_format)) {
+            std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
+            return 1;
+          }
+          break;
+        }
+        std::cerr << "erro: unexpected '-G' option detected" << '\n';
+        return 1;
+      case 'C':
+        if (opt_communities_format == utilz::communities::io::communities_format::communities_fmt_none) {
+          std::cerr << "-C: " << optarg << "\n";
+
+          if (!utilz::communities::io::parse_communities_format(optarg, opt_communities_format)) {
+            std::cerr << "erro: invalid communities format has been detected in '-C' option" << '\n';
+            return 1;
+          }
+          break;
+        }
+        std::cerr << "erro: unexpected '-C' option detected" << '\n';
         return 1;
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
-        opt_output = optarg;
-        break;
+        if (opt_output.empty()) {
+          opt_output = optarg;
+          break;
+        }
+        std::cerr << "erro: unexpected '-o' option detected" << '\n';
+        return 1;
     }
   }
 
-  if (opt_input_graph.empty()) {
-    std::cerr << "erro: the -i parameter is required";
+  if (!opt_input_graph.empty() && opt_graph_format == utilz::graphs::io::graph_fmt_none ||
+      opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
+    std::cerr << "erro: the -g and -G parameters must be both set";
+    return 1;
+  }
+  if (!opt_input_communities.empty() && opt_communities_format == utilz::communities::io::communities_fmt_none ||
+      opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
+    std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
   if (opt_output.empty()) {
     std::cerr << "erro: the -o parameter is required";
     return 1;
+  }
+
+  std::vector<std::tuple<Index, Index>> graph_vector;
+  std::map<Index, std::set<Index>>          communities_vector;
+
+  if (!opt_input_graph.empty()) {
+    std::function<void(std::vector<std::tuple<Index, Index>>&, Index, Index, Value)> set_w =
+      [](std::vector<std::tuple<Index, Index>>& c, Index f, Index t, Value w) -> void {
+        c.emplace_back(std::make_tuple(f, t));
+      };
+
+    std::ifstream graph_stream(opt_input_graph);
+
+    utilz::graphs::io::scan_graph(opt_graph_format, graph_stream, graph_vector, set_w);
+  }
+  if (!opt_input_communities.empty()) {
+    std::function<void(std::map<Index, std::set<Index>>&, Index, Index)> set_v =
+      [](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
+        auto set = c.find(ci);
+        if (set == c.end()) {
+          c.emplace(ci, std::set<Index>({ vi }));
+        } else {
+          set->second.insert(vi);
+        }
+      };
+
+    std::ifstream communities_stream(opt_input_communities);
+
+    utilz::communities::io::scan_communities(opt_communities_format, communities_stream, communities_vector, set_v);
   }
 
   std::ifstream graph_stream(opt_input_graph);
@@ -84,34 +179,19 @@ main(int argc, char* argv[])
   utilz::graphs::io::graph_edge<utilz::graphs::io::graph_format::graph_fmt_edgelist, int, int> edzz;
   graph_stream >> edzz;
 
-  auto set_weight = [](std::vector<long> v, long f, long t, long w) -> void { };
-
-  std::vector<long> vec;
-
-  utilz::graphs::io::scan_graph(
-    utilz::graphs::io::graph_format::graph_fmt_edgelist,
-    graph_stream,
-    vec,
-    set_weight);
-
   std::vector<std::set<int>>                      clusters;
   std::map<std::pair<int, int>, std::vector<int>> intersections;
 
-  if (!opt_input_clusters.empty()) {
+  if (!opt_input_communities.empty()) {
     // Read all clusters
     //
     {
-      auto set_vertex = [](std::vector<long> v, long f, long t, long w) -> void { };
+      auto set_vertex = [](std::vector<long> v, long f, long t, long w) -> void {
+      };
 
       std::vector<long> vec_p;
 
-      std::ifstream clusters_stream(opt_input_clusters);
-
-      utilz::communities::io::scan_communities(
-        utilz::communities::io::communities_format::communities_fmt_rlang,
-        clusters_stream,
-        vec_p,
-        set_vertex);
+      std::ifstream clusters_stream(opt_input_communities);
 
       std::string line;
       while (std::getline(clusters_stream, line)) {
@@ -203,3 +283,14 @@ main(int argc, char* argv[])
 
   output_stream.flush();
 }
+
+void
+analyse_communities_intersections(
+  std::vector<std::tuple<Index, Index>> graph_vector,
+  std::vector<std::set<Index>>          communities_vector)
+{
+  utilz::square_shape<Index> adjacency_matrix;
+
+
+
+};
