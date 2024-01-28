@@ -145,28 +145,26 @@ main(int argc, char* argv[])
   }
 
   std::vector<std::tuple<Index, Index>> graph_vector;
-  std::map<Index, std::set<Index>>          communities_vector;
+  std::map<Index, std::set<Index>>      communities_vector;
 
   if (!opt_input_graph.empty()) {
-    std::function<void(std::vector<std::tuple<Index, Index>>&, Index, Index, Value)> set_w =
-      [](std::vector<std::tuple<Index, Index>>& c, Index f, Index t, Value w) -> void {
-        c.emplace_back(std::make_tuple(f, t));
-      };
+    auto set_w = std::function([](std::vector<std::tuple<Index, Index>>& c, Index f, Index t, Value w) -> void {
+      c.emplace_back(std::make_tuple(f, t));
+    });
 
     std::ifstream graph_stream(opt_input_graph);
 
     utilz::graphs::io::scan_graph(opt_graph_format, graph_stream, graph_vector, set_w);
   }
   if (!opt_input_communities.empty()) {
-    std::function<void(std::map<Index, std::set<Index>>&, Index, Index)> set_v =
-      [](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
-        auto set = c.find(ci);
-        if (set == c.end()) {
-          c.emplace(ci, std::set<Index>({ vi }));
-        } else {
-          set->second.insert(vi);
-        }
-      };
+    auto set_v = std::function([](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
+      auto set = c.find(ci);
+      if (set == c.end()) {
+        c.emplace(ci, std::set<Index>({ vi }));
+      } else {
+        set->second.insert(vi);
+      }
+    });
 
     std::ifstream communities_stream(opt_input_communities);
 
@@ -290,7 +288,4 @@ analyse_communities_intersections(
   std::vector<std::set<Index>>          communities_vector)
 {
   utilz::square_shape<Index> adjacency_matrix;
-
-
-
 };
