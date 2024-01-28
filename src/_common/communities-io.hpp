@@ -139,18 +139,18 @@ std::istream&
 operator>>(std::istream& is, communities_preamble<communities_format::communities_fmt_rlang, TIndex>& preamble)
 {
   std::string line;
-  if (!std::getline(is, line))
-    throw std::logic_error("e");
+  if (std::getline(is, line)) {
+    TIndex index;
+    char sign, open, close;
 
-  TIndex index;
-  char sign, open, close;
+    std::stringstream ss(line);
+    if (ss >> sign >> open >> index >> close) {
+      preamble = communities_preamble<communities_format::communities_fmt_rlang, TIndex>(index);
+      return is;
+    }
+  }
 
-  std::stringstream ss(line);
-  if (!(ss >> sign >> open >> index >> close))
-    throw std::logic_error("e");
-
-  preamble = communities_preamble<communities_format::communities_fmt_rlang, TIndex>(index);
-
+  is.setstate(std::ios_base::failbit);
   return is;
 };
 
@@ -165,11 +165,13 @@ template<typename TIndex>
 std::istream&
 operator>>(std::istream& is, communities_items<communities_format::communities_fmt_rlang, TIndex>& items)
 {
-  //  [1]    3    6   18   25   41   46   52   64   70   74   81   83   87   88   91
   std::vector<TIndex> indexes;
 
   std::string line;
   while (std::getline(is, line)) {
+    // The format dictates that all communities are separated by an
+    // empty line, so when we have one we return success
+    //
     if (line.empty()) {
       items = communities_items<communities_format::communities_fmt_rlang, TIndex>(indexes);
       return is;
@@ -179,14 +181,15 @@ operator>>(std::istream& is, communities_items<communities_format::communities_f
     char open, close;
 
     std::stringstream ss(line);
-    if (!(ss >> open >> key >> close))
-      throw std::logic_error("e");
-
-    TIndex index;
-    while (ss >> index)
-      indexes.push_back(index);
+    if (ss >> open >> key >> close) {
+      TIndex index;
+      while (ss >> index)
+        indexes.push_back(index);
+    }
   }
-  throw std::logic_error("e");
+
+  is.setstate(std::ios_base::failbit);
+  return is;
 };
 
 template<typename TIndex>
@@ -288,18 +291,26 @@ scan_communities(
   SV&           set_v,
   std::integral_constant<communities_preamble_format, communities_preamble_format::communities_preamble_fmt_index>)
 {
-  while (is) {
+  for (;;) {
     io::communities_preamble<F, I> preamble;
-    if (!(is >> preamble))
+    if (!(is >> preamble)) {
+      // We might have reached the end of file and therefore it is not a failure to
+      // read a preamble.
+      //
+      if (is.eof())
+        return;
+
+      // Otherwise, we throw an exception to ensure the issue is propagated
+      //
       throw std::logic_error("erro: can't scan 'communities_preamble' because of invalid format or IO problem");
+    }
 
     io::communities_items<F, I> items;
     if (!(is >> items))
       throw std::logic_error("erro: can't scan 'communities_items' because of invalid format or IO problem");
 
-    for (auto index : items.items()) {
+    for (auto index : items.items())
       set_v(communities, preamble.index(), index);
-    }
   }
 };
 
