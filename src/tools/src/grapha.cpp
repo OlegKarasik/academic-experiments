@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <random>
@@ -38,8 +39,9 @@ enum analysis_options
 
 void
 analyse_communities_intersections(
-  std::vector<std::tuple<Index, Index>> graph_vector,
-  std::vector<std::set<Index>>          communities_vector);
+  std::ostream&                     os,
+  utilz::square_shape<Index>&       graph_matrix,
+  std::map<Index, std::set<Index>>& communities_map);
 
 // This is a tiny program which performs an analysis of graphs
 //
@@ -144,17 +146,24 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  std::vector<std::tuple<Index, Index>> graph_vector;
-  std::map<Index, std::set<Index>>      communities_vector;
+  utilz::square_shape<Index>       graph_matrix;
+  std::map<Index, std::set<Index>> communities_map;
 
   if (!opt_input_graph.empty()) {
-    auto set_w = std::function([](std::vector<std::tuple<Index, Index>>& c, Index f, Index t, Value w) -> void {
-      c.emplace_back(std::make_tuple(f, t));
+    auto set_vc = std::function([](utilz::square_shape<Index>& c, Index vc) -> void {
+      utilz::procedures::square_shape_set_size<utilz::square_shape<Index>> set_size;
+      set_size(c, vc);
+    });
+    auto set_ec = std::function([](utilz::square_shape<Index>& c, Index ec) -> void {
+    });
+    auto set_w  = std::function([](utilz::square_shape<Index>& c, Index f, Index t, Value w) -> void {
+      utilz::procedures::square_shape_at<utilz::square_shape<Index>> at;
+      at(c, f, t) = w;
     });
 
     std::ifstream graph_stream(opt_input_graph);
 
-    utilz::graphs::io::scan_graph(opt_graph_format, graph_stream, graph_vector, set_w);
+    utilz::graphs::io::scan_graph(opt_graph_format, graph_stream, graph_matrix, set_vc, set_ec, set_w);
   }
   if (!opt_input_communities.empty()) {
     auto set_v = std::function([](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
@@ -168,124 +177,84 @@ main(int argc, char* argv[])
 
     std::ifstream communities_stream(opt_input_communities);
 
-    utilz::communities::io::scan_communities(opt_communities_format, communities_stream, communities_vector, set_v);
+    utilz::communities::io::scan_communities(opt_communities_format, communities_stream, communities_map, set_v);
   }
 
-  std::ifstream graph_stream(opt_input_graph);
   std::ofstream output_stream(opt_output);
 
-  utilz::graphs::io::graph_edge<utilz::graphs::io::graph_format::graph_fmt_edgelist, int, int> edzz;
-  graph_stream >> edzz;
-
-  std::vector<std::set<int>>                      clusters;
-  std::map<std::pair<int, int>, std::vector<int>> intersections;
-
-  if (!opt_input_communities.empty()) {
-    // Read all clusters
-    //
-    {
-      auto set_vertex = [](std::vector<long> v, long f, long t, long w) -> void {
-      };
-
-      std::vector<long> vec_p;
-
-      std::ifstream clusters_stream(opt_input_communities);
-
-      std::string line;
-      while (std::getline(clusters_stream, line)) {
-        int v;
-
-        std::set<int> items;
-
-        std::istringstream iss(line);
-        while (iss >> v) {
-          items.insert(v);
-        }
-
-        clusters.emplace_back(items);
-      }
-    }
-    // Recalculate correlation of edges between clusters
-    //
-    {
-      int id = 0;
-
-      std::string line;
-      while (std::getline(graph_stream, line)) {
-        int f, t;
-
-        std::istringstream iss(line);
-
-        iss >> f >> t;
-
-        bool found = false;
-        for (auto it_f = clusters.begin(); it_f != clusters.end() && !found; ++it_f) {
-          auto _f = it_f->find(f);
-          if (_f != it_f->end()) {
-            for (auto it_t = clusters.begin(); it_t != clusters.end() && !found; ++it_t) {
-              if (it_f == it_t)
-                continue;
-
-              auto _t = it_t->find(t);
-              if (_t != it_t->end()) {
-                std::pair<int, int> key(std::distance(clusters.begin(), it_f), std::distance(clusters.begin(), it_t));
-
-                auto _m = intersections.find(key);
-                if (_m == intersections.end()) {
-                  std::vector<int> value{ id };
-
-                  intersections.emplace(key, value);
-                } else {
-                  _m->second.push_back(id);
-                }
-                found = true;
-              }
-            }
-          }
-        }
-
-        ++id;
-      }
-
-      output_stream << "Count of clusters with count of vertex within\n"
-                    << "Read as following: <vertex count> <cluster count>\n";
-
-      std::map<int, int> cluster_counts;
-      for (auto cluster : clusters) {
-        auto _m = cluster_counts.find(cluster.size());
-        if (_m == cluster_counts.end()) {
-          cluster_counts.emplace(cluster.size(), 1);
-        } else {
-          ++_m->second;
-        }
-      }
-      for (auto kv : cluster_counts) {
-        output_stream << kv.first << ' ' << kv.second << " ";
-
-        output_stream << '\n';
-      }
-
-      output_stream << '\n';
-
-      output_stream << "Count of edges between clusters\n"
-                    << "Read as following: <source> <destination> <edges in between> <edges in source>\n";
-
-      for (auto kv : intersections) {
-        output_stream << kv.first.first << ' ' << kv.first.second << " "
-                      << kv.second.size() << " " << clusters[kv.first.first].size();
-
-        output_stream << '\n';
-      }
-    }
-  }
+  analyse_communities_intersections(std::cout, graph_matrix, communities_map);
 
   output_stream.flush();
 }
 
 void
 analyse_communities_intersections(
-  std::vector<std::tuple<Index, Index>> graph_vector,
-  std::vector<std::set<Index>>          communities_vector)
+  std::ostream&                     os,
+  utilz::square_shape<Index>&       graph_matrix,
+  std::map<Index, std::set<Index>>& communities_map)
 {
-  utilz::square_shape<Index> adjacency_matrix;
+  std::map<Index, double> communities_pt;
+  std::map<Index, size_t> communities_bv;
+  std::map<Index, size_t> communities_ev;
+
+  std::map<Index, std::map<Index, size_t>> communities_bvc;
+  std::map<Index, std::map<Index, size_t>> communities_bec;
+
+  for (auto community : communities_map) {
+    communities_pt.emplace(community.first, double(0));
+    communities_bv.emplace(community.first, size_t(0));
+    communities_ev.emplace(community.first, size_t(0));
+  }
+
+  for (auto community : communities_map) {
+    auto pt = communities_pt.find(community.first);
+    auto bv = communities_bv.find(community.first);
+    auto ev = communities_ev.find(community.first);
+
+    pt->second = static_cast<double>(community.second.size()) / graph_matrix.size() * 100;
+
+    for (auto i : community.second) {
+      auto edges = graph_matrix.at(i);
+
+      for (auto f = false, auto j = utilz::square_shape<Index>::size_type(0); j < graph_matrix.size(); ++j) {
+        if (edges[j] != Index(0)) {
+          for (auto c : communities_map) {
+            if (c.second.find(j) != c.second.end()) {
+              if (!f) {
+                bv->second++;
+                f = true;
+              }
+              ev->second++;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  os << "== COMMUNITIES INTERSECTION ANALYSIS ==\n";
+  os << std::setw(6) << "Index"
+     << " "
+     << std::setw(8) << "Size"
+     << " "
+     << std::setw(8) << "% (T)"
+     << " "
+     << std::setw(8) << "BV"
+     << " "
+     << std::setw(8) << "BE"
+     << "\n";
+
+  for (auto community : communities_map) {
+    os << "[" << std::setw(4) << community.first << "]"
+       << " "
+       << std::setw(8) << community.second.size()
+       << " "
+       << std::setw(8) << std::setprecision(2) << std::fixed << communities_pt[community.first]
+       << " "
+       << std::setw(8) << communities_bv[community.first]
+       << " "
+       << std::setw(8) << communities_ev[community.first]
+       << "\n";
+  }
 };
