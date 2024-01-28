@@ -563,16 +563,16 @@ scan_graph(
 
   switch (format) {
     case graph_format::graph_fmt_edgelist:
-      impl::scan_graph<graph_format::graph_fmt_edgelist, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_edgelist, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     case graph_format::graph_fmt_weightlist:
-      impl::scan_graph<graph_format::graph_fmt_weightlist, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_weightlist, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     case graph_format::graph_fmt_dimacs:
-      impl::scan_graph<graph_format::graph_fmt_dimacs, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_dimacs, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     case graph_format::graph_fmt_binary:
-      impl::scan_graph<graph_format::graph_fmt_binary, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+      impl::scan_graph<graph_format::graph_fmt_binary, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
       break;
     default:
       throw std::logic_error("erro: The format is not supported");
@@ -773,14 +773,17 @@ scan_graph(
   SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
-  auto cache_w = [](std::vector<io::graph_edge<F, I, W>> v, I f, I t, W w) -> void {
-    v.emplace_back(io::graph_edge<F, I, W>(f, t, w));
-  };
+  using CACHE_SW = typename std::function<void(std::vector<io::graph_edge<F, I, W>>&, I, I, W)>;
+  using CACHE_G  = typename std::vector<io::graph_edge<F, I, W>>;
+
+  auto cache_w = std::function([](std::vector<io::graph_edge<F, I, W>>& v, I f, I t, W w) -> void {
+    v.push_back(io::graph_edge<F, I, W>(f, t, w));
+  });
 
   std::vector<io::graph_edge<F, I, W>> cache;
 
   I vc, ec;
-  std::tie(vc, ec) = scan_graph_edges<F, G, I, W, SW>(is, cache, cache_w);
+  std::tie(vc, ec) = scan_graph_edges<F, CACHE_G, I, W, CACHE_SW>(is, cache, cache_w);
 
   set_vc(graph, vc);
   set_ec(graph, ec);
