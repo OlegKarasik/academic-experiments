@@ -193,33 +193,46 @@ analyse_communities_intersections(
   utilz::square_shape<Index>&       graph_matrix,
   std::map<Index, std::set<Index>>& communities_map)
 {
-  std::map<Index, double> communities_pt;
+  auto edge_count = size_t(0);
+  for (auto i = 0; i < graph_matrix.size(); ++i)
+    for (auto j = 0; j < graph_matrix.size(); ++j)
+      if (graph_matrix.at(i, j) != 0)
+        edge_count++;
+
+  std::map<Index, double> communities_pvt;
+  std::map<Index, double> communities_pet;
   std::map<Index, size_t> communities_bv;
   std::map<Index, size_t> communities_ev;
+  std::map<Index, size_t> communities_ec;
 
   std::map<Index, std::map<Index, size_t>> communities_bvc;
   std::map<Index, std::map<Index, size_t>> communities_bec;
 
   for (auto community : communities_map) {
-    communities_pt.emplace(community.first, double(0));
+    communities_pvt.emplace(community.first, double(0));
+    communities_pet.emplace(community.first, double(0));
     communities_bv.emplace(community.first, size_t(0));
     communities_ev.emplace(community.first, size_t(0));
+    communities_ec.emplace(community.first, size_t(0));
   }
 
   for (auto community : communities_map) {
-    auto pt = communities_pt.find(community.first);
+    auto pvt = communities_pvt.find(community.first);
+    auto pet = communities_pet.find(community.first);
+
     auto bv = communities_bv.find(community.first);
     auto ev = communities_ev.find(community.first);
-
-    pt->second = static_cast<double>(community.second.size()) / graph_matrix.size() * 100;
+    auto ec = communities_ec.find(community.first);
 
     for (auto i : community.second) {
       auto edges = graph_matrix.at(i);
 
-      for (auto f = false, auto j = utilz::square_shape<Index>::size_type(0); j < graph_matrix.size(); ++j) {
+      auto f = false;
+      for (auto j = utilz::square_shape<Index>::size_type(0); j < graph_matrix.size(); ++j) {
         if (edges[j] != Index(0)) {
+          ec->second++;
           for (auto c : communities_map) {
-            if (c.second.find(j) != c.second.end()) {
+            if (community.first != c.first && c.second.find(j) != c.second.end()) {
               if (!f) {
                 bv->second++;
                 f = true;
@@ -231,14 +244,23 @@ analyse_communities_intersections(
         }
       }
     }
+
+    pvt->second = static_cast<double>(community.second.size()) / graph_matrix.size() * 100;
+    pet->second = static_cast<double>(ec->second) / edge_count * 100;
   }
 
   os << "== COMMUNITIES INTERSECTION ANALYSIS ==\n";
+  os << "VT:" << std::setw(8) << graph_matrix.size() << "\n";
+  os << "ET:" << std::setw(8) << edge_count << "\n\n";
   os << std::setw(6) << "Index"
      << " "
-     << std::setw(8) << "Size"
+     << std::setw(8) << "V"
      << " "
-     << std::setw(8) << "% (T)"
+     << std::setw(8) << "% (VT)"
+     << " "
+     << std::setw(8) << "E"
+     << " "
+     << std::setw(8) << "% (ET)"
      << " "
      << std::setw(8) << "BV"
      << " "
@@ -250,7 +272,11 @@ analyse_communities_intersections(
        << " "
        << std::setw(8) << community.second.size()
        << " "
-       << std::setw(8) << std::setprecision(2) << std::fixed << communities_pt[community.first]
+       << std::setw(8) << std::setprecision(2) << std::fixed << communities_pvt[community.first]
+       << " "
+       << std::setw(8) << communities_ec[community.first]
+       << " "
+       << std::setw(8) << std::setprecision(2) << std::fixed << communities_pet[community.first]
        << " "
        << std::setw(8) << communities_bv[community.first]
        << " "
