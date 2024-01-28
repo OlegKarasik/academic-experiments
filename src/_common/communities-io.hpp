@@ -145,7 +145,7 @@ operator>>(std::istream& is, communities_preamble<communities_format::communitie
 
     std::stringstream ss(line);
     if (ss >> sign >> open >> index >> close) {
-      preamble = communities_preamble<communities_format::communities_fmt_rlang, TIndex>(index);
+      preamble = communities_preamble<communities_format::communities_fmt_rlang, TIndex>(--index);
       return is;
     }
   }
@@ -184,7 +184,7 @@ operator>>(std::istream& is, communities_items<communities_format::communities_f
     if (ss >> open >> key >> close) {
       TIndex index;
       while (ss >> index)
-        indexes.push_back(index);
+        indexes.push_back(--index);
     }
   }
 
