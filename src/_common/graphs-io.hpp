@@ -405,15 +405,19 @@ template<typename TIndex, typename TWeight>
 std::istream&
 operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge)
 {
-  TIndex  f, t;
-  TWeight w;
-  if (is >> f) {
-    if (is >> t >> w) {
+  std::string line;
+  if (std::getline(is, line)) {
+    TIndex  f, t;
+    TWeight w;
+
+    std::stringstream ss(line);
+    if (ss >> f >> t >> w) {
       edge = graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>(f, t, w);
-    } else {
-      is.setstate(std::ios::failbit);
+      return is;
     }
   }
+
+  is.setstate(std::ios::failbit);
   return is;
 };
 
@@ -753,7 +757,10 @@ scan_graph_edges(
   }
   vc = vmin == I(0) ? vmax + I(1) : vmax;
 
-  return std::make_tuple(vc, ec);
+  if (is.eof())
+    return std::make_tuple(vc, ec);
+
+  throw std::logic_error("erro: can't scan 'graph_edge' because of invalid format or IO problem");
 };
 
 template<graph_format F, typename G, typename I, typename W, typename SV, typename SE, typename SW>
