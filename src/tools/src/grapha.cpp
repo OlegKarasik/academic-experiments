@@ -132,12 +132,12 @@ main(int argc, char* argv[])
   }
 
   if (!opt_input_graph.empty() && opt_graph_format == utilz::graphs::io::graph_fmt_none ||
-      opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
+       opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
     std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
   if (!opt_input_communities.empty() && opt_communities_format == utilz::communities::io::communities_fmt_none ||
-      opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
+       opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
     std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
@@ -162,6 +162,10 @@ main(int argc, char* argv[])
     });
 
     std::ifstream graph_stream(opt_input_graph);
+    if (!graph_stream.is_open()) {
+      std::cerr << "erro: can't open graph file (denoted by -g option)";
+      return 1;
+    }
 
     utilz::graphs::io::scan_graph(opt_graph_format, graph_stream, graph_matrix, set_vc, set_ec, set_w);
   }
@@ -176,13 +180,17 @@ main(int argc, char* argv[])
     });
 
     std::ifstream communities_stream(opt_input_communities);
+    if (!communities_stream.is_open()) {
+      std::cerr << "erro: can't open communities file (denoted by -G option)";
+      return 1;
+    }
 
     utilz::communities::io::scan_communities(opt_communities_format, communities_stream, communities_map, set_v);
   }
 
   std::ofstream output_stream(opt_output);
 
-  analyse_communities_intersections(std::cout, graph_matrix, communities_map);
+  analyse_communities_intersections(output_stream, graph_matrix, communities_map);
 
   output_stream.flush();
 }
