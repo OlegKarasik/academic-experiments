@@ -201,7 +201,13 @@ analyse_communities_intersections(
   utilz::square_shape<Index>&       graph_matrix,
   std::map<Index, std::set<Index>>& communities_map)
 {
-  auto edge_count = size_t(0);
+  auto total_bv  = size_t(0);
+  auto total_be  = size_t(0);
+  auto total_pbv = double(0);
+  auto total_pbe = double(0);
+
+  auto vertex_count = graph_matrix.size();
+  auto edge_count   = size_t(0);
   for (auto i = 0; i < graph_matrix.size(); ++i)
     for (auto j = 0; j < graph_matrix.size(); ++j)
       if (graph_matrix.at(i, j) != 0)
@@ -210,17 +216,14 @@ analyse_communities_intersections(
   std::map<Index, double> communities_pvt;
   std::map<Index, double> communities_pet;
   std::map<Index, size_t> communities_bv;
-  std::map<Index, size_t> communities_ev;
+  std::map<Index, size_t> communities_be;
   std::map<Index, size_t> communities_ec;
-
-  std::map<Index, std::map<Index, size_t>> communities_bvc;
-  std::map<Index, std::map<Index, size_t>> communities_bec;
 
   for (auto community : communities_map) {
     communities_pvt.emplace(community.first, double(0));
     communities_pet.emplace(community.first, double(0));
     communities_bv.emplace(community.first, size_t(0));
-    communities_ev.emplace(community.first, size_t(0));
+    communities_be.emplace(community.first, size_t(0));
     communities_ec.emplace(community.first, size_t(0));
   }
 
@@ -229,7 +232,7 @@ analyse_communities_intersections(
     auto pet = communities_pet.find(community.first);
 
     auto bv = communities_bv.find(community.first);
-    auto ev = communities_ev.find(community.first);
+    auto ev = communities_be.find(community.first);
     auto ec = communities_ec.find(community.first);
 
     for (auto i : community.second) {
@@ -253,12 +256,31 @@ analyse_communities_intersections(
       }
     }
 
-    pvt->second = static_cast<double>(community.second.size()) / graph_matrix.size() * 100;
+    pvt->second = static_cast<double>(community.second.size()) / vertex_count * 100;
     pet->second = static_cast<double>(ec->second) / edge_count * 100;
   }
 
+  total_bv = std::accumulate(
+    communities_bv.begin(),
+    communities_bv.end(),
+    size_t(0),
+    [](auto acc, auto it) -> size_t {
+      return acc + it.second;
+    });
+
+  total_be = std::accumulate(
+    communities_be.begin(),
+    communities_be.end(),
+    size_t(0),
+    [](auto acc, auto it) -> size_t {
+      return acc + it.second;
+    });
+
+  total_pbv = static_cast<double>(total_bv) / vertex_count * 100;
+  total_pbe = static_cast<double>(total_be) / edge_count * 100;
+
   os << "== COMMUNITIES INTERSECTION ANALYSIS ==\n";
-  os << "VT:" << std::setw(8) << graph_matrix.size() << "\n";
+  os << "VT:" << std::setw(8) << vertex_count << "\n";
   os << "ET:" << std::setw(8) << edge_count << "\n\n";
   os << std::setw(6) << "Index"
      << " "
@@ -288,7 +310,14 @@ analyse_communities_intersections(
        << " "
        << std::setw(8) << communities_bv[community.first]
        << " "
-       << std::setw(8) << communities_ev[community.first]
+       << std::setw(8) << communities_be[community.first]
        << "\n";
   }
+
+  os << "\n";
+
+  os << "Total BV       :" << std::setw(8) << total_bv << "\n"
+     << "Total BV % (VT):" << std::setw(8) << total_pbv << "\n"
+     << "Total BE       :" << std::setw(8) << total_be << "\n"
+     << "Total BE % (ET):" << std::setw(8) << total_pbe << "\n";
 };
