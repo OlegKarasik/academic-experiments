@@ -67,7 +67,6 @@ main(int argc, char* argv[])
   // C: <enum>, format of a communities file
   //    Supported values:
   //    - 'rlang'
-
   // o: <path>, path to output file
   //
   const char* options = "g:G:c:C:o:";
