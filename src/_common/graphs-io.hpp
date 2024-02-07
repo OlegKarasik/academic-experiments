@@ -134,6 +134,64 @@ scan_graph(
   G&            graph,
   SW&           set_w);
 
+// ==
+
+template<graph_format F, typename G, typename I, typename W, typename GW>
+void
+print_graph_edges(
+  std::ostream& os,
+  G&            graph,
+  GW&           get_w);
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w);
+
 } // namespace impl
 
 template<graph_format TFormat>
@@ -607,6 +665,65 @@ scan_graph(
   }
 };
 
+template<typename G, typename I, typename W>
+void
+pring_graph(
+  graph_format                format,
+  std::ostream&               os,
+  G&                          graph,
+  std::function<I(G&)>&       get_vc,
+  std::function<I(G&)>&       get_ec,
+  std::function<W(G&, I, I)>& get_w)
+{
+  using GE = typename std::function<I(G&)>;
+  using GV = typename std::function<I(G&)>;
+  using GW = typename std::function<W(G&, I, I)>;
+
+  // switch (format) {
+  //   case graph_format::graph_fmt_edgelist:
+  //     impl::scan_graph<graph_format::graph_fmt_edgelist, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+  //     break;
+  //   case graph_format::graph_fmt_weightlist:
+  //     impl::scan_graph<graph_format::graph_fmt_weightlist, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+  //     break;
+  //   case graph_format::graph_fmt_dimacs:
+  //     impl::scan_graph<graph_format::graph_fmt_dimacs, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+  //     break;
+  //   case graph_format::graph_fmt_binary:
+  //     impl::scan_graph<graph_format::graph_fmt_binary, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
+  //     break;
+  //   default:
+  //     throw std::logic_error("erro: The format is not supported");
+  // }
+};
+
+template<typename G, typename I, typename W>
+void
+pring_graph(
+  graph_format                format,
+  std::ostream&               os,
+  G&                          graph,
+  std::function<W(G&, I, I)>& get_w)
+{
+  using GW = typename std::function<W(G&, I, I)>;
+
+  // switch (format) {
+  //   case graph_format::graph_fmt_edgelist:
+  //     impl::scan_graph<graph_format::graph_fmt_edgelist, G, I, W, SW>(is, graph, set_w);
+  //     break;
+  //   case graph_format::graph_fmt_weightlist:
+  //     impl::scan_graph<graph_format::graph_fmt_weightlist, G, I, W, SW>(is, graph, set_w);
+  //     break;
+  //   case graph_format::graph_fmt_dimacs:
+  //     impl::scan_graph<graph_format::graph_fmt_dimacs, G, I, W, SW>(is, graph, set_w);
+  //     break;
+  //   case graph_format::graph_fmt_binary:
+  //     impl::scan_graph<graph_format::graph_fmt_binary, G, I, W, SW>(is, graph, set_w);
+  //     break;
+  //   default:
+  //     throw std::logic_error("erro: The format is not supported");
+  // }
+};
 /*
 template<typename Graph, typename GraphGetVertexOperation, typename GraphGetEdgeCountOperation, typename GraphGetValueOperation>
 void
@@ -932,6 +1049,86 @@ scan_graph(
   SW&           set_w)
 {
   scan_graph<F, G, I, W, SW>(is, graph, set_w, typename graph_traits<F>::preamble_format());
+};
+
+template<graph_format F, typename G, typename I, typename W, typename GW>
+void
+print_graph_edges(
+  std::ostream& os,
+  G&            graph,
+  GW&           get_w)
+{
+
+};
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
+{
+
+};
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
+{
+
+};
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
+{
+
+};
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
+{
+
+};
+
+template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GW&           get_w)
+{
+  print_graph<F, G, I, W, GV, GE, GW>(
+    os,
+    graph,
+    get_vc,
+    get_ec,
+    get_w,
+    typename graph_traits<F>::preamble_format());
 };
 
 } // namespace impl
