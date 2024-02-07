@@ -27,130 +27,130 @@
 #include "graphs-io.hpp"
 #include "square-shape.hpp"
 
+using Index = long;
+using Value = long;
+
 // This is a tiny program which converts graphs to a different formats
 //
 int
 main(int argc, char* argv[])
 {
-  std::string opt_input;
+  utilz::graphs::io::graph_format opt_input_graph_format  = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::graphs::io::graph_format opt_output_graph_format = utilz::graphs::io::graph_format::graph_fmt_none;
+
+  std::string opt_input_graph;
   std::string opt_output;
 
-  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::graph_fmt_none;
-  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
-
-  char opt_type = 'g';
-
   // Supported options
-  // i: <path>,      path to input file
-  // o: <path>,      path to output file
-  // f: <enum-pair>, a comma separated pair of input and output formats
+  // g: <path>, [set: a] path to input file
+  // G: <enum>, [set: a] format of a graph file
   //    Supported values:
   //    - 'edgelist'
   //    - 'dimacs'
   //    - 'weightlist'
   //    - 'binary'
+  // c: <path>, [set: b] path to a communities file
+  // C: <enum>, [set: b] format of a communities file
+  //    Supported values:
+  //    - 'rlang'
+  // o: <path>, path to output file
+  // O: <enum/enum>, format of a graph output file or format of a communities output file
+  //    Supported values (when used with -g/-G):
+  //    - 'edgelist'
+  //    - 'dimacs'
+  //    - 'weightlist'
+  //    - 'binary'
+  //    Supported values (when used with -c/-C):
+  //    - 'rlang'
   //
-  const char* options = "i:o:f:";
+  const char* options = "g:G:o:O:";
 
   std::cerr << "Options:\n";
 
   int opt;
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
-      case 'i':
-        std::cerr << "-i: " << optarg << "\n";
+      case 'g':
+        if (opt_input_graph.empty()) {
+          std::cerr << "-g: " << optarg << "\n";
 
-        opt_input = optarg;
-        break;
+          opt_input_graph = optarg;
+          break;
+        }
+        std::cerr << "erro: unexpected '-g' option detected" << '\n';
+        return 1;
+      case 'G':
+        if (opt_input_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+          std::cerr << "-G: " << optarg << "\n";
+
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
+            std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
+            return 1;
+          }
+          break;
+        }
+        std::cerr << "erro: unexpected '-G' option detected" << '\n';
+        return 1;
       case 'o':
         std::cerr << "-o: " << optarg << "\n";
 
-        opt_output = optarg;
-        break;
-      case 'f': {
-        std::cerr << "-f: " << optarg << "\n";
-
-        std::string       v;
-        std::stringstream ss(optarg);
-
-        if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_format(v, opt_input_format)) {
-          std::cerr << "erro: missed or unsupported input format in '-f' option";
-          return 1;
+        if (opt_output.empty()) {
+          opt_output = optarg;
+          break;
         }
-        if (!std::getline(ss, v, ',') || !utilz::graphs::io::parse_graph_format(v, opt_output_format)) {
-          std::cerr << "erro: missed or unsupported output format in '-f' option";
-          return 1;
-        }
+        std::cerr << "erro: unexpected '-o' option detected" << '\n';
+        return 1;
+      case 'O':
+        if (opt_output_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+          std::cerr << "-O: " << optarg << "\n";
 
-        break;
-      }
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
+            std::cerr << "erro: invalid graph format has been detected in '-O' option" << '\n';
+            return 1;
+          }
+          break;
+        }
+        std::cerr << "erro: unexpected '-O' option detected" << '\n';
+        return 1;
     }
-  }
-
-  if (opt_input.empty()) {
-    std::cerr << "erro: the -i parameter is required";
-    return 1;
   }
   if (opt_output.empty()) {
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
-  if (opt_input_format == utilz::graphs::io::graph_format::graph_fmt_none || opt_output_format == utilz::graphs::io::graph_format::graph_fmt_none) {
-    std::cerr << "erro: the -f parameter is required";
-    return 1;
+  if (!opt_input_graph.empty()) {
+    if (opt_input_graph_format == utilz::graphs::io::graph_fmt_none) {
+      std::cerr << "erro: the -G parameter is required";
+      return 1;
+    }
+    if (opt_output_graph_format == utilz::graphs::io::graph_fmt_none) {
+      std::cerr << "erro: the -O parameter must be set to graph format when used with -g and -G options";
+      return 1;
+    }
   }
-  if (opt_type != 'g') {
-    std::cerr << "erro: unsupported input type in '-t' option, must be 'g'";
-    return 1;
+
+  if (!opt_input_graph.empty()) {
+    utilz::square_shape<Index> graph_matrix;
+
+    auto set_vc = std::function([](utilz::square_shape<Index>& c, Index vc) -> void {
+      utilz::procedures::square_shape_set_size<utilz::square_shape<Index>> set_size;
+      set_size(c, vc);
+    });
+    auto set_ec = std::function([](utilz::square_shape<Index>& c, Index ec) -> void {
+    });
+    auto set_w  = std::function([](utilz::square_shape<Index>& c, Index f, Index t, Value w) -> void {
+      utilz::procedures::square_shape_at<utilz::square_shape<Index>> at;
+      at(c, f, t) = w;
+    });
+
+    std::ifstream graph_stream(opt_input_graph);
+    if (!graph_stream.is_open()) {
+      std::cerr << "erro: can't open graph file (denoted by -g option)";
+      return 1;
+    }
+
+    utilz::graphs::io::scan_graph(opt_input_graph_format, graph_stream, graph_matrix, set_vc, set_ec, set_w);
   }
-
-  // We open both files
-  //
-  std::ifstream input_stream(opt_input);
-  if (input_stream.fail()) {
-    std::cerr << "erro: can't open input file";
-    return 1;
-  };
-
-  std::ofstream output_stream(opt_output);
-  if (output_stream.fail()) {
-    std::cerr << "erro: can't create output file";
-    return 1;
-  };
-
-  // Weight matrix
-  //
-  utilz::square_shape<int> matrix;
-
-  // Shared accessors
-  //
-  utilz::graphs::io::value_move_function<utilz::square_shape<int>> move_edge_count;
-
-  // Scan accesors
-  //
-  utilz::procedures::square_shape_set_size<utilz::square_shape<int>> set_vertex_count;
-  utilz::procedures::square_shape_set<utilz::square_shape<int>>      set_value;
-
-  utilz::graphs::io::scan_graph(
-    input_stream,
-    opt_input_format,
-    matrix,
-    set_vertex_count,
-    move_edge_count,
-    set_value);
-
-  // Print accesors
-  //
-  utilz::procedures::square_shape_get_size<utilz::square_shape<int>> get_vertex_count;
-  utilz::procedures::square_shape_get<utilz::square_shape<int>>      get_value;
-
-  utilz::graphs::io::print_graph(
-    output_stream,
-    opt_output_format,
-    matrix,
-    get_vertex_count,
-    move_edge_count,
-    get_value);
 
   return 0;
 }
