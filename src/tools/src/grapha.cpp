@@ -212,26 +212,36 @@ analyse_communities_intersections(
       if (graph_matrix.at(i, j) != 0)
         edge_count++;
 
+  std::map<Index, std::set<Index>>                      communities_path;
+  std::map<Index, std::vector<std::pair<Index, Index>>> communities_ranges;
+
   std::map<Index, double> communities_pvt;
   std::map<Index, double> communities_pet;
+
   std::map<Index, size_t> communities_bv;
   std::map<Index, size_t> communities_be;
   std::map<Index, size_t> communities_ec;
 
   for (auto community : communities_map) {
+    communities_path.emplace(community.first, std::set<Index>());
+    communities_ranges.emplace(community.first, std::vector<std::pair<Index, Index>>());
+
     communities_pvt.emplace(community.first, double(0));
     communities_pet.emplace(community.first, double(0));
+
     communities_bv.emplace(community.first, size_t(0));
     communities_be.emplace(community.first, size_t(0));
     communities_ec.emplace(community.first, size_t(0));
   }
 
   for (auto community : communities_map) {
+    auto paths = communities_path.find(community.first);
+
     auto pvt = communities_pvt.find(community.first);
     auto pet = communities_pet.find(community.first);
 
     auto bv = communities_bv.find(community.first);
-    auto ev = communities_be.find(community.first);
+    auto be = communities_be.find(community.first);
     auto ec = communities_ec.find(community.first);
 
     for (auto i : community.second) {
@@ -239,15 +249,33 @@ analyse_communities_intersections(
 
       auto f = false;
       for (auto j = utilz::square_shape<Index>::size_type(0); j < graph_matrix.size(); ++j) {
+        // If there is an edge between vertices (because we load adjucency matrix we treat all zeros as none)
+        //
         if (edges[j] != Index(0)) {
+          // Increment community edge count (both inner and outer)
+          //
           ec->second++;
+
+          // If edge is within community, then we skip communities check and continue
+          //
+          if (community.second.find(j) != community.second.end())
+            continue;
+
           for (auto c : communities_map) {
             if (community.first != c.first && c.second.find(j) != c.second.end()) {
               if (!f) {
+                // Increment bridge vertices count
+                //
                 bv->second++;
                 f = true;
               }
-              ev->second++;
+              // Increment bridge edges count
+              //
+              be->second++;
+
+              // Save the connection between two communities (from `community` to `c`)
+              //
+              paths->second.insert(c.first);
               break;
             }
           }
@@ -257,6 +285,29 @@ analyse_communities_intersections(
 
     pvt->second = static_cast<double>(community.second.size()) / vertex_count * 100;
     pet->second = static_cast<double>(ec->second) / edge_count * 100;
+  }
+
+  for (auto community : communities_map) {
+    auto ranges = communities_ranges.find(community.first);
+
+    auto first = false;
+    auto start = Index(0), end = Index(0);
+    for (auto v : community.second) {
+      if (!first) {
+        first = true;
+        start = end = v;
+      } else {
+        if (v == (end + 1)) {
+          end = v;
+        } else {
+          ranges->second.emplace_back(std::make_pair(start, end));
+
+          start = end = v;
+        }
+      }
+    }
+    if (first)
+      ranges->second.emplace_back(std::make_pair(start, end));
   }
 
   total_bv = std::accumulate(
@@ -278,9 +329,15 @@ analyse_communities_intersections(
   total_pbv = static_cast<double>(total_bv) / vertex_count * 100;
   total_pbe = static_cast<double>(total_be) / edge_count * 100;
 
-  os << "== COMMUNITIES INTERSECTION ANALYSIS ==\n";
-  os << "VT:" << std::setw(8) << vertex_count << "\n";
-  os << "ET:" << std::setw(8) << edge_count << "\n\n";
+  os << "== COMMUNITIES INTERSECTION ANALYSIS ==\n"
+     << "VT        :" << std::setw(8) << vertex_count << "\n"
+     << "ET        :" << std::setw(8) << edge_count << "\n"
+     << "BV        :" << std::setw(8) << total_bv << "\n"
+     << "BV % (VT) :" << std::setw(8) << std::setprecision(2) << total_pbv << "\n"
+     << "BE        :" << std::setw(8) << total_be << "\n"
+     << "BE % (ET) :" << std::setw(8) << std::setprecision(2) << total_pbe << "\n"
+     << "\n";
+
   os << std::setw(6) << "Index"
      << " "
      << std::setw(8) << "V"
@@ -294,6 +351,8 @@ analyse_communities_intersections(
      << std::setw(8) << "BV"
      << " "
      << std::setw(8) << "BE"
+     << " "
+     << std::setw(8) << "C"
      << "\n";
 
   for (auto community : communities_map) {
@@ -310,13 +369,51 @@ analyse_communities_intersections(
        << std::setw(8) << communities_bv[community.first]
        << " "
        << std::setw(8) << communities_be[community.first]
+       << " "
+       << std::setw(8) << communities_path[community.first].size()
        << "\n";
   }
 
-  os << "\n";
+  os << "\n"
+     << "Connections between clusters\n"
+     << "\n";
 
-  os << "Total BV       :" << std::setw(8) << total_bv << "\n"
-     << "Total BV % (VT):" << std::setw(8) << total_pbv << "\n"
-     << "Total BE       :" << std::setw(8) << total_be << "\n"
-     << "Total BE % (ET):" << std::setw(8) << total_pbe << "\n";
+  for (auto community : communities_map) {
+    auto paths = communities_path.find(community.first);
+
+    os << "[" << std::setw(4) << paths->first << "]: ";
+
+    if (paths->second.empty())
+      os << "No outbound connections";
+    else {
+      for (auto c : paths->second)
+        os << c << " ";
+    }
+
+    os << "\n";
+  }
+
+  os << "\n"
+     << "Clusters content\n"
+     << "\n";
+
+  for (auto community : communities_map) {
+    auto ranges = communities_ranges.find(community.first);
+
+    os << "[" << std::setw(4) << ranges->first << "]: ";
+
+    for (auto range : ranges->second) {
+      if (range.first == range.second) {
+        // Print vertex
+        //
+        os << range.first << " ";
+      } else {
+        // Print range
+        //
+        os << range.first << "-" << range.second << " ";
+      }
+    }
+
+    os << "\n";
+  }
 };
