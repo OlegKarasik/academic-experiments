@@ -180,7 +180,7 @@ main(int argc, char* argv[])
 
     std::ifstream communities_stream(opt_input_communities);
     if (!communities_stream.is_open()) {
-      std::cerr << "erro: can't open communities file (denoted by -G option)";
+      std::cerr << "erro: can't open communities file (denoted by -c option)";
       return 1;
     }
 
