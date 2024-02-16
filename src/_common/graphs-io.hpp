@@ -665,117 +665,31 @@ scan_graph(
   }
 };
 
-template<typename G, typename I, typename W>
+template<typename I, typename W, typename It>
 void
 pring_graph(
-  graph_format                format,
-  std::ostream&               os,
-  G&                          graph,
-  std::function<I(G&)>&       get_vc,
-  std::function<I(G&)>&       get_ec,
-  std::function<W(G&, I, I)>& get_w)
+  graph_format  format,
+  std::ostream& os,
+  It&           begin,
+  It&           end)
 {
-  using GE = typename std::function<I(G&)>;
-  using GV = typename std::function<I(G&)>;
-  using GW = typename std::function<W(G&, I, I)>;
-
-  // switch (format) {
-  //   case graph_format::graph_fmt_edgelist:
-  //     impl::scan_graph<graph_format::graph_fmt_edgelist, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
-  //     break;
-  //   case graph_format::graph_fmt_weightlist:
-  //     impl::scan_graph<graph_format::graph_fmt_weightlist, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
-  //     break;
-  //   case graph_format::graph_fmt_dimacs:
-  //     impl::scan_graph<graph_format::graph_fmt_dimacs, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
-  //     break;
-  //   case graph_format::graph_fmt_binary:
-  //     impl::scan_graph<graph_format::graph_fmt_binary, G, I, W, SV, SE, SW>(is, graph, set_vc, set_ec, set_w);
-  //     break;
-  //   default:
-  //     throw std::logic_error("erro: The format is not supported");
-  // }
-};
-
-template<typename G, typename I, typename W>
-void
-pring_graph(
-  graph_format                format,
-  std::ostream&               os,
-  G&                          graph,
-  std::function<W(G&, I, I)>& get_w)
-{
-  using GW = typename std::function<W(G&, I, I)>;
-
-  // switch (format) {
-  //   case graph_format::graph_fmt_edgelist:
-  //     impl::scan_graph<graph_format::graph_fmt_edgelist, G, I, W, SW>(is, graph, set_w);
-  //     break;
-  //   case graph_format::graph_fmt_weightlist:
-  //     impl::scan_graph<graph_format::graph_fmt_weightlist, G, I, W, SW>(is, graph, set_w);
-  //     break;
-  //   case graph_format::graph_fmt_dimacs:
-  //     impl::scan_graph<graph_format::graph_fmt_dimacs, G, I, W, SW>(is, graph, set_w);
-  //     break;
-  //   case graph_format::graph_fmt_binary:
-  //     impl::scan_graph<graph_format::graph_fmt_binary, G, I, W, SW>(is, graph, set_w);
-  //     break;
-  //   default:
-  //     throw std::logic_error("erro: The format is not supported");
-  // }
-};
-/*
-template<typename Graph, typename GraphGetVertexOperation, typename GraphGetEdgeCountOperation, typename GraphGetValueOperation>
-void
-print_graph(
-  std::ostream&               s,
-  graph_stream_format         format,
-  Graph&                      g,
-  GraphGetVertexOperation&    get_vertex_count,
-  GraphGetEdgeCountOperation& get_edge_count,
-  GraphGetValueOperation&     get_value)
-{
-  using size_type  = typename Graph::size_type;
-  using value_type = typename Graph::value_type;
-
-  auto gdetails = get_graph_stream_format_details(format);
-  auto gostream = make_graph_ostream<size_type, value_type>(s, format);
-  auto gos      = gostream.get();
-
-  size_type vertex_count = get_vertex_count(g);
-  size_type edge_count   = get_edge_count(g);
-
-  if (vertex_count == size_type(0))
-    throw std::logic_error("erro: 'get_vertex_count()' must return vertex count");
-
-  if (gdetails.preamble_required()) {
-    if (gdetails.preamble_includes_edge_count() && edge_count == size_type(0)) {
-      for (size_type i = size_type(0); i < vertex_count; ++i)
-        for (size_type j = size_type(0); j < vertex_count; ++j) {
-          value_type v = get_value(g, i, j);
-          if (v != value_type(0))
-            ++edge_count;
-        }
-    }
-
-    graph_preamble<size_type> preamble(vertex_count, edge_count);
-    if (!(gos << preamble))
-      throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
+  switch (format) {
+    case graph_format::graph_fmt_edgelist:
+      impl::scan_graph<graph_format::graph_fmt_edgelist, I, W, It>(os, begin, end);
+      break;
+    case graph_format::graph_fmt_weightlist:
+      impl::scan_graph<graph_format::graph_fmt_weightlist, I, W, It>(os, begin, end);
+      break;
+    case graph_format::graph_fmt_dimacs:
+      impl::scan_graph<graph_format::graph_fmt_dimacs, I, W, It>(os, begin, end);
+      break;
+    case graph_format::graph_fmt_binary:
+      impl::scan_graph<graph_format::graph_fmt_binary, I, W, It>(os, begin, end);
+      break;
+    default:
+      throw std::logic_error("erro: The format is not supported");
   }
-
-  for (size_type i = size_type(0); i < vertex_count; ++i)
-    for (size_type j = size_type(0); j < vertex_count; ++j) {
-      value_type v = get_value(g, i, j);
-      if (v != value_type(0)) {
-        graph_edge<size_type, value_type> edge(i, j, v);
-        if (!(gos << edge))
-          throw std::logic_error("erro: can't print 'graph_edge' because of IO problem");
-      }
-    }
-
-  s.flush();
 };
-*/
 
 namespace impl {
 
@@ -1051,83 +965,105 @@ scan_graph(
   scan_graph<F, G, I, W, SW>(is, graph, set_w, typename graph_traits<F>::preamble_format());
 };
 
-template<graph_format F, typename G, typename I, typename W, typename GW>
+template<graph_format F, typename I, typename W, typename It>
 void
 print_graph_edges(
   std::ostream& os,
-  G&            graph,
-  GW&           get_w)
+  It&           begin,
+  It&           end)
 {
+  while (begin != end) {
+    io::graph_edge<F, I, W> edge = *begin;
+    if (!(os << edge))
+      throw std::logic_error("erro: can't print 'graph_edge' because of IO problem");
 
+    ++begin;
+  }
 };
 
-template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+template<graph_format F, typename I, typename W, typename It>
 void
 print_graph(
   std::ostream& os,
-  G&            graph,
-  GV&           get_vc,
-  GE&           get_ec,
-  GW&           get_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
-{
-
-};
-
-template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
-void
-print_graph(
-  std::ostream& os,
-  G&            graph,
-  GV&           get_vc,
-  GE&           get_ec,
-  GW&           get_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
-{
-
-};
-
-template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
-void
-print_graph(
-  std::ostream& os,
-  G&            graph,
-  GV&           get_vc,
-  GE&           get_ec,
-  GW&           get_w,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
-{
-
-};
-
-template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
-void
-print_graph(
-  std::ostream& os,
-  G&            graph,
-  GV&           get_vc,
-  GE&           get_ec,
-  GW&           get_w,
+  It&           begin,
+  It&           end,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
 {
+  It internal = begin;
 
+  I vmin = I(0), vmax = I(0), vc = I(0), ec = I(0);
+  while (internal != end) {
+    io::graph_edge<F, I, W> edge = *internal;
+
+    vmin = std::min({ vmin, edge.from(), edge.to() });
+    vmax = std::max({ vmax, edge.from(), edge.to() });
+
+    ec++;
+
+    ++internal;
+  }
+  vc = vmin == I(0) ? vmax + I(1) : vmax;
+
+  io::graph_preamble<F, I> preamble(vc, ec);
+
+  if (!(os << preamble))
+    throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
+
+  print_graph_edges(os, begin, end);
 };
 
-template<graph_format F, typename G, typename I, typename W, typename GV, typename GE, typename GW>
+template<graph_format F, typename I, typename W, typename It>
 void
 print_graph(
   std::ostream& os,
-  G&            graph,
-  GV&           get_vc,
-  GE&           get_ec,
-  GW&           get_w)
+  It&           begin,
+  It&           end,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
-  print_graph<F, G, I, W, GV, GE, GW>(
+  print_graph(
     os,
-    graph,
-    get_vc,
-    get_ec,
-    get_w,
+    begin,
+    end,
+    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
+};
+
+template<graph_format F, typename I, typename W, typename It>
+void
+print_graph(
+  std::ostream& os,
+  It&           begin,
+  It&           end,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
+{
+  print_graph(
+    os,
+    begin,
+    end,
+    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
+};
+
+template<graph_format F, typename I, typename W, typename It>
+void
+print_graph(
+  std::ostream& os,
+  It&           begin,
+  It&           end,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
+{
+  print_graph_edges(os, begin, end);
+};
+
+template<graph_format F, typename I, typename W, typename It>
+void
+print_graph(
+  std::ostream& os,
+  It&           begin,
+  It&           end)
+{
+  print_graph<F, I, W, It>(
+    os,
+    begin,
+    end,
     typename graph_traits<F>::preamble_format());
 };
 
