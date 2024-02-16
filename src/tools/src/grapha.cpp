@@ -32,6 +32,13 @@
 using Index = long;
 using Value = long;
 
+template<typename T>
+constexpr T
+infinity()
+{
+  return ((std::numeric_limits<T>::max)() / T(2)) - T(1);
+};
+
 enum analysis_options
 {
   analysis_opt_communities_intersections
@@ -151,7 +158,10 @@ main(int argc, char* argv[])
   if (!opt_input_graph.empty()) {
     auto set_vc = std::function([](utilz::square_shape<Index>& c, Index vc) -> void {
       utilz::procedures::square_shape_set_size<utilz::square_shape<Index>> set_size;
+      utilz::procedures::square_shape_replace<utilz::square_shape<Index>>  replace;
+
       set_size(c, vc);
+      replace(c, Index(0), infinity<Index>());
     });
     auto set_ec = std::function([](utilz::square_shape<Index>& c, Index ec) -> void {
     });
@@ -209,11 +219,12 @@ analyse_communities_intersections(
   auto edge_count   = size_t(0);
   for (auto i = 0; i < graph_matrix.size(); ++i)
     for (auto j = 0; j < graph_matrix.size(); ++j)
-      if (graph_matrix.at(i, j) != 0)
+      if (graph_matrix.at(i, j) != infinity<Index>())
         edge_count++;
 
   std::map<Index, std::set<Index>>                      communities_path;
   std::map<Index, std::vector<std::pair<Index, Index>>> communities_ranges;
+  std::map<Index, std::vector<std::pair<Index, Index>>> communities_cn;
 
   std::map<Index, double> communities_pvt;
   std::map<Index, double> communities_pet;
@@ -225,6 +236,7 @@ analyse_communities_intersections(
   for (auto community : communities_map) {
     communities_path.emplace(community.first, std::set<Index>());
     communities_ranges.emplace(community.first, std::vector<std::pair<Index, Index>>());
+    communities_cn.emplace(community.first, std::vector<std::pair<Index, Index>>());
 
     communities_pvt.emplace(community.first, double(0));
     communities_pet.emplace(community.first, double(0));
@@ -236,6 +248,7 @@ analyse_communities_intersections(
 
   for (auto community : communities_map) {
     auto paths = communities_path.find(community.first);
+    auto connections = communities_cn.find(community.first);
 
     auto pvt = communities_pvt.find(community.first);
     auto pet = communities_pet.find(community.first);
@@ -249,9 +262,9 @@ analyse_communities_intersections(
 
       auto f = false;
       for (auto j = utilz::square_shape<Index>::size_type(0); j < graph_matrix.size(); ++j) {
-        // If there is an edge between vertices (because we load adjucency matrix we treat all zeros as none)
+        // If there is an edge between vertices (because we load adjucency matrix we treat all infities as none)
         //
-        if (edges[j] != Index(0)) {
+        if (edges[j] != infinity<Index>()) {
           // Increment community edge count (both inner and outer)
           //
           ec->second++;
@@ -261,6 +274,7 @@ analyse_communities_intersections(
           if (community.second.find(j) != community.second.end())
             continue;
 
+          auto sanity_edges = false;
           for (auto c : communities_map) {
             if (community.first != c.first && c.second.find(j) != c.second.end()) {
               if (!f) {
@@ -276,9 +290,17 @@ analyse_communities_intersections(
               // Save the connection between two communities (from `community` to `c`)
               //
               paths->second.insert(c.first);
+
+              // Save the connecting edge (from `community` to `c`)
+              //
+              connections->second.push_back(std::make_pair(i, j));
+
+              sanity_edges = true;
               break;
             }
           }
+          if (!sanity_edges)
+            throw std::logic_error("erro: the graph contains edges which doesn't match community structure");
         }
       }
     }
@@ -388,6 +410,25 @@ analyse_communities_intersections(
     else {
       for (auto c : paths->second)
         os << c << " ";
+    }
+
+    os << "\n";
+  }
+
+  os << "\n"
+     << "Connections between clusters (connection edges)\n"
+     << "\n";
+
+  for (auto community : communities_map) {
+    auto connections = communities_cn.find(community.first);
+
+    os << "[" << std::setw(4) << connections->first << "]: ";
+
+    if (connections->second.empty())
+      os << "No outbound connections";
+    else {
+      for (auto c : connections->second)
+        os << "[" << c.first << "->" << c.second << "] ";
     }
 
     os << "\n";
