@@ -104,7 +104,7 @@ main(int argc, char* argv[])
         if (opt_output_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
           std::cerr << "-O: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_output_graph_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-O' option" << '\n';
             return 1;
           }
@@ -141,9 +141,6 @@ main(int argc, char* argv[])
     auto set_w = std::function([](std::vector<std::tuple<Index, Index, Value>>& c, Index f, Index t, Value w) -> void {
       c.push_back(std::make_tuple(f, t, w));
     });
-    auto get_w = std::function([](std::vector<std::tuple<Index, Index, Value>>::iterator& it) -> std::tuple<Index, Index, Value>& {
-      return *it;
-    });
 
     std::ifstream graph_stream(opt_input_graph);
     if (!graph_stream.is_open()) {
@@ -152,7 +149,7 @@ main(int argc, char* argv[])
     }
 
     utilz::graphs::io::scan_graph(opt_input_graph_format, graph_stream, graph_edges, set_w);
-    utilz::graphs::io::print_graph(opt_output_graph_format, output_stream, graph_edges.begin(), graph_edges.end(), get_w);
+    utilz::graphs::io::print_graph(opt_output_graph_format, output_stream, graph_edges.begin(), graph_edges.end());
   }
 
   return 0;
