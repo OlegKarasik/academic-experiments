@@ -129,18 +129,20 @@ main(int argc, char* argv[])
     }
   }
 
-  if (!opt_input_graph.empty()) {
-    utilz::square_shape<Index> graph_matrix;
+  std::ofstream output_stream(opt_output);
+  if (!output_stream.is_open()) {
+    std::cerr << "erro: can't open output file (denoted by -o option)";
+    return 1;
+  }
 
-    auto set_vc = std::function([](utilz::square_shape<Index>& c, Index vc) -> void {
-      utilz::procedures::square_shape_set_size<utilz::square_shape<Index>> set_size;
-      set_size(c, vc);
+  if (!opt_input_graph.empty()) {
+    std::vector<std::tuple<Index, Index, Value>> graph_edges;
+
+    auto set_w = std::function([](std::vector<std::tuple<Index, Index, Value>>& c, Index f, Index t, Value w) -> void {
+      c.push_back(std::make_tuple(f, t, w));
     });
-    auto set_ec = std::function([](utilz::square_shape<Index>& c, Index ec) -> void {
-    });
-    auto set_w  = std::function([](utilz::square_shape<Index>& c, Index f, Index t, Value w) -> void {
-      utilz::procedures::square_shape_at<utilz::square_shape<Index>> at;
-      at(c, f, t) = w;
+    auto get_w = std::function([](std::vector<std::tuple<Index, Index, Value>>::iterator& it) -> std::tuple<Index, Index, Value>& {
+      return *it;
     });
 
     std::ifstream graph_stream(opt_input_graph);
@@ -149,7 +151,8 @@ main(int argc, char* argv[])
       return 1;
     }
 
-    utilz::graphs::io::scan_graph(opt_input_graph_format, graph_stream, graph_matrix, set_vc, set_ec, set_w);
+    utilz::graphs::io::scan_graph(opt_input_graph_format, graph_stream, graph_edges, set_w);
+    utilz::graphs::io::print_graph(opt_output_graph_format, output_stream, graph_edges.begin(), graph_edges.end(), get_w);
   }
 
   return 0;
