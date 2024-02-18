@@ -147,51 +147,100 @@ scan_graph(
 
 // ==
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 std::tuple<I, I>
 print_graph_edges(
   std::ostream& os,
-  It            begin,
-  It            end);
+  G&            graph,
+  GI&           get_it);
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
-
-template<graph_format F, typename It, typename I, typename W>
-void
-print_graph(
-  std::ostream& os,
-  It            begin,
-  It            end,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
-
-template<graph_format F, typename It, typename I, typename W>
-void
-print_graph(
-  std::ostream& os,
-  It            begin,
-  It            end,
-  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
-
-template<graph_format F, typename It, typename I, typename W>
-void
-print_graph(
-  std::ostream& os,
-  It            begin,
-  It            end,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end);
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GI&           get_it);
 
 } // namespace impl
 
@@ -696,13 +745,61 @@ scan_graph(
   }
 };
 
-template<typename It>
+template<typename G, typename It, typename I>
 void
 print_graph(
-  graph_format  format,
-  std::ostream& os,
-  It            begin,
-  It            end)
+  graph_format                           format,
+  std::ostream&                          os,
+  G&                                     graph,
+  std::function<std::tuple<bool, I>(G&)>& get_vc,
+  std::function<std::tuple<bool, I>(G&)>& get_ec,
+  std::function<std::tuple<It, It>(G&)>& get_it)
+{
+  using T = typename std::iterator_traits<It>::value_type;
+
+  static_assert(
+    is_tuple<T>::value,
+    "erro: the iterators must return a tuple of three elements");
+  static_assert(
+    std::tuple_size_v<T> == 3,
+    "erro: the iterators must return a tuple of three elements");
+  static_assert(
+    std::is_same<std::tuple_element_t<0, T>, I>::value,
+    "erro: the iterators must return a tuple of three elements");
+  static_assert(
+    std::is_same<std::tuple_element_t<1, T>, I>::value,
+    "erro: the iterators must return a tuple of three elements");
+
+  using GV = typename std::function<std::tuple<bool, I>(G&)>;
+  using GE = typename std::function<std::tuple<bool, I>(G&)>;
+  using GI = typename std::function<std::tuple<It, It>(G&)>;
+  using W  = typename std::tuple_element_t<2, T>;
+
+  switch (format) {
+    case graph_format::graph_fmt_edgelist:
+      impl::print_graph<graph_format::graph_fmt_edgelist, G, It, I, W, GV, GE, GI>(os, graph, get_vc, get_ec, get_it);
+      break;
+    case graph_format::graph_fmt_weightlist:
+      impl::print_graph<graph_format::graph_fmt_weightlist, G, It, I, W, GV, GE, GI>(os, graph, get_vc, get_ec, get_it);
+      break;
+    case graph_format::graph_fmt_dimacs:
+      impl::print_graph<graph_format::graph_fmt_dimacs, G, It, I, W, GV, GE, GI>(os, graph, get_vc, get_ec, get_it);
+      break;
+    case graph_format::graph_fmt_binary:
+      impl::print_graph<graph_format::graph_fmt_binary, G, It, I, W, GV, GE, GI>(os, graph, get_vc, get_ec, get_it);
+      break;
+    default:
+      throw std::logic_error("erro: The format is not supported");
+  }
+};
+
+template<typename G, typename It>
+void
+print_graph(
+  graph_format                           format,
+  std::ostream&                          os,
+  G&                                     graph,
+  std::function<std::tuple<It, It>(G&)>& get_it)
 {
   using T = typename std::iterator_traits<It>::value_type;
 
@@ -716,21 +813,22 @@ print_graph(
     std::is_same<std::tuple_element_t<0, T>, std::tuple_element_t<1, T>>::value,
     "erro: the iterators must return a tuple of three elements");
 
-  using I = typename std::tuple_element_t<0, T>;
-  using W = typename std::tuple_element_t<2, T>;
+  using GI = typename std::function<std::tuple<It, It>(G&)>;
+  using I  = typename std::tuple_element_t<0, T>;
+  using W  = typename std::tuple_element_t<2, T>;
 
   switch (format) {
     case graph_format::graph_fmt_edgelist:
-      impl::print_graph<graph_format::graph_fmt_edgelist, It, I, W>(os, begin, end);
+      impl::print_graph<graph_format::graph_fmt_edgelist, G, It, I, W, GI>(os, graph, get_it);
       break;
     case graph_format::graph_fmt_weightlist:
-      impl::print_graph<graph_format::graph_fmt_weightlist, It, I, W>(os, begin, end);
+      impl::print_graph<graph_format::graph_fmt_weightlist, G, It, I, W, GI>(os, graph, get_it);
       break;
     case graph_format::graph_fmt_dimacs:
-      impl::print_graph<graph_format::graph_fmt_dimacs, It, I, W>(os, begin, end);
+      impl::print_graph<graph_format::graph_fmt_dimacs, G, It, I, W, GI>(os, graph, get_it);
       break;
     case graph_format::graph_fmt_binary:
-      impl::print_graph<graph_format::graph_fmt_binary, It, I, W>(os, begin, end);
+      impl::print_graph<graph_format::graph_fmt_binary, G, It, I, W, GI>(os, graph, get_it);
       break;
     default:
       throw std::logic_error("erro: The format is not supported");
@@ -859,8 +957,7 @@ scan_graph(
 
   std::vector<io::graph_edge<F, I, W>> cache;
 
-  I vc, ec;
-  std::tie(vc, ec) = scan_graph_edges<F, CACHE_G, I, W, CACHE_SW>(is, cache, cache_w);
+  auto [vc, ec] = scan_graph_edges<F, CACHE_G, I, W, CACHE_SW>(is, cache, cache_w);
 
   set_vc(graph, vc);
   set_ec(graph, ec);
@@ -1011,13 +1108,15 @@ scan_graph(
   scan_graph<F, G, I, W, SW>(is, graph, set_w, typename graph_traits<F>::preamble_format());
 };
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 std::tuple<I, I>
 print_graph_edges(
   std::ostream& os,
-  It            begin,
-  It            end)
+  G&            graph,
+  GI&           get_it)
 {
+  auto [begin, end] = get_it(graph);
+
   I vmin = I(0), vmax = I(0), vc = I(0), ec = I(0);
   while (begin != end) {
     io::graph_edge<F, I, W> edge = *begin;
@@ -1036,17 +1135,128 @@ print_graph_edges(
   return std::make_tuple(vc, ec);
 };
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
+{
+  auto [has_vc, vc] = get_vc(graph);
+  auto [has_ec, ec] = get_ec(graph);
+
+  if (!has_vc || !has_ec) {
+    print_graph<F, G, It, I, W, GI>(
+      os,
+      graph,
+      get_it,
+      std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
+  } else {
+    io::graph_preamble<F, I> preamble(vc, ec);
+    if (!(os << preamble))
+      throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
+
+    print_graph_edges<F, G, It, I, W, GI>(os, graph, get_it);
+  }
+};
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
+{
+  auto [has_vc, vc] = get_vc(graph);
+  if (!has_vc) {
+    print_graph<F, G, It, I, W, GI>(
+      os,
+      graph,
+      get_it,
+      std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>());
+  } else {
+    io::graph_preamble<F, I> preamble(vc, I(0));
+    if (!(os << preamble))
+      throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
+
+    print_graph_edges<F, G, It, I, W, GI>(os, graph, get_it);
+  }
+};
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
+{
+  auto [has_ec, ec] = get_ec(graph);
+  if (!has_ec) {
+    print_graph<F, G, It, I, W, GI>(
+      os,
+      graph,
+      get_it,
+      std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>());
+  } else {
+    io::graph_preamble<F, I> preamble(I(0), ec);
+    if (!(os << preamble))
+      throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
+
+    print_graph_edges<F, G, It, I, W, GI>(os, graph, get_it);
+  }
+};
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it,
+  std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
+{
+  print_graph_edges<F, G, It, I, W, GI>(os, graph, get_it);
+};
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GV, typename GE, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GV&           get_vc,
+  GE&           get_ec,
+  GI&           get_it)
+{
+  print_graph<F, G, It, I, W, GV, GE, GI>(
+    os,
+    graph,
+    get_vc,
+    get_ec,
+    get_it,
+    typename graph_traits<F>::preamble_format());
+};
+
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
+void
+print_graph(
+  std::ostream& os,
+  G&            graph,
+  GI&           get_it,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
 {
   std::stringstream ss;
 
-  io::graph_preamble<F, I> preamble = print_graph_edges<F, It, I, W>(ss, begin, end);
+  io::graph_preamble<F, I> preamble = print_graph_edges<F, G, It, I, W, GI>(ss, graph, get_it);
 
   if (!(os << preamble))
     throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
@@ -1054,58 +1264,58 @@ print_graph(
   os << ss.rdbuf();
 };
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end,
+  G&            graph,
+  GI&           get_it,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
-  print_graph(
+  print_graph<F, G, It, I, W, GI>(
     os,
-    begin,
-    end,
+    graph,
+    get_it,
     std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
 };
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end,
+  G&            graph,
+  GI&           get_it,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
 {
-  print_graph(
+  print_graph<F, G, It, I, W, GI>(
     os,
-    begin,
-    end,
+    graph,
+    get_it,
     std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>());
 };
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end,
+  G&            graph,
+  GI&           get_it,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
-  print_graph_edges<F, It, I, W>(os, begin, end);
+  print_graph_edges<F, G, It, I, W, GI>(os, graph, get_it);
 };
 
-template<graph_format F, typename It, typename I, typename W>
+template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 void
 print_graph(
   std::ostream& os,
-  It            begin,
-  It            end)
+  G&            graph,
+  GI&           get_it)
 {
-  print_graph<F, It, I, W>(
+  print_graph<F, G, It, I, W, GI>(
     os,
-    begin,
-    end,
+    graph,
+    get_it,
     typename graph_traits<F>::preamble_format());
 };
 
