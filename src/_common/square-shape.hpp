@@ -338,6 +338,7 @@ public:
   using size_type  = typename square_shape<T, A>::size_type;
   using value_type = typename square_shape<T, A>::value_type;
   using pointer    = typename square_shape<T, A>::pointer;
+  using reference  = typename square_shape<T, A>::reference;
 };
 
 template<typename T, typename A, typename U>
@@ -349,6 +350,7 @@ public:
   using size_type  = typename square_shape<square_shape<T, A>, U>::size_type;
   using value_type = typename square_shape_traits<square_shape<T, A>>::value_type;
   using pointer    = typename square_shape_traits<square_shape<T, A>>::pointer;
+  using reference  = typename square_shape_traits<square_shape<T, A>>::reference;
 };
 
 } // namespace traits
