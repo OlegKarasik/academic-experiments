@@ -45,14 +45,14 @@ main(int argc, char* argv[])
 
   // Supported options
   // g: <path>, path to input file
-  // G: <enum>, format of a graph file
+  // G: <enum>, format of an input file
   //    Supported values:
   //    - 'edgelist'
   //    - 'dimacs'
   //    - 'weightlist'
   //    - 'binary'
   // o: <path>, path to output file
-  // O: <enum/enum>, format of a graph output file
+  // O: <enum>, format of an output file
   //    Supported values
   //    - 'edgelist'
   //    - 'dimacs'
@@ -88,9 +88,9 @@ main(int argc, char* argv[])
         std::cerr << "erro: unexpected '-G' option detected" << '\n';
         return 1;
       case 'o':
-        std::cerr << "-o: " << optarg << "\n";
-
         if (opt_output.empty()) {
+          std::cerr << "-o: " << optarg << "\n";
+
           opt_output = optarg;
           break;
         }
