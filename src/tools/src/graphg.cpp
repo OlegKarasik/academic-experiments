@@ -300,4 +300,8 @@ main(int argc, char* argv[])
     output_stream,
     weight_matrix,
     get_it);
+
+  // Flush output stream
+  //
+  output_stream.flush();
 }
