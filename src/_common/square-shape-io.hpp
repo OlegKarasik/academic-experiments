@@ -107,8 +107,8 @@ public:
       if (++this->m_j == this->m_size) {
         this->m_j = _size_type(0);
         if (++this->m_i == this->m_size) {
-          this->m_i == this->m_size;
-          this->m_j == this->m_size;
+          this->m_i = this->m_size;
+          this->m_j = this->m_size;
 
           break;
         }
