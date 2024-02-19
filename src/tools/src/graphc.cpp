@@ -199,5 +199,9 @@ main(int argc, char* argv[])
     get_ec,
     get_it);
 
+  // Flush output stream
+  //
+  output_stream.flush();
+
   return 0;
 }
