@@ -536,10 +536,19 @@ template<typename TIndex, typename TWeight>
 std::istream&
 operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge)
 {
-  TIndex f, t;
-  if (is >> f >> t) {
-    edge = graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>(f, t, TWeight(1));
+
+  std::string line;
+  if (std::getline(is, line)) {
+    TIndex f, t;
+
+    std::stringstream ss(line);
+    if (ss >> f >> t) {
+      edge = graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>(f, t, TWeight(1));
+      return is;
+    }
   }
+
+  is.setstate(std::ios::failbit);
   return is;
 };
 
@@ -748,12 +757,12 @@ scan_graph(
 template<typename G, typename It, typename I>
 void
 print_graph(
-  graph_format                           format,
-  std::ostream&                          os,
-  G&                                     graph,
+  graph_format                            format,
+  std::ostream&                           os,
+  G&                                      graph,
   std::function<std::tuple<bool, I>(G&)>& get_vc,
   std::function<std::tuple<bool, I>(G&)>& get_ec,
-  std::function<std::tuple<It, It>(G&)>& get_it)
+  std::function<std::tuple<It, It>(G&)>&  get_it)
 {
   using T = typename std::iterator_traits<It>::value_type;
 
