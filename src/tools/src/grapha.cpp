@@ -201,6 +201,8 @@ main(int argc, char* argv[])
 
   analyse_communities_intersections(output_stream, graph_matrix, communities_map);
 
+  // Flush output stream
+  //
   output_stream.flush();
 }
 
