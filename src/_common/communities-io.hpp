@@ -141,7 +141,7 @@ operator>>(std::istream& is, communities_preamble<communities_format::communitie
   std::string line;
   if (std::getline(is, line)) {
     TIndex index;
-    char sign, open, close;
+    char   sign, open, close;
 
     std::stringstream ss(line);
     if (ss >> sign >> open >> index >> close) {
@@ -178,7 +178,7 @@ operator>>(std::istream& is, communities_items<communities_format::communities_f
     }
 
     TIndex key;
-    char open, close;
+    char   open, close;
 
     std::stringstream ss(line);
     if (ss >> open >> key >> close) {
@@ -218,9 +218,9 @@ parse_communities_format(
 template<typename C, typename I>
 void
 scan_communities(
-  communities_format            format,
-  std::istream&                 is,
-  C&                            communities,
+  communities_format             format,
+  std::istream&                  is,
+  C&                             communities,
   std::function<void(C&, I, I)>& set_v)
 {
   using SV = typename std::function<void(C&, I, I)>;
