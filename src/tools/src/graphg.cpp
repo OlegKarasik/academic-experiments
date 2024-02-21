@@ -25,7 +25,6 @@
 #include "graphs-generators.hpp"
 #include "graphs-io.hpp"
 
-#include "square-shape-io.hpp"
 #include "square-shape.hpp"
 
 template<typename T>
