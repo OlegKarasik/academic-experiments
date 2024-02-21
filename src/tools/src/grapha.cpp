@@ -156,27 +156,17 @@ main(int argc, char* argv[])
   std::map<Index, std::set<Index>> communities_map;
 
   if (!opt_input_graph.empty()) {
-    auto set_vc = std::function([](utilz::square_shape<Index>& c, Index vc) -> void {
-      utilz::procedures::square_shape_set_size<utilz::square_shape<Index>> set_size;
-      utilz::procedures::square_shape_replace<utilz::square_shape<Index>>  replace;
-
-      set_size(c, vc);
-      replace(c, Index(0), infinity<Index>());
-    });
-    auto set_ec = std::function([](utilz::square_shape<Index>& c, Index ec) -> void {
-    });
-    auto set_w  = std::function([](utilz::square_shape<Index>& c, Index f, Index t, Value w) -> void {
-      utilz::procedures::square_shape_at<utilz::square_shape<Index>> at;
-      at(c, f, t) = w;
-    });
-
     std::ifstream graph_stream(opt_input_graph);
     if (!graph_stream.is_open()) {
       std::cerr << "erro: can't open graph file (denoted by -g option)";
       return 1;
     }
 
-    utilz::graphs::io::scan_graph(opt_graph_format, graph_stream, graph_matrix, set_vc, set_ec, set_w);
+    utilz::graphs::io::scan_graph(
+      opt_graph_format,
+      graph_stream,
+      graph_matrix,
+      infinity<Index>());
   }
   if (!opt_input_communities.empty()) {
     auto set_v = std::function([](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
@@ -194,7 +184,10 @@ main(int argc, char* argv[])
       return 1;
     }
 
-    utilz::communities::io::scan_communities(opt_communities_format, communities_stream, communities_map, set_v);
+    utilz::communities::io::scan_communities(
+      opt_communities_format,
+      communities_stream,
+      communities_map, set_v);
   }
 
   std::ofstream output_stream(opt_output);

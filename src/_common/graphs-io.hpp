@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <type_traits>
 
+#include "square-shape.hpp"
+
 namespace utilz {
 namespace graphs {
 namespace io {
@@ -241,6 +243,13 @@ print_graph(
   std::ostream& os,
   G&            graph,
   GI&           get_it);
+
+namespace square_shape {
+
+template<typename T>
+class iterator;
+
+} // namespace square_shape
 
 } // namespace impl
 
@@ -844,6 +853,62 @@ print_graph(
   }
 };
 
+template<typename T, typename... TArgs>
+void
+scan_graph(
+  graph_format                                                                    format,
+  std::istream&                                                                   is,
+  utilz::square_shape<T>&                                                         shape,
+  typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::value_type infinity,
+  TArgs... args)
+{
+  using S  = utilz::square_shape<T>;
+  using SS = utilz::procedures::square_shape_set_size<S>;
+  using SW = utilz::procedures::square_shape_set<S>;
+  using RP = utilz::procedures::square_shape_replace<S>;
+
+  using size_type  = typename utilz::traits::square_shape_traits<S>::size_type;
+  using value_type = typename utilz::traits::square_shape_traits<S>::value_type;
+
+  SS ss(args...);
+  SW sw;
+  RP rp;
+
+  auto ss_fn = std::function([&ss, &rp, &infinity](S& c, size_type vertex_count) -> void {
+    ss(c, vertex_count);
+    rp(c, value_type(), infinity);
+  });
+  auto se_fn = std::function([](S& c, size_type edge_count) -> void {
+  });
+  auto sw_fn = std::function([&sw](S& c, size_type f, size_type t, value_type w) -> void {
+    sw(c, f, t, w);
+  });
+
+  utilz::graphs::io::scan_graph(format, is, shape, ss_fn, se_fn, sw_fn);
+};
+
+template<typename T>
+void
+print_graph(
+  graph_format                                                                    format,
+  std::ostream&                                                                   os,
+  utilz::square_shape<T>&                                                         shape,
+  typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::value_type infinity)
+{
+  using S = utilz::square_shape<T>;
+  using I = utilz::graphs::io::impl::square_shape::iterator<T>;
+
+  using value_type = typename utilz::traits::square_shape_traits<S>::value_type;
+
+  auto gt_fn = std::function([&infinity](S& c) -> std::tuple<I, I> {
+    auto begin = I(c, infinity, typename I::begin_iterator());
+    auto end   = I(c, infinity, typename I::end_iterator());
+    return std::make_tuple(begin, end);
+  });
+
+  utilz::graphs::io::print_graph(format, os, shape, gt_fn);
+};
+
 namespace impl {
 
 template<typename TIndex>
@@ -1327,6 +1392,130 @@ print_graph(
     get_it,
     typename graph_traits<F>::preamble_format());
 };
+
+namespace square_shape {
+
+template<typename T>
+class iterator
+{
+  static_assert(utilz::traits::square_shape_traits<utilz::square_shape<T>>::is::value, "erro: input type has to be a square_shape");
+
+private:
+  using _size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
+  using _value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::value_type;
+
+public:
+  // Iterator definitions
+  //
+  using iterator_category = std::forward_iterator_tag;
+  using difference_type   = _size_type;
+  using value_type        = typename std::tuple<_size_type, _size_type, _value_type>;
+  using pointer           = value_type*;
+  using reference         = value_type&;
+
+private:
+  _size_type m_size;
+  _size_type m_i;
+  _size_type m_j;
+
+  _value_type m_infinity;
+
+  utilz::square_shape<T>& m_s;
+
+public:
+  struct begin_iterator
+  {
+  };
+  struct end_iterator
+  {
+  };
+
+public:
+  iterator(utilz::square_shape<T>& s, _value_type infinity, begin_iterator)
+    : m_s(s)
+  {
+    utilz::procedures::square_shape_get_size<utilz::square_shape<T>> get_size;
+
+    this->m_size = get_size(s);
+    this->m_i    = _size_type(0);
+    this->m_j    = _size_type(0);
+
+    this->m_infinity = infinity;
+
+    // If initial state of the iterator is infinity - then advance the iterator to first
+    // non infinity value
+    //
+    if (!s.empty()) {
+      utilz::procedures::square_shape_at<utilz::square_shape<T>> at;
+      if (at(s, this->m_i, this->m_j) == this->m_infinity)
+        ++(*this);
+    }
+  }
+
+  iterator(utilz::square_shape<T>& s, _value_type infinity, end_iterator)
+    : m_s(s)
+  {
+    utilz::procedures::square_shape_get_size<utilz::square_shape<T>> get_size;
+
+    this->m_size = get_size(s);
+    this->m_i    = _size_type(this->m_size);
+    this->m_j    = _size_type(this->m_size);
+
+    this->m_infinity = infinity;
+  }
+
+  value_type
+  operator*()
+  {
+    utilz::procedures::square_shape_at<utilz::square_shape<T>> at;
+
+    return std::make_tuple(this->m_i, this->m_j, at(this->m_s, this->m_i, this->m_j));
+  }
+
+  iterator&
+  operator++()
+  {
+    utilz::procedures::square_shape_at<utilz::square_shape<T>> at;
+
+    do {
+      if (++this->m_j == this->m_size) {
+        this->m_j = _size_type(0);
+        if (++this->m_i == this->m_size) {
+          this->m_i = this->m_size;
+          this->m_j = this->m_size;
+
+          break;
+        }
+      }
+    } while (at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
+
+    return *this;
+  }
+
+  iterator
+  operator++(int)
+  {
+    auto v = *this;
+
+    ++(*this);
+
+    return v;
+  }
+
+  friend bool
+  operator==(const iterator& a, const iterator& b)
+  {
+    return a.m_s == b.m_s && a.m_infinity == b.m_infinity && a.m_i == b.m_i && a.m_j == b.m_j;
+  };
+
+  friend bool
+  operator!=(const iterator& a, const iterator& b)
+  {
+    return !(a == b);
+  };
+};
+
+} // namespace square_shape
 
 } // namespace impl
 

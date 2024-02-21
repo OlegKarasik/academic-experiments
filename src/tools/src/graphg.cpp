@@ -283,23 +283,13 @@ main(int argc, char* argv[])
       if (adjacency_matrix.at(i, j))
         weight_matrix.at(i, j) = weight_distribution(weight_distribution_engine);
 
-  // Prepare matrix accesors for printing
-  //
-  using matrix_iterator = typename utilz::graphs::io::square_shape_iterator<utilz::square_shape<int>>;
-
-  auto get_it = std::function([](utilz::square_shape<int>& c) -> std::tuple<matrix_iterator, matrix_iterator> {
-    auto begin = matrix_iterator(c, infinity<int>(), matrix_iterator::begin_iterator());
-    auto end   = matrix_iterator(c, infinity<int>(), matrix_iterator::end_iterator());
-    return std::make_tuple(begin, end);
-  });
-
   // Save
   //
   utilz::graphs::io::print_graph(
     opt_output_format,
     output_stream,
     weight_matrix,
-    get_it);
+    infinity<int>());
 
   // Flush output stream
   //
