@@ -13,15 +13,12 @@
 #include "workspace.hpp"
 
 // local utilz
+#include "graphs-io.hpp"
 #include "square-shape.hpp"
 
 // local includes
 //
 #include "algorithm.hpp"
-#include "io.hpp"
-
-namespace apsp  = ::apsp;
-namespace utilz = ::utilz;
 
 const auto graph_names = std::array<std::string, 2>({ "10-14.source.g", "32-376.source.g" });
 
@@ -53,6 +50,8 @@ public:
 
   Fixture()
   {
+    utilz::graphs::io::graph_format format = utilz::graphs::io::graph_format::graph_fmt_weightlist;
+
     std::filesystem::path root_path = workspace::root();
 
 #ifdef APSP_ALG_HAS_BLOCKS
@@ -68,9 +67,9 @@ public:
         matrix src_matrix;
 
 #ifdef APSP_ALG_HAS_BLOCKS
-        ::apsp::io::scan_matrix(src_fs, false, src_matrix, block_size);
+        utilz::graphs::io::scan_graph(format, src_fs, src_matrix, block_size);
 #else
-        ::apsp::io::scan_matrix(src_fs, false, src_matrix);
+        utilz::graphs::io::scan_graph(format, src_fs, src_matrix);
 #endif
 
         this->m_src.push_back(std::move(src_matrix));

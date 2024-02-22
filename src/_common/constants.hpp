@@ -2,7 +2,7 @@
 
 #include <limits>
 
-namespace apsp {
+namespace utilz {
 namespace constants {
 
 template<typename T>
@@ -13,4 +13,4 @@ infinity()
 };
 
 } // namespace constants
-} // namespace apsp
+} // namespace utilz

@@ -8,9 +8,9 @@
 
 template<typename T, typename A>
 void
-calculate_block(::utilz::square_shape<T, A>& ij, ::utilz::square_shape<T, A>& ik, ::utilz::square_shape<T, A>& kj)
+calculate_block(utilz::square_shape<T, A>& ij, utilz::square_shape<T, A>& ik, utilz::square_shape<T, A>& kj)
 {
-  using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
+  using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -22,9 +22,9 @@ calculate_block(::utilz::square_shape<T, A>& ij, ::utilz::square_shape<T, A>& ik
 
 template<typename T, typename A, typename U>
 __hack_noinline void
-run(::utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
+run(utilz::square_shape<utilz::square_shape<T, A>, U>& blocks)
 {
-  using size_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
+  using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
 
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks)

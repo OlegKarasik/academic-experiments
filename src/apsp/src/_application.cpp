@@ -8,11 +8,12 @@
 
 // global includes
 //
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
-#include <filesystem>
+
 
 // global C includes
 //
@@ -25,53 +26,56 @@
   #include <unistd.h>
 #endif
 
-// global common includes
+// local operating system level includes, manage if going cross-platform
+//
+#include "win-memory.hpp"
+
+// local utilz
 //
 #include "measure.hpp"
 #include "memory.hpp"
-
-// operating system level includes, manage if going cross-platform
-//
-#include "win-memory.hpp"
+#include "graphs-io.hpp"
+#include "square-shape.hpp"
 
 // local includes
 //
 #include "algorithm.hpp"
-#include "io.hpp"
 
 // define global types
 //
 using g_calculation_type = int;
 
 template<typename T>
-using g_allocator_type = typename ::utilz::memory::buffer_allocator<T>;
+using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
 #ifdef APSP_ALG_HAS_BLOCKS
-using matrix_block = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = ::utilz::square_shape<matrix_block, g_allocator_type<matrix_block>>;
+using matrix_block = utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix       = utilz::square_shape<matrix_block, g_allocator_type<matrix_block>>;
 #else
-using matrix = ::utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix = utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
 
 int
 main(int argc, char* argv[]) __hack_noexcept
 {
-  bool   opt_binary    = false;
-  bool   opt_pages     = false;
-  size_t opt_reserve   = 0;
-  size_t opt_alignment = 0;
+  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
 
-  std::string input;
-  std::string output;
+  bool   opt_pages     = false;
+  size_t opt_reserve   = size_t(0);
+  size_t opt_alignment = size_t(0);
+
+  std::string opt_input;
+  std::string opt_output;
 
 #ifdef APSP_ALG_HAS_BLOCKS
-  matrix::size_type s = 0;
+  matrix::size_type opt_block_size = matrix::size_type(0);
 
-  const char* options = "i:o:bpr:a:s:";
+  const char* options = "g:G:o:O:pr:a:s:";
 #else
-  const char* options = "i:o:bpr:a:";
+  const char* options = "g:G:o:O:pr:a:";
 #endif
 
   std::cerr << "Options:\n";
@@ -79,106 +83,139 @@ main(int argc, char* argv[]) __hack_noexcept
   int opt;
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
-      case 'i':
-        std::cerr << "-i: " << optarg << "\n";
+      case 'g':
+        if (opt_input.empty()) {
+          std::cerr << "-g: " << optarg << "\n";
 
-        input = optarg;
-        if (input.empty()){
-          std::cerr << "erro: missing value after '-i' option";
-          return 1;
+          opt_input = optarg;
+          break;
         }
-        if (!std::filesystem::exists(input)) {
-          std::cerr << "erro: value after '-i' option doesn't point to an existing file";
-          return 1;
+        std::cerr << "erro: unexpected '-g' option detected" << '\n';
+        return 1;
+      case 'G':
+        if (opt_input_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+          std::cerr << "-G: " << optarg << "\n";
+
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_format)) {
+            std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
+            return 1;
+          }
+          break;
         }
-        break;
+        std::cerr << "erro: unexpected '-G' option detected" << '\n';
+        return 1;
       case 'o':
-        std::cerr << "-o: " << optarg << "\n";
+        if (opt_output.empty()) {
+          std::cerr << "-o: " << optarg << "\n";
 
-        output = optarg;
-        if (output.empty()){
-          std::cerr << "erro: missing value after '-o' option";
-          return 1;
+          opt_output = optarg;
+          break;
         }
-        break;
-      case 'b':
-        std::cerr << "-b: true\n";
+        std::cerr << "erro: unexpected '-o' option detected" << '\n';
+        return 1;
+      case 'O':
+        if (opt_output_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+          std::cerr << "-O: " << optarg << "\n";
 
-        opt_binary = true;
-        break;
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_output_format)) {
+            std::cerr << "erro: invalid graph format has been detected in '-O' option" << '\n';
+            return 1;
+          }
+          break;
+        }
+        std::cerr << "erro: unexpected '-O' option detected" << '\n';
+        return 1;
       case 'p':
-        std::cerr << "-p: true\n";
+        if (!opt_pages) {
+          std::cerr << "-p: true\n";
 
-        opt_pages = true;
-        break;
+          opt_pages = true;
+          break;
+        }
+        std::cerr << "erro: unexpected '-p' option detected" << '\n';
+        return 1;
       case 'r':
-        std::cerr << "-r: " << optarg << "\n";
+        if (opt_reserve == size_t(0)) {
+          std::cerr << "-r: " << optarg << "\n";
 
-        opt_reserve = atoi(optarg) * 1024 * 1024;
+          opt_reserve = atoi(optarg) * 1024 * 1024;
 
-        if (opt_reserve == 0) {
-          std::cerr << "erro: missing value after '-r' option";
-          return 1;
+          if (opt_reserve == size_t(0)) {
+            std::cerr << "erro: missing value after '-r' option";
+            return 1;
+          }
+          break;
         }
-        break;
+        std::cerr << "erro: unexpected '-r' option detected" << '\n';
+        return 1;
       case 'a':
-        std::cerr << "-a: " << optarg << "\n";
+        if (opt_alignment == size_t(0)) {
+          std::cerr << "-a: " << optarg << "\n";
 
-        opt_alignment = atoi(optarg);
+          opt_alignment = atoi(optarg);
 
-        if (opt_alignment == 0 || opt_alignment % 2 != 0) {
-          std::cerr << "erro: missing value after '-a' option or value isn't power of 2";
-          return 1;
+          if (opt_alignment == size_t(0) || opt_alignment % size_t(2) != size_t(0)) {
+            std::cerr << "erro: missing value after '-a' option or value isn't power of 2";
+            return 1;
+          }
+          break;
         }
-        break;
+        std::cerr << "erro: unexpected '-a' option detected" << '\n';
+        return 1;
 #ifdef APSP_ALG_HAS_BLOCKS
       case 's':
-        std::cerr << "-s: " << optarg << "\n";
+        if (opt_block_size == matrix::size_type(0)) {
+          std::cerr << "-s: " << optarg << "\n";
 
-        s = atoi(optarg);
+          opt_block_size = atoi(optarg);
 
-        if (s == matrix::size_type()) {
-          std::cerr << "erro: missing value after '-s' option";
-          return 1;
+          if (opt_block_size == matrix::size_type(0)) {
+            std::cerr << "erro: missing value after '-s' option";
+            return 1;
+          }
+          break;
         }
-        break;
+        std::cerr << "erro: unexpected '-a' option detected" << '\n';
+        return 1;
 #endif
     }
   }
-
-  std::cerr << std::endl;
-
-  std::ifstream ins;
-  if (!input.empty()) {
-    if (opt_binary) {
-      ins.open(input, std::ios_base::binary);
-    } else {
-      ins.open(input);
-    }
+  if (opt_input_format == utilz::graphs::io::graph_fmt_none) {
+    std::cerr << "erro: the -G parameter is required";
+    return 1;
+  }
+  if (opt_output_format == utilz::graphs::io::graph_fmt_none) {
+    std::cerr << "erro: the -O parameter is required";
+    return 1;
   }
 
-  std::ofstream outs;
-  if (!output.empty()) {
-    if (opt_binary) {
-      outs.open(output, std::ios_base::binary);
-    } else {
-      outs.open(output);
-    }
+  // Open the input stream
+  //
+  std::ifstream input_fstream(opt_input);
+  if (!input_fstream.is_open()) {
+    std::cerr << "warn: using standard input instead of a file (please use -g option to redirect input to a file)";
   }
 
-  std::istream& in  = ins.is_open() ? ins : std::cin;
-  std::ostream& out = outs.is_open() ? outs : std::cout;
+  // Open the output stream
+  //
+  std::ofstream output_fstream(opt_output);
+  if (!output_fstream.is_open()) {
+    std::cerr << "warn: using standard output instead of a file (please use -o option to redirect output to a file)";
+  }
+
+  std::istream& input_stream  = input_fstream.is_open() ? input_fstream : std::cin;
+  std::ostream& output_stream = output_fstream.is_open() ? output_fstream : std::cout;
 
   std::shared_ptr<char> memory;
   if (opt_pages) {
     // Initialize large pages support from application side
     // this might require different actions in different operating systems
     //
-    ::utilz::memory::__largepages_init();
+    utilz::memory::__largepages_init();
 
     memory = std::shared_ptr<char>(
-      reinterpret_cast<char*>(::utilz::memory::__largepages_malloc(opt_reserve)),
-      ::utilz::memory::__largepages_free);
+      reinterpret_cast<char*>(utilz::memory::__largepages_malloc(opt_reserve)),
+      utilz::memory::__largepages_free);
 
   } else {
     memory = std::shared_ptr<char>(
@@ -193,8 +230,8 @@ main(int argc, char* argv[]) __hack_noexcept
 
   ::memset(memory.get(), 0, opt_reserve);
 
-  ::utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
-  ::utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
+  utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
+  utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
 
   // Define matrix and execute algorithm specific overloads of methods
   //
@@ -202,13 +239,13 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_HAS_BLOCKS
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &in, opt_binary, s]() -> void {
-      ::apsp::io::scan_matrix(in, opt_binary, m, s);
+    [&m, &input_stream, opt_input_format, opt_block_size]() -> void {
+      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, opt_block_size);
     });
 #else
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &in, opt_binary]() -> void {
-      ::apsp::io::scan_matrix(in, opt_binary, m);
+    [&m, &input_stream, opt_input_format]() -> void {
+      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m);
     });
 #endif
 
@@ -254,6 +291,8 @@ main(int argc, char* argv[]) __hack_noexcept
   down(m, buffer_fx, o);
 #endif
 
-  auto prnt_ms = utilz::measure_milliseconds([&m, &out, opt_binary]() -> void { ::apsp::io::print_matrix(out, opt_binary, m); });
+  auto prnt_ms = utilz::measure_milliseconds([&m, &output_stream, opt_output_format]() -> void {
+    utilz::graphs::io::print_graph(opt_output_format, output_stream, m);
+  });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 }

@@ -12,12 +12,13 @@
 #include "workspace.hpp"
 
 // local utilz
+#include "constants.hpp"
+#include "graphs-io.hpp"
 #include "square-shape.hpp"
 
 // local includes
 //
 #include "algorithm.hpp"
-#include "io.hpp"
 
 template<typename T>
 class Fixture : public ::testing::Test
@@ -37,7 +38,9 @@ public:
 
   using matrix_at = utilz::procedures::square_shape_at<matrix>;
   using matrix_sz = utilz::procedures::square_shape_get_size<matrix>;
+
   using matrix_st = typename utilz::traits::square_shape_traits<matrix>::size_type;
+  using matrix_vt = typename utilz::traits::square_shape_traits<matrix>::value_type;
 
 public:
 #ifdef APSP_ALG_HAS_OPTIONS
@@ -50,17 +53,19 @@ public:
 #ifdef APSP_ALG_HAS_BLOCKS
   Fixture(
     const std::string& graph_name,
-    const matrix_st block_size)
+    const matrix_st    block_size)
 #else
   Fixture(
     const std::string& graph_name)
 #endif
   {
+    utilz::graphs::io::graph_format format = utilz::graphs::io::graph_format::graph_fmt_weightlist;
+
     std::filesystem::path root_path = workspace::root();
     std::filesystem::path data_path = "data/_test/direct-acyclic-graphs";
 
-    std::filesystem::path src_path  = root_path / data_path / (graph_name + ".source.g");
-    std::filesystem::path res_path  = root_path / data_path / (graph_name + ".result.g");
+    std::filesystem::path src_path = root_path / data_path / (graph_name + ".source.g");
+    std::filesystem::path res_path = root_path / data_path / (graph_name + ".result.g");
 
     std::ifstream src_fs(src_path);
     if (!src_fs.is_open())
@@ -71,11 +76,11 @@ public:
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
 #ifdef APSP_ALG_HAS_BLOCKS
-    ::apsp::io::scan_matrix(src_fs, false, this->m_src, block_size);
-    ::apsp::io::scan_matrix(res_fs, false, this->m_res, block_size);
+    utilz::graphs::io::scan_graph(format, src_fs, this->m_src, block_size);
+    utilz::graphs::io::scan_graph(format, res_fs, this->m_res, block_size);
 #else
-    ::apsp::io::scan_matrix(src_fs, false, this->m_src);
-    ::apsp::io::scan_matrix(res_fs, false, this->m_res);
+    utilz::graphs::io::scan_graph(format, src_fs, this->m_src);
+    utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
 #endif
   };
   ~Fixture(){};

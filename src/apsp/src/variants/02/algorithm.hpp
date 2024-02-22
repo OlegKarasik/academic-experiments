@@ -6,7 +6,6 @@
 
 #include "memory.hpp"
 #include "square-shape.hpp"
-
 #include "constants.hpp"
 
 template<typename T>
@@ -22,11 +21,11 @@ struct support_arrays
 
 template<typename T, typename A>
 __hack_noinline support_arrays<T>
-up(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b)
+up(utilz::square_shape<T, A>& m, utilz::memory::buffer& b)
 {
-  using pointer    = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
-  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using pointer    = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
   auto allocation_size = m.size() * sizeof(value_type);
 
@@ -41,13 +40,13 @@ up(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b)
   // doesn't affect correctness of calculations.
   //
   for (auto i = size_type(0); i < m.size(); ++i) {
-    if (m.at(i, i) == ::apsp::constants::infinity<value_type>())
+    if (m.at(i, i) == utilz::constants::infinity<value_type>())
       m.at(i, i) = size_type(0);
 
-    arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
-    arrays.mm_array_prv_col[i] = ::apsp::constants::infinity<value_type>();
-    arrays.mm_array_cur_col[i] = ::apsp::constants::infinity<value_type>();
-    arrays.mm_array_nxt_col[i] = ::apsp::constants::infinity<value_type>();
+    arrays.mm_array_cur_row[i] = utilz::constants::infinity<value_type>();
+    arrays.mm_array_prv_col[i] = utilz::constants::infinity<value_type>();
+    arrays.mm_array_cur_col[i] = utilz::constants::infinity<value_type>();
+    arrays.mm_array_nxt_col[i] = utilz::constants::infinity<value_type>();
   }
 
   return arrays;
@@ -55,12 +54,12 @@ up(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b)
 
 template<typename T, typename A>
 __hack_noinline void
-down(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b, support_arrays<T> o)
+down(utilz::square_shape<T, A>& m, utilz::memory::buffer& b, support_arrays<T> o)
 {
-  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
-  using alptr_type = typename ::utilz::memory::buffer::pointer;
+  using alptr_type = typename utilz::memory::buffer::pointer;
 
   auto allocation_size = m.size() * sizeof(value_type);
 
@@ -74,24 +73,24 @@ down(::utilz::square_shape<T, A>& m, ::utilz::memory::buffer& b, support_arrays<
   //
   for (auto i = size_type(0); i < m.size(); ++i)
     if (m.at(i, i) == size_type(0))
-      m.at(i, i) = ::apsp::constants::infinity<value_type>();
+      m.at(i, i) = utilz::constants::infinity<value_type>();
 }
 
 template<typename T, typename A>
 __hack_noinline void
-run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
+run(utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  using value_type = typename ::utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
 
-  support_arrays.mm_array_prv_col[0] = ::apsp::constants::infinity<value_type>();
+  support_arrays.mm_array_prv_col[0] = utilz::constants::infinity<value_type>();
   support_arrays.mm_array_nxt_col[0] = m.at(0, 1);
 
   const auto x = m.size() - size_type(1);
   for (auto k = size_type(1); k < m.size(); ++k) {
     __hack_ivdep
     for (auto i = size_type(0); i < k; ++i)
-      support_arrays.mm_array_cur_row[i] = ::apsp::constants::infinity<value_type>();
+      support_arrays.mm_array_cur_row[i] = utilz::constants::infinity<value_type>();
 
     const auto z = k - size_type(1);
 
@@ -102,7 +101,7 @@ run(::utilz::square_shape<T, A>& m, support_arrays<T>& support_arrays)
       const auto v = m.at(k, i);
       const auto w = support_arrays.mm_array_prv_col[i];
 
-      auto minimum = ::apsp::constants::infinity<value_type>();
+      auto minimum = utilz::constants::infinity<value_type>();
 
 #ifdef _OPENMP
   #pragma omp simd
