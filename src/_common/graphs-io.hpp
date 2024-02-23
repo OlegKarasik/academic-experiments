@@ -862,7 +862,7 @@ scan_graph(
   S&            shape,
   TArgs... args)
 {
-  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 
   using SS = utilz::procedures::square_shape_set_size<S>;
   using SW = utilz::procedures::square_shape_set<S>;
@@ -895,7 +895,7 @@ print_graph(
   std::ostream& os,
   S&            shape)
 {
-  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 
   using iter_type  = typename utilz::graphs::io::impl::square_shape::iterator<S>;
   using value_type = typename utilz::traits::square_shape_traits<S>::value_type;

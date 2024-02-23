@@ -362,7 +362,7 @@ namespace get_size {
 template<typename S>
 struct impl
 {
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 };
 
 template<typename T, typename A>
@@ -409,7 +409,7 @@ public:
 template<std::size_t I, typename S>
 struct impl
 {
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 };
 
 template<std::size_t I, typename T, typename A>
@@ -471,7 +471,7 @@ public:
 template<typename S>
 struct square_shape_at
 {
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 };
 
 template<typename T, typename A>
@@ -530,7 +530,7 @@ template<typename S>
 struct square_shape_get
 {
 private:
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 
 private:
   using size_type = typename traits::square_shape_traits<S>::size_type;
@@ -553,7 +553,7 @@ template<typename S>
 struct square_shape_set
 {
 private:
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 
 private:
   using size_type = typename traits::square_shape_traits<S>::size_type;
@@ -576,7 +576,7 @@ template<typename S>
 struct square_shape_replace
 {
 private:
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape of T");
+  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
 
 private:
   using size_type  = typename traits::square_shape_traits<S>::size_type;
