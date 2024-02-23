@@ -36,7 +36,7 @@ public:
   using matrix = ::utilz::square_shape<T>;
 #endif
 
-  using matrix_at = utilz::procedures::square_shape_at<matrix>;
+  using matrix_gt = utilz::procedures::square_shape_get<matrix>;
   using matrix_sz = utilz::procedures::square_shape_get_size<matrix>;
 
   using matrix_st = typename utilz::traits::square_shape_traits<matrix>::size_type;
@@ -98,7 +98,7 @@ public:
     run(this->m_src);
 #endif
 
-    matrix_at at;
+    matrix_gt at;
     matrix_sz sz;
 
     for (auto i = matrix_st(0); i < sz(this->m_src) && sz(this->m_res); ++i)

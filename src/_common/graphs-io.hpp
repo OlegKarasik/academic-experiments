@@ -1446,8 +1446,8 @@ public:
     // non infinity value
     //
     if (!s.empty()) {
-      utilz::procedures::square_shape_at<S> at;
-      if (at(s, this->m_i, this->m_j) == this->m_infinity)
+      utilz::procedures::square_shape_get<S> get;
+      if (get(s, this->m_i, this->m_j) == this->m_infinity)
         ++(*this);
     }
   }
@@ -1467,15 +1467,15 @@ public:
   value_type
   operator*()
   {
-    utilz::procedures::square_shape_at<S> at;
+    utilz::procedures::square_shape_get<S> get;
 
-    return std::make_tuple(this->m_i, this->m_j, at(this->m_s, this->m_i, this->m_j));
+    return std::make_tuple(this->m_i, this->m_j, get(this->m_s, this->m_i, this->m_j));
   }
 
   iterator&
   operator++()
   {
-    utilz::procedures::square_shape_at<S> at;
+    utilz::procedures::square_shape_get<S> get;
 
     do {
       if (++this->m_j == this->m_size) {
@@ -1487,7 +1487,7 @@ public:
           break;
         }
       }
-    } while (at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
+    } while (get(this->m_s, this->m_i, this->m_j) == this->m_infinity);
 
     return *this;
   }
