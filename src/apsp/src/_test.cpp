@@ -15,6 +15,9 @@
 #include "constants.hpp"
 #include "graphs-io.hpp"
 #include "square-shape.hpp"
+#include "shapes-traits.hpp"
+#include "shapes-manip.hpp"
+#include "shapes-io.hpp"
 
 // local includes
 //
@@ -37,7 +40,8 @@ public:
 #endif
 
   using matrix_gt = utilz::procedures::square_shape_get<matrix>;
-  using matrix_sz = utilz::procedures::square_shape_get_size<matrix>;
+  using matrix_gw = utilz::procedures::shape_get_width<matrix>;
+  using matrix_gh = utilz::procedures::shape_get_height<matrix>;
 
   using matrix_st = typename utilz::traits::square_shape_traits<matrix>::size_type;
   using matrix_vt = typename utilz::traits::square_shape_traits<matrix>::value_type;
@@ -98,12 +102,13 @@ public:
     run(this->m_src);
 #endif
 
-    matrix_gt at;
-    matrix_sz sz;
+    matrix_gt gt;
+    matrix_gw gw;
+    matrix_gh gh;
 
-    for (auto i = matrix_st(0); i < sz(this->m_src) && sz(this->m_res); ++i)
-      for (auto j = matrix_st(0); j < sz(this->m_src) && sz(this->m_res); ++j)
-        ASSERT_EQ(at(this->m_src, i, j), at(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
+    for (auto i = matrix_st(0); i < gh(this->m_src) && gh(this->m_res); ++i)
+      for (auto j = matrix_st(0); j < gw(this->m_src) && gw(this->m_res); ++j)
+        ASSERT_EQ(gt(this->m_src, i, j), gt(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };
 

@@ -35,7 +35,11 @@
 #include "measure.hpp"
 #include "memory.hpp"
 #include "graphs-io.hpp"
+
 #include "square-shape.hpp"
+#include "shapes-traits.hpp"
+#include "shapes-manip.hpp"
+#include "shapes-io.hpp"
 
 // local includes
 //

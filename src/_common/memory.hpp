@@ -71,7 +71,7 @@ public:
   {}
 
   template<typename U>
-  buffer_allocator(buffer_allocator<U>& o)
+  buffer_allocator(buffer_allocator<U> o)
     : m_buffer(o.m_buffer)
   {
   }

@@ -12,52 +12,6 @@ namespace utilz {
 template<typename T, typename A>
 class rect_shape;
 
-namespace traits {
-
-template<typename S>
-struct rect_shape_traits;
-
-template<typename T, typename A>
-struct rect_shape_traits<rect_shape<T, A>>;
-
-} // namespace traits
-
-namespace procedures {
-
-namespace get_size {
-
-template<typename S>
-struct impl;
-
-} // namespace get_size
-
-namespace set_size {
-
-template<std::size_t I, typename S>
-struct impl;
-
-} // namespace set_size
-
-template<typename S>
-using rect_shape_get_size = get_size::impl<S>;
-
-template<typename S>
-using rect_shape_set_size = set_size::impl<std::size_t(0), S>;
-
-template<typename S>
-struct rect_shape_at;
-
-template<typename S>
-struct rect_shape_get;
-
-template<typename S>
-struct rect_shape_set;
-
-template<typename S>
-struct rect_shape_replace;
-
-} // namespace procedures
-
 //
 // Forward declarations
 // ---
@@ -65,13 +19,6 @@ struct rect_shape_replace;
 template<typename T, typename A = std::allocator<T>>
 class rect_shape
 {
-#ifdef _INTEL_COMPILER
-  template<std::size_t I, typename S>
-#else
-  template<std::size_t I, T>
-#endif
-  friend struct ::utilz::procedures::set_size::impl;
-
 public:
   using value_type      = T;
   using size_type       = size_t;
@@ -228,6 +175,12 @@ public:
     }
   };
 
+  allocator_type
+  get_allocator() const noexcept
+  {
+    return this->m_a;
+  };
+
   bool
   empty() const
   {
@@ -335,190 +288,5 @@ public:
     return *this;
   };
 };
-
-namespace traits {
-
-template<typename T>
-struct rect_shape_traits
-{
-public:
-  using is = std::bool_constant<false>;
-};
-
-template<typename T, typename A>
-struct rect_shape_traits<rect_shape<T, A>>
-{
-public:
-  using is         = std::bool_constant<true>;
-  using item_type  = typename rect_shape<T, A>::value_type;
-  using size_type  = typename rect_shape<T, A>::size_type;
-  using value_type = typename rect_shape<T, A>::value_type;
-  using pointer    = typename rect_shape<T, A>::pointer;
-};
-
-} // namespace traits
-
-namespace procedures {
-
-namespace get_size {
-
-template<typename S>
-struct impl
-{
-  static_assert(traits::rect_shape_traits<S>::is::value, "erro: input type has to be a rect_shape of T");
-};
-
-template<typename T, typename A>
-struct impl<rect_shape<T, A>>
-{
-public:
-  using result_type = typename traits::rect_shape_traits<rect_shape<T, A>>::size_type;
-
-public:
-  result_type
-  operator()(const rect_shape<T, A>& s)
-  {
-    return s.size();
-  }
-};
-
-} // namespace get_size
-
-namespace set_size {
-
-template<std::size_t I, typename T>
-struct __value
-{
-public:
-  T value;
-};
-
-template<std::size_t I, typename S>
-struct impl
-{
-  static_assert(traits::rect_shape_traits<S>::is::value, "erro: input type has to be a rect_shape of T");
-};
-
-template<std::size_t I, typename T, typename A>
-struct impl<I, rect_shape<T, A>>
-{
-public:
-  using result_type = typename traits::rect_shape_traits<rect_shape<T, A>>::size_type;
-
-public:
-  void
-  operator()(rect_shape<T, A>& s, result_type sz)
-  {
-    s = square_shape<T, A>(sz, s.m_a);
-  }
-};
-
-} // namespace set_size
-
-template<typename S>
-struct rect_shape_at
-{
-  static_assert(traits::rect_shape_traits<S>::is::value, "erro: input type has to be a rect_shape of T");
-};
-
-template<typename T, typename A>
-struct rect_shape_at<rect_shape<T, A>>
-{
-private:
-  using size_type = typename traits::rect_shape_traits<rect_shape<T, A>>::size_type;
-
-public:
-  using result_type = typename traits::rect_shape_traits<rect_shape<T, A>>::value_type;
-
-public:
-  result_type&
-  operator()(rect_shape<T, A>& s, size_type i, size_type j)
-  {
-    return s.at(i, j);
-  }
-  const result_type&
-  operator()(const rect_shape<T, A>& s, size_type i, size_type j)
-  {
-    return s.at(i, j);
-  }
-};
-
-template<typename S>
-struct rect_shape_get
-{
-private:
-  static_assert(traits::square_shape_traits<S>::is::value, "erro: input type has to be a rect_shape_get of T");
-
-private:
-  using size_type = typename traits::square_shape_traits<S>::size_type;
-
-public:
-  using result_type = typename traits::square_shape_traits<S>::value_type;
-
-private:
-  square_shape_at<S> m_at;
-
-public:
-  result_type
-  operator()(const S& s, size_type i, size_type j)
-  {
-    return this->m_at(s, i, j);
-  }
-};
-
-template<typename S>
-struct rect_shape_set
-{
-private:
-  static_assert(traits::rect_shape_traits<S>::is::value, "erro: input type has to be a rect_shape of T");
-
-private:
-  using size_type = typename traits::rect_shape_traits<S>::size_type;
-
-public:
-  using result_type = typename traits::rect_shape_traits<S>::value_type;
-
-private:
-  rect_shape_at<S> m_at;
-
-public:
-  void
-  operator()(S& s, size_type i, size_type j, result_type v)
-  {
-    this->m_at(s, i, j) = v;
-  }
-};
-
-template<typename S>
-struct rect_shape_replace
-{
-private:
-  static_assert(traits::rect_shape_traits<S>::is::value, "erro: input type has to be a rect_shape of T");
-
-private:
-  using size_type  = typename traits::rect_shape_traits<S>::size_type;
-  using value_type = typename traits::rect_shape_traits<S>::value_type;
-
-public:
-  using result_type = typename traits::rect_shape_traits<S>::value_type;
-
-private:
-  rect_shape_get_size<S> m_size;
-  rect_shape_at<S>       m_at;
-
-public:
-  void
-  operator()(S& s, value_type f, value_type t)
-  {
-    size_type size = this->m_size(s);
-
-    for (size_type i = size_type(0); i < size; ++i)
-      for (size_type j = size_type(0); j < size; ++j)
-        if (this->m_at(s, i, j) == f)
-          this->m_at(s, i, j) = t;
-  }
-};
-
-} // namespace procedures
 
 } // namespace utilz
