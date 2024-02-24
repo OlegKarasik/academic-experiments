@@ -12,7 +12,6 @@
 #include "workspace.hpp"
 
 // local utilz
-#include "constants.hpp"
 #include "graphs-io.hpp"
 #include "square-shape.hpp"
 #include "shapes-traits.hpp"
