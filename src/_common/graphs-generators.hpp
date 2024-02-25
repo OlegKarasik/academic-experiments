@@ -28,13 +28,13 @@ struct complete_graph_tag
 {
 };
 
-utilz::square_shape<bool>
+utilz::square_matrix<bool>
 random_graph(
-  typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type v,
-  typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type e,
+  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type v,
+  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type e,
   directed_acyclic_graph_tag)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type;
 
   static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
 
@@ -66,7 +66,7 @@ random_graph(
 
   // Initialise adjacency matrix
   //
-  utilz::square_shape<bool> adjacency_matrix(v);
+  utilz::square_matrix<bool> adjacency_matrix(v);
 
   // Pick two random vertexts indexes and create an edge between them.
   // Repeat until required number of edges.
@@ -136,13 +136,13 @@ random_graph(
   return std::move(adjacency_matrix);
 };
 
-utilz::square_shape<bool>
+utilz::square_matrix<bool>
 random_graph(
-  typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type v,
-  typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type e,
+  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type v,
+  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type e,
   connected_graph_tag)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type;
 
   static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
 
@@ -176,7 +176,7 @@ random_graph(
 
   // Initialise adjacency matrix
   //
-  utilz::square_shape<bool> adjacency_matrix(v);
+  utilz::square_matrix<bool> adjacency_matrix(v);
 
   // Connect all vertexes
   //
@@ -246,16 +246,16 @@ random_graph(
   return std::move(adjacency_matrix);
 };
 
-utilz::square_shape<bool>
+utilz::square_matrix<bool>
 random_graph(
-  typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type v,
+  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type v,
   complete_graph_tag)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<square_shape<bool>>::size_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type;
 
   // Initialise adjacency matrix
   //
-  utilz::square_shape<bool> adjacency_matrix(v);
+  utilz::square_matrix<bool> adjacency_matrix(v);
 
   // Because we are generating complete graph and not just graph
   // with cycles and number of edges the logic behind algorithm

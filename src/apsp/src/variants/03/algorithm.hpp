@@ -15,7 +15,7 @@
 template<typename T>
 struct support_arrays
 {
-  using pointer = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::pointer;
+  using pointer = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -32,14 +32,14 @@ struct support_arrays
 
 template<typename T, typename A, typename U>
 __hack_noinline support_arrays<T>
-up(utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, utilz::memory::buffer& b)
+up(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::buffer& b)
 {
-  using pointer    = typename utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::pointer;
-  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
-  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::value_type;
+  using pointer    = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::pointer;
+  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
+  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
 
-  utilz::procedures::square_shape_get_size<utilz::square_shape<utilz::square_shape<T, A>, U>> sz;
-  utilz::procedures::square_shape_at<utilz::square_shape<utilz::square_shape<T, A>, U>> at;
+  utilz::procedures::matrix_get_dimensions<utilz::square_matrix<utilz::square_matrix<T, A>, U>> sz;
+  utilz::procedures::square_matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -87,15 +87,15 @@ up(utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, utilz::memory::buf
 
 template<typename T, typename A, typename U>
 __hack_noinline void
-down(utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, utilz::memory::buffer& b, support_arrays<T> o)
+down(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::buffer& b, support_arrays<T> o)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::size_type;
-  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<utilz::square_shape<T, A>, U>>::value_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
+  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
 
   using alptr_type = typename utilz::memory::buffer::pointer;
 
-  utilz::procedures::square_shape_get_size<utilz::square_shape<utilz::square_shape<T, A>, U>> sz;
-  utilz::procedures::square_shape_at<utilz::square_shape<utilz::square_shape<T, A>, U>> at;
+  utilz::procedures::matrix_get_dimensions<utilz::square_matrix<utilz::square_matrix<T, A>, U>> sz;
+  utilz::procedures::square_matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
 
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_cur_row), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_prv_col), o.allocation_size);
@@ -116,10 +116,10 @@ down(utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, utilz::memory::b
 
 template<typename T, typename A>
 void
-calculate_diagonal(utilz::square_shape<T, A>& mm, support_arrays<T>& support_arrays)
+calculate_diagonal(utilz::square_matrix<T, A>& mm, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
   support_arrays.mm_array_prv_col[0] = utilz::constants::infinity<value_type>();
   support_arrays.mm_array_nxt_row[0] = mm.at(0, 1);
@@ -168,11 +168,11 @@ calculate_diagonal(utilz::square_shape<T, A>& mm, support_arrays<T>& support_arr
 
 template<typename T, typename A>
 void
-calculate_horizontal(utilz::square_shape<T, A>& im, utilz::square_shape<T, A>& mm, support_arrays<T>& support_arrays)
+calculate_horizontal(utilz::square_matrix<T, A>& im, utilz::square_matrix<T, A>& mm, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
-  using pointer    = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using pointer    = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = support_arrays.allocation_line * omp_get_thread_num();
@@ -230,11 +230,11 @@ calculate_horizontal(utilz::square_shape<T, A>& im, utilz::square_shape<T, A>& m
 
 template<typename T, typename A>
 void
-calculate_vertical(utilz::square_shape<T, A>& mi, utilz::square_shape<T, A>& mm, support_arrays<T>& support_arrays)
+calculate_vertical(utilz::square_matrix<T, A>& mi, utilz::square_matrix<T, A>& mm, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
-  using value_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::value_type;
-  using pointer    = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::pointer;
+  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using pointer    = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = support_arrays.allocation_line * omp_get_thread_num();
@@ -276,9 +276,9 @@ calculate_vertical(utilz::square_shape<T, A>& mi, utilz::square_shape<T, A>& mm,
 
 template<typename T, typename A>
 void
-calculate_peripheral(utilz::square_shape<T, A>& ij, utilz::square_shape<T, A>& ik, utilz::square_shape<T, A>& kj)
+calculate_peripheral(utilz::square_matrix<T, A>& ij, utilz::square_matrix<T, A>& ik, utilz::square_matrix<T, A>& kj)
 {
-  using size_type = typename utilz::traits::square_shape_traits<utilz::square_shape<T>>::size_type;
+  using size_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T>>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -290,9 +290,9 @@ calculate_peripheral(utilz::square_shape<T, A>& ij, utilz::square_shape<T, A>& i
 
 template<typename T, typename A, typename U>
 __hack_noinline void
-run(utilz::square_shape<utilz::square_shape<T, A>, U>& blocks, support_arrays<T>& support_arrays)
+run(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_shape_traits<utilz::square_shape<T, A>>::size_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks, support_arrays)
 #endif

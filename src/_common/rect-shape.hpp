@@ -10,14 +10,14 @@ namespace utilz {
 //
 
 template<typename T, typename A>
-class rect_shape;
+class rect_matrix;
 
 //
 // Forward declarations
 // ---
 
 template<typename T, typename A = std::allocator<T>>
-class rect_shape
+class rect_matrix
 {
 public:
   using value_type      = T;
@@ -100,7 +100,7 @@ private:
   }
 
 public:
-  rect_shape()
+  rect_matrix()
     : m_m(nullptr)
     , m_msize(0)
     , m_width(0)
@@ -108,7 +108,7 @@ public:
     , m_a(allocator_type())
   {
   }
-  rect_shape(const allocator_type& a)
+  rect_matrix(const allocator_type& a)
     : m_m(nullptr)
     , m_msize(0)
     , m_width(0)
@@ -117,7 +117,7 @@ public:
   {
   }
 
-  rect_shape(size_type w, size_type h, const allocator_type& a)
+  rect_matrix(size_type w, size_type h, const allocator_type& a)
     : m_m(nullptr)
     , m_msize(w * h)
     , m_width(w)
@@ -130,7 +130,7 @@ public:
     }
   }
 
-  rect_shape(const rect_shape& o)
+  rect_matrix(const rect_matrix& o)
     : m_m(nullptr)
     , m_msize(o.m_msize)
     , m_width(o.m_width)
@@ -140,7 +140,7 @@ public:
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
-  rect_shape(rect_shape&& o) noexcept
+  rect_matrix(rect_matrix&& o) noexcept
     : m_m(std::move(o.m_m))
     , m_msize(std::exchange(o.m_msize, 0))
     , m_width(std::exchange(o.m_width, 0))
@@ -148,7 +148,7 @@ public:
     , m_a(std::move(o.m_a))
   {
   }
-  rect_shape(rect_shape&& o, const allocator_type& a)
+  rect_matrix(rect_matrix&& o, const allocator_type& a)
     : m_m(nullptr)
     , m_msize(o.m_msize)
     , m_width(o.m_width)
@@ -222,18 +222,18 @@ public:
   };
 
   bool
-  operator==(const rect_shape& o) const noexcept
+  operator==(const rect_matrix& o) const noexcept
   {
     return this == &o || (this->m_msize == o.m_msize && std::equal(this->m_m, this->m_m + this->m_msize, o.m_m));
   };
   bool
-  operator!=(const rect_shape& o) const noexcept
+  operator!=(const rect_matrix& o) const noexcept
   {
     return !(*this == o);
   };
 
-  rect_shape&
-  operator=(const rect_shape& o)
+  rect_matrix&
+  operator=(const rect_matrix& o)
   {
     if (this != &o) {
       this->destroy_resources();
@@ -251,8 +251,8 @@ public:
     }
     return *this;
   };
-  rect_shape&
-  operator=(rect_shape&& o) noexcept(
+  rect_matrix&
+  operator=(rect_matrix&& o) noexcept(
     std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value&& std::is_nothrow_move_assignable<allocator_type>::value)
   {
     if (this != &o) {

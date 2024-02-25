@@ -41,14 +41,14 @@ scan_graph(
   S&            shape,
   TArgs... args)
 {
-  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
+  static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
 
-  using SS = utilz::procedures::square_shape_set_size<S>;
-  using SW = utilz::procedures::square_shape_set<S>;
-  using RP = utilz::procedures::square_shape_replace<S>;
+  using SS = utilz::procedures::square_matrix_set_size<S>;
+  using SW = utilz::procedures::square_matrix_set<S>;
+  using RP = utilz::procedures::square_matrix_replace<S>;
 
-  using size_type  = typename utilz::traits::square_shape_traits<S>::size_type;
-  using value_type = typename utilz::traits::square_shape_traits<S>::value_type;
+  using size_type  = typename utilz::traits::square_matrix_traits<S>::size_type;
+  using value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
 
   SS ss(args...);
   SW sw;
@@ -74,10 +74,10 @@ print_graph(
   std::ostream& os,
   S&            shape)
 {
-  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
+  static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
 
   using iter_type  = typename utilz::graphs::io::shapes::iterator<S>;
-  using value_type = typename utilz::traits::square_shape_traits<S>::value_type;
+  using value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
 
   auto gt_fn = std::function([](S& c) -> std::tuple<iter_type, iter_type> {
     auto begin = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::begin_iterator());
@@ -93,11 +93,11 @@ namespace shapes {
 template<typename S>
 class iterator
 {
-  static_assert(utilz::traits::square_shape_traits<S>::is::value, "erro: input type has to be a square_shape");
+  static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
 
 private:
-  using _size_type  = typename utilz::traits::square_shape_traits<S>::size_type;
-  using _value_type = typename utilz::traits::square_shape_traits<S>::value_type;
+  using _size_type  = typename utilz::traits::square_matrix_traits<S>::size_type;
+  using _value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
 
 public:
   // Iterator definitions
@@ -130,11 +130,12 @@ public:
   iterator(S& s, _value_type infinity, begin_iterator)
     : m_s(s)
   {
-    utilz::procedures::shape_get_width<S>  get_width;
-    utilz::procedures::shape_get_height<S> get_height;
+    utilz::procedures::matrix_get_dimensions<S>  get_dimensions;
 
-    this->m_width  = get_width(s);
-    this->m_height = get_height(s);
+    auto dimensions = get_dimensions(s);
+
+    this->m_width  = dimensions.w();
+    this->m_height = dimensions.h();
     this->m_i      = _size_type(0);
     this->m_j      = _size_type(0);
 
@@ -144,7 +145,7 @@ public:
     // non infinity value
     //
     if (!s.empty()) {
-      utilz::procedures::square_shape_get<S> get;
+      utilz::procedures::square_matrix_get<S> get;
       if (get(s, this->m_i, this->m_j) == this->m_infinity)
         ++(*this);
     }
@@ -153,11 +154,12 @@ public:
   iterator(S& s, _value_type infinity, end_iterator)
     : m_s(s)
   {
-    utilz::procedures::shape_get_width<S>  get_width;
-    utilz::procedures::shape_get_height<S> get_height;
+    utilz::procedures::matrix_get_dimensions<S>  get_dimensions;
 
-    this->m_width  = get_width(s);
-    this->m_height = get_height(s);
+    auto dimensions = get_dimensions(s);
+
+    this->m_width  = dimensions.w();
+    this->m_height = dimensions.h();
     this->m_i      = _size_type(this->m_height);
     this->m_j      = _size_type(this->m_width);
 
@@ -167,7 +169,7 @@ public:
   value_type
   operator*()
   {
-    utilz::procedures::square_shape_get<S> get;
+    utilz::procedures::square_matrix_get<S> get;
 
     return std::make_tuple(this->m_i, this->m_j, get(this->m_s, this->m_i, this->m_j));
   }
@@ -175,7 +177,7 @@ public:
   iterator&
   operator++()
   {
-    utilz::procedures::square_shape_get<S> get;
+    utilz::procedures::square_matrix_get<S> get;
 
     do {
       if (++this->m_j == this->m_width) {

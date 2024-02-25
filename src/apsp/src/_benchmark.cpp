@@ -39,9 +39,9 @@ class Fixture : public benchmark::Fixture
 #endif
 
 #ifdef APSP_ALG_HAS_BLOCKS
-  using matrix = utilz::square_shape<::utilz::square_shape<T>>;
+  using matrix = utilz::square_matrix<::utilz::square_matrix<T>>;
 #else
-  using matrix = utilz::square_shape<T>;
+  using matrix = utilz::square_matrix<T>;
 #endif
 
 public:

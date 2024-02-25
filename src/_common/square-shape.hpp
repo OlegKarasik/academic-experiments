@@ -10,14 +10,14 @@ namespace utilz {
 //
 
 template<typename T, typename A>
-class square_shape;
+class square_matrix;
 
 //
 // Forward declarations
 // ---
 
 template<typename T, typename A = std::allocator<T>>
-class square_shape
+class square_matrix
 {
 public:
   using value_type      = T;
@@ -99,11 +99,11 @@ private:
   }
 
 public:
-  square_shape()
-    : square_shape(allocator_type())
+  square_matrix()
+    : square_matrix(allocator_type())
   {
   }
-  square_shape(const allocator_type& a)
+  square_matrix(const allocator_type& a)
     : m_m(nullptr)
     , m_msize(0)
     , m_size(0)
@@ -111,11 +111,11 @@ public:
   {
   }
 
-  square_shape(size_type s)
-    : square_shape(s, allocator_type())
+  square_matrix(size_type s)
+    : square_matrix(s, allocator_type())
   {
   }
-  square_shape(size_type s, const allocator_type& a)
+  square_matrix(size_type s, const allocator_type& a)
     : m_m(nullptr)
     , m_msize(s * s)
     , m_size(s)
@@ -127,7 +127,7 @@ public:
     }
   }
 
-  square_shape(const square_shape& o)
+  square_matrix(const square_matrix& o)
     : m_m(nullptr)
     , m_msize(o.m_msize)
     , m_size(o.m_size)
@@ -136,14 +136,14 @@ public:
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
-  square_shape(square_shape&& o) noexcept
+  square_matrix(square_matrix&& o) noexcept
     : m_m(std::move(o.m_m))
     , m_msize(std::exchange(o.m_msize, 0))
     , m_size(std::exchange(o.m_size, 0))
     , m_a(std::move(o.m_a))
   {
   }
-  square_shape(square_shape&& o, const allocator_type& a)
+  square_matrix(square_matrix&& o, const allocator_type& a)
     : m_m(nullptr)
     , m_msize(o.m_msize)
     , m_size(o.m_size)
@@ -209,18 +209,18 @@ public:
   };
 
   bool
-  operator==(const square_shape& o) const noexcept
+  operator==(const square_matrix& o) const noexcept
   {
     return this == &o || (this->m_msize == o.m_msize && std::equal(this->m_m, this->m_m + this->m_msize, o.m_m));
   };
   bool
-  operator!=(const square_shape& o) const noexcept
+  operator!=(const square_matrix& o) const noexcept
   {
     return !(*this == o);
   };
 
-  square_shape&
-  operator=(const square_shape& o)
+  square_matrix&
+  operator=(const square_matrix& o)
   {
     if (this != &o) {
       this->destroy_resources();
@@ -237,8 +237,8 @@ public:
     }
     return *this;
   };
-  square_shape&
-  operator=(square_shape&& o) noexcept(
+  square_matrix&
+  operator=(square_matrix&& o) noexcept(
     std::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value&& std::is_nothrow_move_assignable<allocator_type>::value)
   {
     if (this != &o) {

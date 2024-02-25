@@ -42,6 +42,100 @@ enum graph_preamble_format
   graph_preamble_fmt_full         = 3
 };
 
+template<graph_format TFormat>
+class graph_traits
+{
+  static_assert(false, "The format is not supported");
+};
+
+template<graph_format TFormat, typename TIndex>
+class graph_preamble
+{
+  static_assert(false, "The format is not supported");
+};
+
+template<graph_format TFormat, typename TIndex, typename TWeight>
+class graph_edge
+{
+  static_assert(false, "The format is not supported");
+};
+
+template<>
+class graph_traits<graph_format::graph_fmt_edgelist>
+{
+public:
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>;
+};
+
+template<>
+class graph_traits<graph_format::graph_fmt_weightlist>
+{
+public:
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>;
+};
+
+template<>
+class graph_traits<graph_format::graph_fmt_dimacs>
+{
+public:
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>;
+};
+
+template<>
+class graph_traits<graph_format::graph_fmt_binary>
+{
+public:
+  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>;
+};
+
+template<typename TIndex>
+std::istream&
+operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
+
+template<typename TIndex>
+std::istream&
+operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
+
+template<typename TIndex>
+std::ostream&
+operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
+
+template<typename TIndex>
+std::ostream&
+operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
+
+template<typename TIndex, typename TWeight>
+std::istream&
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::istream&
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::istream&
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::istream&
+operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::ostream&
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::ostream&
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::ostream&
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
+
+template<typename TIndex, typename TWeight>
+std::ostream&
+operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
+
 namespace impl {
 
 template<typename TIndex>
@@ -145,8 +239,6 @@ scan_graph(
   G&            graph,
   SW&           set_w);
 
-// ==
-
 template<graph_format F, typename G, typename It, typename I, typename W, typename GI>
 std::tuple<I, I>
 print_graph_edges(
@@ -243,100 +335,6 @@ print_graph(
   GI&           get_it);
 
 } // namespace impl
-
-template<graph_format TFormat>
-class graph_traits
-{
-  static_assert(false, "The format is not supported");
-};
-
-template<graph_format TFormat, typename TIndex>
-class graph_preamble
-{
-  static_assert(false, "The format is not supported");
-};
-
-template<graph_format TFormat, typename TIndex, typename TWeight>
-class graph_edge
-{
-  static_assert(false, "The format is not supported");
-};
-
-template<>
-class graph_traits<graph_format::graph_fmt_edgelist>
-{
-public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>;
-};
-
-template<>
-class graph_traits<graph_format::graph_fmt_weightlist>
-{
-public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>;
-};
-
-template<>
-class graph_traits<graph_format::graph_fmt_dimacs>
-{
-public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>;
-};
-
-template<>
-class graph_traits<graph_format::graph_fmt_binary>
-{
-public:
-  using preamble_format = std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>;
-};
-
-template<typename TIndex>
-std::istream&
-operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
-
-template<typename TIndex>
-std::istream&
-operator>>(std::istream& is, graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
-
-template<typename TIndex>
-std::ostream&
-operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_dimacs, TIndex>& preamble);
-
-template<typename TIndex>
-std::ostream&
-operator<<(std::ostream& os, const graph_preamble<graph_format::graph_fmt_binary, TIndex>& preamble);
-
-template<typename TIndex, typename TWeight>
-std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::istream&
-operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_weightlist, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_dimacs, TIndex, TWeight>& edge);
-
-template<typename TIndex, typename TWeight>
-std::ostream&
-operator<<(std::ostream& os, const graph_edge<graph_format::graph_fmt_binary, TIndex, TWeight>& edge);
 
 //
 // Forward declarations

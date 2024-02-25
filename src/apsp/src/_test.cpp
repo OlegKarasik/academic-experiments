@@ -33,17 +33,16 @@ public:
 #endif
 
 #ifdef APSP_ALG_HAS_BLOCKS
-  using matrix = utilz::square_shape<utilz::square_shape<T>>;
+  using matrix = utilz::square_matrix<utilz::square_matrix<T>>;
 #else
-  using matrix = utilz::square_shape<T>;
+  using matrix = utilz::square_matrix<T>;
 #endif
 
-  using matrix_gt = utilz::procedures::square_shape_get<matrix>;
-  using matrix_gw = utilz::procedures::shape_get_width<matrix>;
-  using matrix_gh = utilz::procedures::shape_get_height<matrix>;
+  using matrix_gt = utilz::procedures::square_matrix_get<matrix>;
+  using matrix_dm = utilz::procedures::matrix_get_dimensions<matrix>;
 
-  using matrix_st = typename utilz::traits::square_shape_traits<matrix>::size_type;
-  using matrix_vt = typename utilz::traits::square_shape_traits<matrix>::value_type;
+  using matrix_st = typename utilz::traits::square_matrix_traits<matrix>::size_type;
+  using matrix_vt = typename utilz::traits::square_matrix_traits<matrix>::value_type;
 
 public:
 #ifdef APSP_ALG_HAS_OPTIONS
@@ -102,11 +101,13 @@ public:
 #endif
 
     matrix_gt gt;
-    matrix_gw gw;
-    matrix_gh gh;
+    matrix_dm dm;
 
-    for (auto i = matrix_st(0); i < gh(this->m_src) && gh(this->m_res); ++i)
-      for (auto j = matrix_st(0); j < gw(this->m_src) && gw(this->m_res); ++j)
+    auto src_dimensions = dm(this->m_src);
+    auto res_dimensions = dm(this->m_res);
+
+    for (auto i = matrix_st(0); i < src_dimensions && i < res_dimensions; ++i)
+      for (auto j = matrix_st(0); j < src_dimensions && j < res_dimensions; ++j)
         ASSERT_EQ(gt(this->m_src, i, j), gt(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };

@@ -55,10 +55,10 @@ using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
 // aliasing
 //
 #ifdef APSP_ALG_HAS_BLOCKS
-using matrix_block = utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = utilz::square_shape<matrix_block, g_allocator_type<matrix_block>>;
+using matrix_block = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
 #else
-using matrix = utilz::square_shape<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
 
 int
