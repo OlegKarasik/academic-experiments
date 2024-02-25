@@ -29,13 +29,13 @@ public:
 // aliasing
 //
 #ifdef APSP_ALG_HAS_OPTIONS
-  using buffer = ::utilz::memory::buffer_dyn;
+  using buffer = utilz::memory::buffer_dyn;
 #endif
 
 #ifdef APSP_ALG_HAS_BLOCKS
-  using matrix = ::utilz::square_shape<::utilz::square_shape<T>>;
+  using matrix = utilz::square_shape<utilz::square_shape<T>>;
 #else
-  using matrix = ::utilz::square_shape<T>;
+  using matrix = utilz::square_shape<T>;
 #endif
 
   using matrix_gt = utilz::procedures::square_shape_get<matrix>;
