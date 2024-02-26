@@ -17,6 +17,9 @@ namespace get_dimensions {
 template<typename S>
 struct impl_dimensions;
 
+template<typename S>
+struct impl_at;
+
 } // namespace get_dimensions
 
 namespace set_size {
@@ -33,7 +36,7 @@ template<typename S>
 using square_matrix_set_size = set_size::impl<std::size_t(0), S>;
 
 template<typename S>
-struct square_matrix_at;
+using square_matrix_at = get_dimensions::impl_at<S>;
 
 template<typename S>
 struct square_matrix_get;
@@ -55,7 +58,7 @@ struct impl_dimensions
 {
   static_assert(utilz::traits::matrix_traits<S>::is::value, "erro: input type has to be a matrix");
 
-public:
+private:
   using item_type      = typename utilz::traits::matrix_traits<S>::item_type;
   using size_type      = typename utilz::traits::matrix_traits<S>::size_type;
   using dimension_type = typename utilz::traits::matrix_traits<S>::dimension_type;
@@ -69,7 +72,7 @@ public:
     if constexpr (utilz::traits::matrix_traits<item_type>::is::value) {
       dimension_type dimensions(s);
       if constexpr (utilz::traits::square_matrix_traits<S>::is::value) {
-        typename impl_dimensions<item_type>::dimension_type v;
+        typename utilz::traits::matrix_traits<item_type>::dimension_type v;
         for (auto i = size_type(0); i < dimensions; ++i) {
           impl_dimensions<item_type> get_dimensions;
           v = v + get_dimensions(s.at(i, i));
@@ -78,10 +81,92 @@ public:
       }
 
       static_assert("erro: input type has to be a square matrix");
+    } else {
+      // Return the native dimensions
+      //
+      return dimension_type(s);
     }
-    // Return the native dimensions
-    //
-    return dimension_type(s);
+  }
+};
+
+template<typename S>
+struct impl_at
+{
+  static_assert(utilz::traits::matrix_traits<S>::is::value, "erro: input type has to be a matrix");
+
+private:
+  using item_type       = typename utilz::traits::matrix_traits<S>::item_type;
+  using size_type       = typename utilz::traits::matrix_traits<S>::size_type;
+  using value_type      = typename utilz::traits::matrix_traits<S>::value_type;
+  using reference       = typename utilz::traits::matrix_traits<S>::reference;
+  using const_reference = typename utilz::traits::matrix_traits<S>::const_reference;
+  using dimension_type  = typename utilz::traits::matrix_traits<S>::dimension_type;
+
+private:
+  reference
+  at(S& s, size_type i, size_type j)
+  {
+    if constexpr (utilz::traits::matrix_traits<item_type>::is::value) {
+      dimension_type dimensions(s);
+      if constexpr (utilz::traits::square_matrix_traits<S>::is::value) {
+        // we are navigating across matrix diagonal to pin-point the approximate
+        // location of the block
+        //
+        typename utilz::traits::matrix_traits<item_type>::dimension_type v;
+        for (auto z = size_type(0), w = v.w(), h = v.h(); z < dimensions; ++z, w = v.w(), h = v.h()) {
+          impl_dimensions<item_type> get_dimensions;
+          v = v + get_dimensions(s.at(z, z));
+
+          // we have a hit on a diagonal block
+          //
+          if (i < v.h() && j < v.w()) {
+            impl_at<item_type> get_at;
+            return get_at(s.at(z, z), i - h, j - w);
+          }
+
+          if (i < v.h()) {
+            for (auto x = z + size_type(1), w = v.w(); x < dimensions; ++x, w = v.w()) {
+              v = v + get_dimensions(s.at(z, x));
+              if (j < v.w()) {
+                impl_at<item_type> get_at;
+                return get_at(s.at(z, x), i - h, j - w);
+              }
+            }
+            break;
+          }
+          if (j < v.w()) {
+            for (auto y = z + size_type(1), h = v.h(); y < dimensions; ++y, h = v.h()) {
+              v = v + get_dimensions(s.at(y, z));
+              if (i < v.h()) {
+                impl_at<item_type> get_at;
+                return get_at(s.at(y, z), i - h, j - w);
+              }
+            }
+            break;
+          }
+        }
+        throw std::logic_error("");
+      }
+
+      static_assert("erro: input type has to be a square matrix");
+    } else {
+      // Access matrix directly
+      //
+      return s.at(i, j);
+    }
+  }
+
+public:
+  reference
+  operator()(S& s, size_type i, size_type j)
+  {
+    return this->at(s, i, j);
+  }
+
+  const_reference
+  operator()(S& s, size_type i, size_type j) const
+  {
+    return this->at(s, i, j);
   }
 };
 
@@ -159,64 +244,6 @@ public:
 } // namespace set_size
 
 template<typename S>
-struct square_matrix_at
-{
-  static_assert(traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
-};
-
-template<typename T, typename A>
-struct square_matrix_at<square_matrix<T, A>>
-{
-private:
-  using size_type = typename traits::square_matrix_traits<square_matrix<T, A>>::size_type;
-
-public:
-  using result_type = typename traits::square_matrix_traits<square_matrix<T, A>>::value_type;
-
-public:
-  result_type&
-  operator()(square_matrix<T, A>& s, size_type i, size_type j)
-  {
-    return s.at(i, j);
-  }
-  const result_type&
-  operator()(const square_matrix<T, A>& s, size_type i, size_type j)
-  {
-    return s.at(i, j);
-  }
-};
-
-template<typename T, typename A, typename U>
-struct square_matrix_at<square_matrix<square_matrix<T, A>, U>>
-{
-private:
-  using size_type = typename traits::square_matrix_traits<square_matrix<square_matrix<T, A>, U>>::size_type;
-
-public:
-  using result_type = typename traits::square_matrix_traits<square_matrix<square_matrix<T, A>, U>>::value_type;
-
-private:
-  matrix_get_dimensions<square_matrix<T, A>> m_size;
-  square_matrix_at<square_matrix<T, A>>      m_at;
-
-public:
-  result_type&
-  operator()(square_matrix<square_matrix<T, A>, U>& s, size_type i, size_type j)
-  {
-    size_type size = this->m_size(s.at(0, 0));
-
-    return this->m_at(s.at(i / size, j / size), i % size, j % size);
-  }
-  const result_type&
-  operator()(const square_matrix<square_matrix<T, A>, U>& s, size_type i, size_type j)
-  {
-    size_type size = this->m_size(s.at(0, 0));
-
-    return this->m_at(s.at(i / size, j / size), i % size, j % size);
-  }
-};
-
-template<typename S>
 struct square_matrix_get
 {
 private:
@@ -233,7 +260,7 @@ private:
 
 public:
   result_type
-  operator()(const S& s, size_type i, size_type j)
+  operator()(S& s, size_type i, size_type j)
   {
     return this->m_at(s, i, j);
   }
