@@ -117,14 +117,16 @@ private:
           impl_dimensions<item_type> get_dimensions;
           v = v + get_dimensions(s.at(z, z));
 
-          // we have a hit on a diagonal block
-          //
           if (i < v.h() && j < v.w()) {
+            // we have a hit on a diagonal
+            //
             impl_at<item_type> get_at;
             return get_at(s.at(z, z), i - h, j - w);
           }
 
           if (i < v.h()) {
+            // we have a hit on a row
+            //
             for (auto x = z + size_type(1), w = v.w(); x < dimensions; ++x, w = v.w()) {
               v = v + get_dimensions(s.at(z, x));
               if (j < v.w()) {
@@ -135,6 +137,8 @@ private:
             break;
           }
           if (j < v.w()) {
+            // we have a hit on a column
+            //
             for (auto y = z + size_type(1), h = v.h(); y < dimensions; ++y, h = v.h()) {
               v = v + get_dimensions(s.at(y, z));
               if (i < v.h()) {
@@ -145,7 +149,7 @@ private:
             break;
           }
         }
-        throw std::logic_error("");
+        throw std::out_of_range("erro: indeces are out of range");
       }
 
       static_assert("erro: input type has to be a square matrix");
