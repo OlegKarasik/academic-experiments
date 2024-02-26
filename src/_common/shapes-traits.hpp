@@ -152,25 +152,28 @@ template<typename T, typename A>
 struct rect_matrix_traits<rect_matrix<T, A>>
 {
 public:
-  using is             = std::bool_constant<true>;
-  using item_type      = typename rect_matrix<T, A>::value_type;
-  using size_type      = typename rect_matrix<T, A>::size_type;
-  using value_type     = typename rect_matrix<T, A>::value_type;
-  using pointer        = typename rect_matrix<T, A>::pointer;
-  using dimension_type = matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, rect_matrix<T, A>>;
+  using is              = std::bool_constant<true>;
+  using item_type       = typename rect_matrix<T, A>::value_type;
+  using size_type       = typename rect_matrix<T, A>::size_type;
+  using value_type      = typename rect_matrix<T, A>::value_type;
+  using pointer         = typename rect_matrix<T, A>::pointer;
+  using reference       = typename rect_matrix<T, A>::reference;
+  using const_reference = typename rect_matrix<T, A>::const_reference;
+  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, rect_matrix<T, A>>;
 };
 
 template<typename T, typename A, typename U>
 struct rect_matrix_traits<rect_matrix<rect_matrix<T, A>, U>>
 {
 public:
-  using is             = std::bool_constant<true>;
-  using item_type      = typename rect_matrix<rect_matrix<T, A>, U>::value_type;
-  using size_type      = typename rect_matrix<rect_matrix<T, A>, U>::size_type;
-  using value_type     = typename rect_matrix_traits<rect_matrix<T, A>>::value_type;
-  using pointer        = typename rect_matrix_traits<rect_matrix<T, A>>::pointer;
-  using reference      = typename rect_matrix_traits<rect_matrix<T, A>>::reference;
-  using dimension_type = matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, rect_matrix<rect_matrix<T, A>, U>>;
+  using is              = std::bool_constant<true>;
+  using item_type       = typename rect_matrix<rect_matrix<T, A>, U>::value_type;
+  using size_type       = typename rect_matrix<rect_matrix<T, A>, U>::size_type;
+  using value_type      = typename rect_matrix_traits<rect_matrix<T, A>>::value_type;
+  using pointer         = typename rect_matrix_traits<rect_matrix<T, A>>::pointer;
+  using reference       = typename rect_matrix_traits<rect_matrix<T, A>>::reference;
+  using const_reference = typename rect_matrix_traits<rect_matrix<T, A>>::const_reference;
+  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, rect_matrix<rect_matrix<T, A>, U>>;
 };
 
 template<typename T>
@@ -184,26 +187,28 @@ template<typename T, typename A>
 struct square_matrix_traits<square_matrix<T, A>>
 {
 public:
-  using is             = std::bool_constant<true>;
-  using item_type      = typename square_matrix<T, A>::value_type;
-  using size_type      = typename square_matrix<T, A>::size_type;
-  using value_type     = typename square_matrix<T, A>::value_type;
-  using pointer        = typename square_matrix<T, A>::pointer;
-  using reference      = typename square_matrix<T, A>::reference;
-  using dimension_type = matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, square_matrix<T, A>>;
+  using is              = std::bool_constant<true>;
+  using item_type       = typename square_matrix<T, A>::value_type;
+  using size_type       = typename square_matrix<T, A>::size_type;
+  using value_type      = typename square_matrix<T, A>::value_type;
+  using pointer         = typename square_matrix<T, A>::pointer;
+  using reference       = typename square_matrix<T, A>::reference;
+  using const_reference = typename square_matrix<T, A>::const_reference;
+  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, square_matrix<T, A>>;
 };
 
 template<typename T, typename A, typename U>
 struct square_matrix_traits<square_matrix<square_matrix<T, A>, U>>
 {
 public:
-  using is             = std::bool_constant<true>;
-  using item_type      = typename square_matrix<square_matrix<T, A>, U>::value_type;
-  using size_type      = typename square_matrix<square_matrix<T, A>, U>::size_type;
-  using value_type     = typename square_matrix_traits<square_matrix<T, A>>::value_type;
-  using pointer        = typename square_matrix_traits<square_matrix<T, A>>::pointer;
-  using reference      = typename square_matrix_traits<square_matrix<T, A>>::reference;
-  using dimension_type = matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, square_matrix<square_matrix<T, A>, U>>;
+  using is              = std::bool_constant<true>;
+  using item_type       = typename square_matrix<square_matrix<T, A>, U>::value_type;
+  using size_type       = typename square_matrix<square_matrix<T, A>, U>::size_type;
+  using value_type      = typename square_matrix_traits<square_matrix<T, A>>::value_type;
+  using pointer         = typename square_matrix_traits<square_matrix<T, A>>::pointer;
+  using reference       = typename square_matrix_traits<square_matrix<T, A>>::reference;
+  using const_reference = typename square_matrix_traits<square_matrix<T, A>>::const_reference;
+  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, square_matrix<square_matrix<T, A>, U>>;
 };
 
 template<typename T>
@@ -217,11 +222,13 @@ template<typename T, typename A>
 struct matrix_traits<utilz::rect_matrix<T, A>>
 {
 public:
-  using is             = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::is;
-  using item_type      = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::item_type;
-  using value_type     = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::value_type;
-  using size_type      = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::size_type;
-  using dimension_type = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::dimension_type;
+  using is              = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::is;
+  using item_type       = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::item_type;
+  using value_type      = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::value_type;
+  using size_type       = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::size_type;
+  using reference       = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::reference;
+  using const_reference = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::const_reference;
+  using dimension_type  = typename utilz::traits::rect_matrix_traits<utilz::rect_matrix<T, A>>::dimension_type;
 
   static size_type
   get_width(const utilz::rect_matrix<T, A>& s)
@@ -239,11 +246,13 @@ template<typename T, typename A>
 struct matrix_traits<utilz::square_matrix<T, A>>
 {
 public:
-  using is             = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::is;
-  using item_type      = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::item_type;
-  using value_type     = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
-  using size_type      = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using dimension_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::dimension_type;
+  using is              = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::is;
+  using item_type       = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::item_type;
+  using value_type      = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using size_type       = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using reference       = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::reference;
+  using const_reference = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::const_reference;
+  using dimension_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::dimension_type;
 
   static size_type
   get_width(const utilz::square_matrix<T, A>& s)
