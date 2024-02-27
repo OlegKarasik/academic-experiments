@@ -47,7 +47,7 @@ up(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::b
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = sz(blocks);
+  auto allocation_line = sz(blocks).s();
   auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
 
   support_arrays<T> arrays;
