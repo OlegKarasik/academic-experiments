@@ -61,15 +61,19 @@ class matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rec
 public:
   using size_type = typename utilz::traits::rect_matrix_traits<S>::size_type;
 
-private:
-  matrix_dimensions(size_type width, size_type height)
-    : impl::matrix_dimensions<size_type>(width, height)
-  {
-  }
-
 public:
   matrix_dimensions()
     : impl::matrix_dimensions<size_type>(size_type(0), size_type(0))
+  {
+  }
+
+  matrix_dimensions(size_type size)
+    : impl::matrix_dimensions<size_type>(size, size)
+  {
+  }
+
+  matrix_dimensions(size_type width, size_type height)
+    : impl::matrix_dimensions<size_type>(width, height)
   {
   }
 
@@ -78,8 +82,8 @@ public:
   {
   }
 
-  template<typename U>
-  matrix_dimensions(U dimensions)
+  template<matrix_dimensions_variant X, typename U>
+  matrix_dimensions(matrix_dimensions<X, U> dimensions)
     : impl::matrix_dimensions<size_type>(dimensions.w(), dimensions.h())
   {
   }
@@ -88,6 +92,24 @@ public:
   operator+(const matrix_dimensions& x) const
   {
     return matrix_dimensions(this->w() + x.w(), this->h() + x.h());
+  }
+
+  matrix_dimensions
+  operator-(const matrix_dimensions& x) const
+  {
+    return matrix_dimensions(this->w() - x.w(), this->h() - x.h());
+  }
+
+  matrix_dimensions
+  operator*(const matrix_dimensions& x) const
+  {
+    return matrix_dimensions(this->w() * x.w(), this->h() * x.h());
+  }
+
+  matrix_dimensions
+  operator/(const matrix_dimensions& x) const
+  {
+    return matrix_dimensions(this->w() / x.w(), this->h() / x.h());
   }
 };
 
@@ -98,15 +120,14 @@ class matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_squ
 public:
   using size_type = typename utilz::traits::square_matrix_traits<S>::size_type;
 
-private:
-  matrix_dimensions(size_type size)
-    : impl::matrix_dimensions<size_type>(size, size)
-  {
-  }
-
 public:
   matrix_dimensions()
     : impl::matrix_dimensions<size_type>(size_type(0), size_type(0))
+  {
+  }
+
+  matrix_dimensions(size_type size)
+    : impl::matrix_dimensions<size_type>(size, size)
   {
   }
 
@@ -116,7 +137,13 @@ public:
   }
 
   template<typename U>
-  matrix_dimensions(U dimensions)
+  matrix_dimensions(matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, U> dimensions)
+    : impl::matrix_dimensions<size_type>(dimensions.s(), dimensions.s())
+  {
+  }
+
+  template<typename U>
+  matrix_dimensions(matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, U> dimensions)
     : impl::matrix_dimensions<size_type>(dimensions.w(), dimensions.h())
   {
     if (dimensions.w() != dimensions.h())
@@ -138,6 +165,24 @@ public:
   operator+(const matrix_dimensions& x) const
   {
     return matrix_dimensions(this->s() + x.s());
+  }
+
+  matrix_dimensions
+  operator-(const matrix_dimensions& x) const
+  {
+    return matrix_dimensions(this->s() - x.s());
+  }
+
+  matrix_dimensions
+  operator*(const matrix_dimensions& x) const
+  {
+    return matrix_dimensions(this->s() * x.s());
+  }
+
+  matrix_dimensions
+  operator/(const matrix_dimensions& x) const
+  {
+    return matrix_dimensions(this->s() / x.s());
   }
 };
 
