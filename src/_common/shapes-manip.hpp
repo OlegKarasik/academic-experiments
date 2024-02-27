@@ -59,33 +59,87 @@ struct impl_dimensions
   static_assert(utilz::traits::matrix_traits<S>::is::value, "erro: input type has to be a matrix");
 
 private:
-  using item_type      = typename utilz::traits::matrix_traits<S>::item_type;
-  using size_type      = typename utilz::traits::matrix_traits<S>::size_type;
+  using item_type = typename utilz::traits::matrix_traits<S>::item_type;
+
+public:
   using dimension_type = typename utilz::traits::matrix_traits<S>::dimension_type;
 
 public:
   dimension_type
   operator()(const S& s)
   {
-    // if item type is a matrix we need to calculate the dimensions
-    //
-    if constexpr (utilz::traits::matrix_traits<item_type>::is::value) {
-      dimension_type dimensions(s);
-      if constexpr (utilz::traits::square_matrix_traits<S>::is::value) {
-        typename utilz::traits::matrix_traits<item_type>::dimension_type v;
-        for (auto i = size_type(0); i < dimensions; ++i) {
-          impl_dimensions<item_type> get_dimensions;
-          v = v + get_dimensions(s.at(i, i));
-        }
-        return dimension_type(v);
-      }
-
-      static_assert("erro: input type has to be a square matrix");
-    } else {
-      // Return the native dimensions
+    if constexpr (utilz::traits::square_matrix_traits<item_type>::is::value) {
+      // if item_type is a square matrix of any kind, we can calculate the dimensions
+      // by simple multiplication
       //
-      return dimension_type(s);
+      impl_dimensions<item_type> dimensions;
+      return s.empty()
+             ? dimension_type(0)
+             : dimension_type(s) * dimensions(s.at(0, 0));
     }
+    return dimension_type(s);
+  }
+};
+
+template<typename T, typename A, typename U>
+struct impl_dimensions<utilz::square_matrix<utilz::rect_matrix<T, A>, U>>
+{
+private:
+  using S         = utilz::square_matrix<utilz::rect_matrix<T, A>, U>;
+  using item_type = typename utilz::traits::matrix_traits<S>::item_type;
+  using size_type = typename utilz::traits::matrix_traits<S>::size_type;
+
+public:
+  using dimension_type = typename utilz::traits::matrix_traits<S>::dimension_type;
+
+private:
+  impl_dimensions<item_type> m_dimensions;
+
+public:
+  dimension_type
+  operator()(const S& s)
+  {
+    if (s.empty())
+      return dimension_type(0);
+
+    auto v = typename impl_dimensions<item_type>::dimension_type(0);
+    for (auto i = size_type(0); i < s.size(); ++i)
+      v = v + this->m_dimensions(s.at(i, i));
+
+    return dimension_type(v);
+  }
+};
+
+template<typename T, typename A, typename U>
+struct impl_dimensions<utilz::rect_matrix<utilz::rect_matrix<T, A>, U>>
+{
+private:
+  using S         = utilz::rect_matrix<utilz::rect_matrix<T, A>, U>;
+  using item_type = typename utilz::traits::matrix_traits<S>::item_type;
+  using size_type = typename utilz::traits::matrix_traits<S>::size_type;
+
+public:
+  using dimension_type = typename utilz::traits::matrix_traits<S>::dimension_type;
+
+private:
+  impl_dimensions<item_type> m_dimensions;
+
+public:
+  dimension_type
+  operator()(const S& s)
+  {
+    if (s.empty())
+      return dimension_type(0);
+
+    auto w = typename impl_dimensions<item_type>::dimension_type(0);
+    for (auto i = size_type(0); i < s.width(); ++i)
+      w = w + this->m_dimensions(s.at(0, i));
+
+    auto h = typename impl_dimensions<item_type>::dimension_type(0);
+    for (auto i = size_type(0); i < s.height(); ++i)
+      h = h + this->m_dimensions(s.at(i, 0));
+
+    return dimension_type(w.w(), h.h());
   }
 };
 
