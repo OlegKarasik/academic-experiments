@@ -199,6 +199,8 @@ if (ITT_FOUND)
   list(APPEND targets_alias "04")
 endif()
 
+add_custom_target(tests)
+
 # Initialise length
 #
 list(LENGTH targets_names _length)
