@@ -223,6 +223,8 @@ foreach(index RANGE ${length})
     add_executable(_test-v${t_name}        ${TST_SRC_LIST})
     add_executable(_benchmark-v${t_name}   ${BNK_SRC_LIST})
 
+    add_dependencies(tests _test-v${t_name})
+
     target_include_directories(_test-v${t_name}        PRIVATE src/variants/${t_alias})
     target_include_directories(_benchmark-v${t_name}   PRIVATE src/variants/${t_alias})
 
