@@ -44,8 +44,8 @@ scan_graph(
   static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
 
   using SS = utilz::procedures::square_matrix_set_size<S>;
-  using SW = utilz::procedures::square_matrix_set<S>;
-  using RP = utilz::procedures::square_matrix_replace<S>;
+  using SW = utilz::procedures::matrix_at<S>;
+  using RP = utilz::procedures::matrix_replace<S>;
 
   using size_type  = typename utilz::traits::square_matrix_traits<S>::size_type;
   using value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
@@ -61,7 +61,7 @@ scan_graph(
   auto se_fn = std::function([](S& c, size_type edge_count) -> void {
   });
   auto sw_fn = std::function([&sw](S& c, size_type f, size_type t, value_type w) -> void {
-    sw(c, f, t, w);
+    sw(c, f, t) = w;
   });
 
   utilz::graphs::io::scan_graph(format, is, shape, ss_fn, se_fn, sw_fn);
@@ -145,8 +145,8 @@ public:
     // non infinity value
     //
     if (!s.empty()) {
-      utilz::procedures::square_matrix_get<S> get;
-      if (get(s, this->m_i, this->m_j) == this->m_infinity)
+      utilz::procedures::matrix_at<S> get_at;
+      if (get_at(s, this->m_i, this->m_j) == this->m_infinity)
         ++(*this);
     }
   }
@@ -169,15 +169,15 @@ public:
   value_type
   operator*()
   {
-    utilz::procedures::square_matrix_get<S> get;
+    utilz::procedures::matrix_at<S> get_at;
 
-    return std::make_tuple(this->m_i, this->m_j, get(this->m_s, this->m_i, this->m_j));
+    return std::make_tuple(this->m_i, this->m_j, get_at(this->m_s, this->m_i, this->m_j));
   }
 
   iterator&
   operator++()
   {
-    utilz::procedures::square_matrix_get<S> get;
+    utilz::procedures::matrix_at<S> get_at;
 
     do {
       if (++this->m_j == this->m_width) {
@@ -189,7 +189,7 @@ public:
           break;
         }
       }
-    } while (get(this->m_s, this->m_i, this->m_j) == this->m_infinity);
+    } while (get_at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
 
     return *this;
   }

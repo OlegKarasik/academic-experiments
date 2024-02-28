@@ -39,7 +39,7 @@ up(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::b
   using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
 
   utilz::procedures::matrix_get_dimensions<utilz::square_matrix<utilz::square_matrix<T, A>, U>> sz;
-  utilz::procedures::square_matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
+  utilz::procedures::matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -95,7 +95,7 @@ down(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory:
   using alptr_type = typename utilz::memory::buffer::pointer;
 
   utilz::procedures::matrix_get_dimensions<utilz::square_matrix<utilz::square_matrix<T, A>, U>> sz;
-  utilz::procedures::square_matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
+  utilz::procedures::matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
 
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_cur_row), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.mm_array_prv_col), o.allocation_size);

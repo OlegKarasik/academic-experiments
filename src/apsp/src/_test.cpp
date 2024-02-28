@@ -38,7 +38,7 @@ public:
   using matrix = utilz::square_matrix<T>;
 #endif
 
-  using matrix_gt = utilz::procedures::square_matrix_get<matrix>;
+  using matrix_gt = utilz::procedures::matrix_at<matrix>;
   using matrix_dm = utilz::procedures::matrix_get_dimensions<matrix>;
 
   using matrix_st = typename utilz::traits::square_matrix_traits<matrix>::size_type;
