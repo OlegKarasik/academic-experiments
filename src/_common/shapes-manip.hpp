@@ -68,16 +68,32 @@ public:
   dimension_type
   operator()(const S& s)
   {
-    if constexpr (utilz::traits::square_matrix_traits<item_type>::is::value) {
-      // if item_type is a square matrix of any kind, we can calculate the dimensions
-      // by simple multiplication
-      //
-      impl_dimensions<item_type> dimensions;
-      return s.empty()
-             ? dimension_type(0)
-             : dimension_type(s) * dimensions(s.at(0, 0));
-    }
     return dimension_type(s);
+  }
+};
+
+template<template<typename> typename S, typename T, typename A>
+struct impl_dimensions<S<utilz::square_matrix<T, A>>>
+{
+  static_assert(utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::is::value, "erro: input type has to be a matrix");
+
+private:
+  using item_type = typename utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::item_type;
+
+public:
+  using dimension_type = typename utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::dimension_type;
+
+public:
+  dimension_type
+  operator()(const S<utilz::square_matrix<T, A>>& s)
+  {
+    // if item_type is a square matrix of any kind, we can calculate the dimensions
+    // by simple multiplication
+    //
+    impl_dimensions<item_type> dimensions;
+    return s.empty()
+           ? dimension_type(0)
+           : dimension_type(s) * dimensions(s.at(0, 0));
   }
 };
 
