@@ -43,19 +43,19 @@ scan_graph(
 {
   static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
 
-  using SS = utilz::procedures::square_matrix_set_size<S>;
+  using SS = utilz::procedures::matrix_set_dimensions<S>;
   using SW = utilz::procedures::matrix_at<S>;
   using RP = utilz::procedures::matrix_replace<S>;
 
   using size_type  = typename utilz::traits::square_matrix_traits<S>::size_type;
   using value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
 
-  SS ss(args...);
+  SS ss;
   SW sw;
   RP rp;
 
-  auto ss_fn = std::function([&ss, &rp](S& c, size_type vertex_count) -> void {
-    ss(c, vertex_count);
+  auto ss_fn = std::function([&ss, &rp, &args...](S& c, size_type vertex_count) -> void {
+    ss(c, vertex_count, args...);
     rp(c, value_type(), utilz::constants::infinity<value_type>());
   });
   auto se_fn = std::function([](S& c, size_type edge_count) -> void {

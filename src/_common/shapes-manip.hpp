@@ -1,5 +1,7 @@
 #pragma once
 
+#include <numeric>
+
 #include "rect-shape.hpp"
 #include "square-shape.hpp"
 
@@ -15,7 +17,7 @@ namespace procedures {
 namespace get_dimensions {
 
 template<typename S>
-struct impl_dimensions;
+struct impl_get_dimensions;
 
 template<typename S>
 struct impl_at;
@@ -23,20 +25,16 @@ struct impl_at;
 template<typename S>
 struct impl_replace;
 
+template<typename S>
+struct impl_set_dimensions;
+
 } // namespace get_dimensions
 
-namespace set_size {
-
-template<std::size_t I, typename S>
-struct impl;
-
-} // namespace set_size
+template<typename S>
+using matrix_get_dimensions = get_dimensions::impl_get_dimensions<S>;
 
 template<typename S>
-using matrix_get_dimensions = get_dimensions::impl_dimensions<S>;
-
-template<typename S>
-using square_matrix_set_size = set_size::impl<std::size_t(0), S>;
+using matrix_set_dimensions = get_dimensions::impl_set_dimensions<S>;
 
 template<typename S>
 using matrix_at = get_dimensions::impl_at<S>;
@@ -51,7 +49,7 @@ using matrix_replace = get_dimensions::impl_replace<S>;
 namespace get_dimensions {
 
 template<typename S>
-struct impl_dimensions
+struct impl_get_dimensions
 {
   static_assert(utilz::traits::matrix_traits<S>::is::value, "erro: input type has to be a matrix");
 
@@ -70,7 +68,7 @@ public:
 };
 
 template<template<typename> typename S, typename T, typename A>
-struct impl_dimensions<S<utilz::square_matrix<T, A>>>
+struct impl_get_dimensions<S<utilz::square_matrix<T, A>>>
 {
   static_assert(utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::is::value, "erro: input type has to be a matrix");
 
@@ -84,7 +82,7 @@ public:
   dimension_type
   operator()(const S<utilz::square_matrix<T, A>>& s)
   {
-    impl_dimensions<item_type> get_dimensions;
+    impl_get_dimensions<item_type> get_dimensions;
     return s.empty()
            ? dimension_type(0)
            : dimension_type(s) * get_dimensions(s.at(0, 0));
@@ -92,7 +90,7 @@ public:
 };
 
 template<template<typename> typename S, typename T, typename A>
-struct impl_dimensions<S<utilz::rect_matrix<T, A>>>
+struct impl_get_dimensions<S<utilz::rect_matrix<T, A>>>
 {
 private:
   using item_type = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::item_type;
@@ -102,7 +100,7 @@ public:
   using dimension_type = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::dimension_type;
 
 private:
-  impl_dimensions<item_type> m_get_dimensions;
+  impl_get_dimensions<item_type> m_get_dimensions;
 
 public:
   dimension_type
@@ -111,11 +109,11 @@ public:
     if (s.empty())
       return dimension_type(0);
 
-    auto w = typename impl_dimensions<item_type>::dimension_type(0);
+    auto w = typename impl_get_dimensions<item_type>::dimension_type(0);
     for (auto i = size_type(0); i < s.width(); ++i)
       w = w + this->m_get_dimensions(s.at(0, i));
 
-    auto h = typename impl_dimensions<item_type>::dimension_type(0);
+    auto h = typename impl_get_dimensions<item_type>::dimension_type(0);
     for (auto i = size_type(0); i < s.height(); ++i)
       h = h + this->m_get_dimensions(s.at(i, 0));
 
@@ -162,8 +160,8 @@ private:
   reference
   at(S<utilz::square_matrix<T, A>>& s, size_type i, size_type j)
   {
-    impl_at<item_type>         get_at;
-    impl_dimensions<item_type> get_dimensions;
+    impl_at<item_type>             get_at;
+    impl_get_dimensions<item_type> get_dimensions;
 
     auto dimensions = get_dimensions(s.at(0, 0));
     return get_at(s.at(i / dimensions.h(), j / dimensions.w()), i % dimensions.h(), j % dimensions.w());
@@ -199,8 +197,8 @@ private:
   reference
   at(S<utilz::rect_matrix<T, A>>& s, size_type i, size_type j)
   {
-    impl_at<item_type>         get_at;
-    impl_dimensions<item_type> get_dimensions;
+    impl_at<item_type>             get_at;
+    impl_get_dimensions<item_type> get_dimensions;
 
     auto y = size_type(0), x = size_type(0), h = size_type(0), w = size_type(0);
 
@@ -262,78 +260,73 @@ public:
   }
 };
 
-} // namespace get_dimensions
-
-namespace set_size {
-
-template<std::size_t I, typename T>
-struct __value
+template<typename S>
+struct impl_set_dimensions
 {
-public:
-  T value;
+  static_assert(utilz::traits::matrix_traits<S>::is::value, "erro: input type has to be a matrix");
 };
 
-template<std::size_t I, typename S>
-struct impl
+template<typename T, typename A>
+struct impl_set_dimensions<utilz::square_matrix<T, A>>
 {
-  static_assert(traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
-};
-
-template<std::size_t I, typename T, typename A>
-struct impl<I, square_matrix<T, A>>
-{
-public:
-  using result_type = typename traits::square_matrix_traits<square_matrix<T, A>>::size_type;
+private:
+  using size_type = typename utilz::traits::matrix_traits<square_matrix<T, A>>::size_type;
 
 public:
   void
-  operator()(square_matrix<T, A>& s, result_type sz)
+  operator()(utilz::square_matrix<T, A>& s, size_type total_size)
   {
-    s = square_matrix<T, A>(sz, s.get_allocator());
+    s = utilz::square_matrix<T, A>(total_size, s.get_allocator());
   }
 };
 
-template<std::size_t I, typename T, typename A, typename U>
-struct impl<I, square_matrix<square_matrix<T, A>, U>>
-  : public __value<I, typename traits::square_matrix_traits<square_matrix<square_matrix<T, A>, U>>::size_type>
-  , public impl<I + 1, square_matrix<T, A>>
+template<typename T, typename A, typename U>
+struct impl_set_dimensions<utilz::square_matrix<utilz::square_matrix<T, A>, U>>
 {
-public:
-  using result_type = typename traits::square_matrix_traits<square_matrix<square_matrix<T, A>, U>>::size_type;
+private:
+  using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
 
 public:
-  template<typename... TArgs>
-  impl(result_type sz, TArgs... args)
-    : impl<I + 1, square_matrix<T, A>>(args...)
-  {
-    this->__value<I, result_type>::value = sz;
-  }
-
   void
-  operator()(square_matrix<square_matrix<T, A>, U>& s, result_type sz)
+  operator()(utilz::square_matrix<utilz::square_matrix<T, A>>& s, size_type total_size, size_type item_size)
   {
-    result_type in_sz = this->__value<I, result_type>::value;
-    result_type os_sz = sz / in_sz;
+    auto own_size = total_size / item_size;
+    if (total_size % item_size != size_type(0))
+      ++own_size;
 
-    if (sz % in_sz != result_type(0))
-      ++os_sz;
+    s = utilz::square_matrix<utilz::square_matrix<T, A>>(own_size, s.get_allocator());
+    for (auto i = size_type(0); i < s.size(); ++i)
+      for (auto j = size_type(0); j < s.size(); ++j) {
+        typename U::template rebind<A>::other allocator(s.get_allocator());
 
-    s = square_matrix<square_matrix<T, A>, U>(os_sz, s.get_allocator());
-
-    for (result_type i = result_type(0); i < os_sz; ++i)
-      for (result_type j = result_type(0); j < os_sz; ++j) {
-        typename U::template rebind<A>::other in_a(s.get_allocator());
-
-        auto in_s = square_matrix<T, A>(in_a);
-
-        this->impl<I + 1, square_matrix<T, A>>::operator()(in_s, in_sz);
-
-        s.at(i, j) = std::move(in_s);
+        s.at(i, j) = utilz::square_matrix<T, A>(item_size, allocator);
       }
   }
 };
 
-} // namespace set_size
+template<typename T, typename A, typename U>
+struct impl_set_dimensions<utilz::square_matrix<utilz::rect_matrix<T, A>, U>>
+{
+private:
+  using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::rect_matrix<T, A>, U>>::size_type;
+
+public:
+  void
+  operator()(utilz::square_matrix<utilz::rect_matrix<T, A>>& s, size_type total_size, std::vector<size_type> item_sizes)
+  {
+    auto own_size = item_sizes.size();
+
+    s = utilz::square_matrix<utilz::rect_matrix<T, A>>(own_size, s.get_allocator());
+    for (auto i = size_type(0); i < s.size(); ++i)
+      for (auto j = size_type(0); j < s.size(); ++j) {
+        typename U::template rebind<A>::other allocator(s.get_allocator());
+
+        s.at(i, i) = utilz::rect_matrix<T, A>(item_sizes[j], item_sizes[i], allocator);
+      }
+  }
+};
+
+} // namespace get_dimensions
 
 } // namespace procedures
 } // namespace utilz
