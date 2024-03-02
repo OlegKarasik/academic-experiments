@@ -13,7 +13,7 @@ namespace traits {
 enum matrix_dimensions_variant
 {
   matrix_dimensions_variant_rect   = 1,
-  matrix_dimansions_variant_square = 2
+  matrix_dimensions_variant_square = 2
 };
 
 template<matrix_dimensions_variant TVariant, typename S>
@@ -114,7 +114,7 @@ public:
 };
 
 template<typename S>
-class matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, S>
+class matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_square, S>
   : public impl::matrix_dimensions<typename utilz::traits::square_matrix_traits<S>::size_type>
 {
 public:
@@ -137,7 +137,7 @@ public:
   }
 
   template<typename U>
-  matrix_dimensions(matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, U> dimensions)
+  matrix_dimensions(matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_square, U> dimensions)
     : impl::matrix_dimensions<size_type>(dimensions.s(), dimensions.s())
   {
   }
@@ -239,7 +239,7 @@ public:
   using pointer         = typename square_matrix<T, A>::pointer;
   using reference       = typename square_matrix<T, A>::reference;
   using const_reference = typename square_matrix<T, A>::const_reference;
-  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, square_matrix<T, A>>;
+  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_square, square_matrix<T, A>>;
 };
 
 template<typename T, typename A, typename U>
@@ -253,7 +253,7 @@ public:
   using pointer         = typename square_matrix_traits<square_matrix<T, A>>::pointer;
   using reference       = typename square_matrix_traits<square_matrix<T, A>>::reference;
   using const_reference = typename square_matrix_traits<square_matrix<T, A>>::const_reference;
-  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimansions_variant_square, square_matrix<square_matrix<T, A>, U>>;
+  using dimension_type  = matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_square, square_matrix<square_matrix<T, A>, U>>;
 };
 
 template<typename T>
