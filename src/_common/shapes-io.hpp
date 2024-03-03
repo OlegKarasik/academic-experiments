@@ -41,14 +41,14 @@ scan_graph(
   S&            shape,
   TArgs... args)
 {
-  static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
 
   using SS = utilz::procedures::matrix_set_dimensions<S>;
   using SW = utilz::procedures::matrix_at<S>;
   using RP = utilz::procedures::matrix_replace<S>;
 
-  using size_type  = typename utilz::traits::square_matrix_traits<S>::size_type;
-  using value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
+  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
 
   SS ss;
   SW sw;
@@ -74,10 +74,10 @@ print_graph(
   std::ostream& os,
   S&            shape)
 {
-  static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
 
   using iter_type  = typename utilz::graphs::io::shapes::iterator<S>;
-  using value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
+  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
 
   auto gt_fn = std::function([](S& c) -> std::tuple<iter_type, iter_type> {
     auto begin = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::begin_iterator());
@@ -93,11 +93,11 @@ namespace shapes {
 template<typename S>
 class iterator
 {
-  static_assert(utilz::traits::square_matrix_traits<S>::is::value, "erro: input type has to be a square_matrix");
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
 
 private:
-  using _size_type  = typename utilz::traits::square_matrix_traits<S>::size_type;
-  using _value_type = typename utilz::traits::square_matrix_traits<S>::value_type;
+  using _size_type  = typename utilz::traits::matrix_traits<S>::size_type;
+  using _value_type = typename utilz::traits::matrix_traits<S>::value_type;
 
 public:
   // Iterator definitions

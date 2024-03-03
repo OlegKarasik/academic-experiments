@@ -41,8 +41,8 @@ public:
   using matrix_gt = utilz::procedures::matrix_at<matrix>;
   using matrix_dm = utilz::procedures::matrix_get_dimensions<matrix>;
 
-  using matrix_st = typename utilz::traits::square_matrix_traits<matrix>::size_type;
-  using matrix_vt = typename utilz::traits::square_matrix_traits<matrix>::value_type;
+  using matrix_st = typename utilz::traits::matrix_traits<matrix>::size_type;
+  using matrix_vt = typename utilz::traits::matrix_traits<matrix>::value_type;
 
 public:
 #ifdef APSP_ALG_HAS_OPTIONS
@@ -106,8 +106,8 @@ public:
     auto src_dimensions = dm(this->m_src);
     auto res_dimensions = dm(this->m_res);
 
-    for (auto i = matrix_st(0); i < src_dimensions && i < res_dimensions; ++i)
-      for (auto j = matrix_st(0); j < src_dimensions && j < res_dimensions; ++j)
+    for (auto i = matrix_st(0); i < src_dimensions.s() && i < res_dimensions.s(); ++i)
+      for (auto j = matrix_st(0); j < src_dimensions.s() && j < res_dimensions.s(); ++j)
         ASSERT_EQ(gt(this->m_src, i, j), gt(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };

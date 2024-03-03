@@ -15,7 +15,7 @@
 template<typename T>
 struct support_arrays
 {
-  using pointer = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T>>::pointer;
+  using pointer = typename utilz::traits::matrix_traits<utilz::square_matrix<T>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -34,9 +34,9 @@ template<typename T, typename A, typename U>
 __hack_noinline support_arrays<T>
 up(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::buffer& b)
 {
-  using pointer    = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::pointer;
-  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
-  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
+  using pointer    = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::pointer;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
 
   utilz::procedures::matrix_get_dimensions<utilz::square_matrix<utilz::square_matrix<T, A>, U>> sz;
   utilz::procedures::matrix_at<utilz::square_matrix<utilz::square_matrix<T, A>, U>> at;
@@ -66,7 +66,7 @@ up(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::b
   // The algorithm requires that all self-loops have non "infinite" value. This
   // doesn't affect correctness of calculations.
   //
-  for (size_type i = size_type(0); i < sz(blocks); ++i) {
+  for (size_type i = size_type(0); i < sz(blocks).s(); ++i) {
     if (at(blocks, i, i) == utilz::constants::infinity<value_type>())
       at(blocks, i, i) = size_type(0);
   }
@@ -89,8 +89,8 @@ template<typename T, typename A, typename U>
 __hack_noinline void
 down(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::buffer& b, support_arrays<T> o)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
-  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::value_type;
 
   using alptr_type = typename utilz::memory::buffer::pointer;
 
@@ -109,7 +109,7 @@ down(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory:
   // Restoring the matrix to a state where self-loop is represented as
   // infinity instead of 0.
   //
-  for (size_type i = size_type(0); i < sz(blocks); ++i)
+  for (size_type i = size_type(0); i < sz(blocks).s(); ++i)
     if (at(blocks, i, i) == size_type(0))
       at(blocks, i, i) = utilz::constants::infinity<value_type>();
 }
@@ -118,8 +118,8 @@ template<typename T, typename A>
 void
 calculate_diagonal(utilz::square_matrix<T, A>& mm, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
   support_arrays.mm_array_prv_col[0] = utilz::constants::infinity<value_type>();
   support_arrays.mm_array_nxt_row[0] = mm.at(0, 1);
@@ -170,9 +170,9 @@ template<typename T, typename A>
 void
 calculate_horizontal(utilz::square_matrix<T, A>& im, utilz::square_matrix<T, A>& mm, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
-  using pointer    = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::pointer;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using pointer    = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = support_arrays.allocation_line * omp_get_thread_num();
@@ -232,9 +232,9 @@ template<typename T, typename A>
 void
 calculate_vertical(utilz::square_matrix<T, A>& mi, utilz::square_matrix<T, A>& mm, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::value_type;
-  using pointer    = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::pointer;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using pointer    = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = support_arrays.allocation_line * omp_get_thread_num();
@@ -278,7 +278,7 @@ template<typename T, typename A>
 void
 calculate_peripheral(utilz::square_matrix<T, A>& ij, utilz::square_matrix<T, A>& ik, utilz::square_matrix<T, A>& kj)
 {
-  using size_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T>>::size_type;
+  using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T>>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -292,7 +292,7 @@ template<typename T, typename A, typename U>
 __hack_noinline void
 run(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks, support_arrays)
 #endif

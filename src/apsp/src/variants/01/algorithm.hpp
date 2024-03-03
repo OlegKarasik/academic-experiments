@@ -10,7 +10,7 @@ template<typename T, typename A>
 void
 calculate_block(utilz::square_matrix<T, A>& ij, utilz::square_matrix<T, A>& ik, utilz::square_matrix<T, A>& kj)
 {
-  using size_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<T>>::size_type;
+  using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T>>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -24,7 +24,7 @@ template<typename T, typename A, typename U>
 __hack_noinline void
 run(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks)
 {
-  using size_type = typename utilz::traits::square_matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
 
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks)

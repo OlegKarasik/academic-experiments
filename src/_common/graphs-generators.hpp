@@ -30,11 +30,11 @@ struct complete_graph_tag
 
 utilz::square_matrix<bool>
 random_graph(
-  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type v,
-  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type e,
+  typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type v,
+  typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type e,
   directed_acyclic_graph_tag)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type;
+  using size_type  = typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type;
 
   static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
 
@@ -138,11 +138,11 @@ random_graph(
 
 utilz::square_matrix<bool>
 random_graph(
-  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type v,
-  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type e,
+  typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type v,
+  typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type e,
   connected_graph_tag)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type;
+  using size_type  = typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type;
 
   static_assert(std::is_unsigned<size_type>::value, "erro: matrix `set_size` operation has to use unsigned integral type");
 
@@ -248,10 +248,10 @@ random_graph(
 
 utilz::square_matrix<bool>
 random_graph(
-  typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type v,
+  typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type v,
   complete_graph_tag)
 {
-  using size_type  = typename utilz::traits::square_matrix_traits<square_matrix<bool>>::size_type;
+  using size_type  = typename utilz::traits::matrix_traits<square_matrix<bool>>::size_type;
 
   // Initialise adjacency matrix
   //
