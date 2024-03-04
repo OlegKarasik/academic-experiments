@@ -33,29 +33,32 @@ public:
 #endif
 
 #ifdef APSP_ALG_HAS_BLOCKS
-  using matrix = utilz::square_matrix<utilz::square_matrix<T>>;
+  using source_matrix = utilz::square_matrix<utilz::square_matrix<T>>;
 #else
-  using matrix = utilz::square_matrix<T>;
+  using source_matrix = utilz::square_matrix<T>;
 #endif
 
-  using matrix_gt = utilz::procedures::matrix_at<matrix>;
-  using matrix_dm = utilz::procedures::matrix_get_dimensions<matrix>;
+  using source_matrix_gt = utilz::procedures::matrix_at<source_matrix>;
+  using source_matrix_dm = utilz::procedures::matrix_get_dimensions<source_matrix>;
 
-  using matrix_st = typename utilz::traits::matrix_traits<matrix>::size_type;
-  using matrix_vt = typename utilz::traits::matrix_traits<matrix>::value_type;
+  using result_matrix = utilz::square_matrix<T>;
+  using result_matrix_gt = utilz::procedures::matrix_at<result_matrix>;
+  using result_matrix_dm = utilz::procedures::matrix_get_dimensions<result_matrix>;
+
+  using size_type = typename utilz::traits::matrix_traits<source_matrix>::size_type;
 
 public:
 #ifdef APSP_ALG_HAS_OPTIONS
   buffer m_buf;
 #endif
 
-  matrix m_src;
-  matrix m_res;
+  source_matrix m_src;
+  result_matrix m_res;
 
 #ifdef APSP_ALG_HAS_BLOCKS
   Fixture(
     const std::string& graph_name,
-    const matrix_st    block_size)
+    const size_type    block_size)
 #else
   Fixture(
     const std::string& graph_name)
@@ -79,7 +82,7 @@ public:
 
 #ifdef APSP_ALG_HAS_BLOCKS
     utilz::graphs::io::scan_graph(format, src_fs, this->m_src, block_size);
-    utilz::graphs::io::scan_graph(format, res_fs, this->m_res, block_size);
+    utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
 #else
     utilz::graphs::io::scan_graph(format, src_fs, this->m_src);
     utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
@@ -100,15 +103,18 @@ public:
     run(this->m_src);
 #endif
 
-    matrix_gt gt;
-    matrix_dm dm;
+    source_matrix_gt src_gt;
+    source_matrix_dm src_dm;
 
-    auto src_dimensions = dm(this->m_src);
-    auto res_dimensions = dm(this->m_res);
+    result_matrix_gt res_gt;
+    result_matrix_dm res_dm;
 
-    for (auto i = matrix_st(0); i < src_dimensions.s() && i < res_dimensions.s(); ++i)
-      for (auto j = matrix_st(0); j < src_dimensions.s() && j < res_dimensions.s(); ++j)
-        ASSERT_EQ(gt(this->m_src, i, j), gt(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
+    auto src_dimensions = src_dm(this->m_src);
+    auto res_dimensions = res_dm(this->m_res);
+
+    for (auto i = size_type(0); i < src_dimensions.s() && i < res_dimensions.s(); ++i)
+      for (auto j = size_type(0); j < src_dimensions.s() && j < res_dimensions.s(); ++j)
+        ASSERT_EQ(src_gt(this->m_src, i, j), res_gt(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };
 
