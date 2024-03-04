@@ -28,7 +28,7 @@ struct matrix_dimensions;
 template<typename S, class Enable = void>
 struct impl_get_dimensions;
 
-template<typename S>
+template<typename S, class Enable = void>
 struct impl_at;
 
 template<typename S>
@@ -265,116 +265,87 @@ public:
   }
 };
 
-template<typename S>
+template<typename S, class Enable>
 struct impl_at
 {
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
+  static_assert(false, "erro: input type has to be a matrix");
+};
+
+template<template<typename, typename> typename S, typename T, typename A>
+struct impl_at<S<T, A>, typename std::enable_if<utilz::traits::matrix_traits<T>::is_type::value>::type>
+{
+  static_assert(utilz::traits::matrix_traits<S<T, A>>::is_matrix::value, "erro: input type has to be a matrix");
 
 private:
-  using size_type       = typename utilz::traits::matrix_traits<S>::size_type;
-  using reference       = typename utilz::traits::matrix_traits<S>::reference;
-  using const_reference = typename utilz::traits::matrix_traits<S>::const_reference;
+  using size_type       = typename utilz::traits::matrix_traits<S<T, A>>::size_type;
+  using reference       = typename utilz::traits::matrix_traits<S<T, A>>::reference;
+  using const_reference = typename utilz::traits::matrix_traits<S<T, A>>::const_reference;
 
 public:
   reference
-  operator()(S& s, size_type i, size_type j)
+  operator()(S<T, A>& s, size_type i, size_type j)
   {
     return s.at(i, j);
   }
 
   const_reference
-  operator()(S& s, size_type i, size_type j) const
+  operator()(S<T, A>& s, size_type i, size_type j) const
   {
     return s.at(i, j);
   }
 };
 
-template<template<typename> typename S, typename T, typename A>
-struct impl_at<S<utilz::square_matrix<T, A>>>
+template<typename T, typename A>
+struct impl_at<utilz::square_matrix<T, A>, typename std::enable_if<utilz::traits::matrix_traits<T>::is_matrix::value>::type>
 {
-  static_assert(utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::is_matrix::value, "erro: input type has to be a matrix");
-
 private:
-  using size_type       = typename utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::size_type;
-  using item_type       = typename utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::item_type;
-  using reference       = typename utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::reference;
-  using const_reference = typename utilz::traits::matrix_traits<S<utilz::square_matrix<T, A>>>::const_reference;
+  using size_type       = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using item_type       = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::item_type;
+  using reference       = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::reference;
+  using const_reference = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::const_reference;
 
 private:
   reference
-  at(S<utilz::square_matrix<T, A>>& s, size_type i, size_type j)
+  at(utilz::square_matrix<T, A>& s, size_type i, size_type j)
   {
     impl_at<item_type>             get_at;
     impl_get_dimensions<item_type> get_dimensions;
 
-    auto dimensions = get_dimensions(s.at(0, 0));
-    return get_at(s.at(i / dimensions.h(), j / dimensions.w()), i % dimensions.h(), j % dimensions.w());
-  }
-
-public:
-  reference
-  operator()(S<utilz::square_matrix<T, A>>& s, size_type i, size_type j)
-  {
-    return this->at(s, i, j);
-  }
-
-  const_reference
-  operator()(S<utilz::square_matrix<T, A>>& s, size_type i, size_type j) const
-  {
-    return this->at(s, i, j);
-  }
-};
-
-template<template<typename> typename S, typename T, typename A>
-struct impl_at<S<utilz::rect_matrix<T, A>>>
-{
-  static_assert(utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::is::value, "erro: input type has to be a matrix");
-
-private:
-  using item_type       = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::item_type;
-  using size_type       = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::size_type;
-  using reference       = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::reference;
-  using const_reference = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::const_reference;
-  using dimension_type  = typename utilz::traits::matrix_traits<S<utilz::rect_matrix<T, A>>>::dimension_type;
-
-private:
-  reference
-  at(S<utilz::rect_matrix<T, A>>& s, size_type i, size_type j)
-  {
-    impl_at<item_type>             get_at;
-    impl_get_dimensions<item_type> get_dimensions;
-
-    auto y = size_type(0), x = size_type(0), h = size_type(0), w = size_type(0);
-
-    auto s_dimensions = dimension_type(s);
-    for (; y < s_dimensions.h(); ++y) {
-      auto dimensions = get_dimensions(s.at(y, 0));
-      auto height     = h + dimensions.h();
-      if (height > i)
-        break;
-
-      h = height;
+    auto wf = false, hf = false;
+    auto x = size_type(0), y = size_type(0);
+    auto w = size_type(0), h = size_type(0);
+    for (auto z = size_type(0); z < s.size() && (!wf || !hf); ++z) {
+      auto dimensions = get_dimensions(s.at(z, z));
+      if (!hf) {
+        if (i < h + dimensions.h()) {
+          y = z;
+          hf = true;
+        } else {
+          h = h + dimensions.h();
+        }
+      }
+      if (!wf) {
+        if (j < w + dimensions.w()) {
+          x = z;
+          wf = true;
+        } else {
+          w = w + dimensions.w();
+        }
+      }
     }
-    for (; x < s_dimensions.w(); ++x) {
-      auto dimensions = get_dimensions(s.at(y, 0));
-      auto width      = w + dimensions.w();
-      if (width > j)
-        break;
 
-      w = width;
-    }
     return get_at(s.at(y, x), i - h, j - w);
   }
 
 public:
   reference
-  operator()(S<utilz::rect_matrix<T, A>>& s, size_type i, size_type j)
+  operator()(utilz::square_matrix<T, A>& s, size_type i, size_type j)
   {
     return this->at(s, i, j);
   }
 
   const_reference
-  operator()(S<utilz::rect_matrix<T, A>>& s, size_type i, size_type j) const
+  operator()(utilz::square_matrix<T, A>& s, size_type i, size_type j) const
   {
     return this->at(s, i, j);
   }
