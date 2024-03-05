@@ -5,8 +5,8 @@
 
 #include "square-matrix.hpp"
 
-#include "matrix-traits.hpp"
 #include "matrix-manip.hpp"
+#include "matrix-traits.hpp"
 
 namespace utilz {
 namespace graphs {
@@ -34,51 +34,49 @@ class iterator;
 
 } // namespace shapes
 
-template<typename S, typename... TArgs>
+template<typename T, typename A, typename... TArgs>
 void
 scan_graph(
-  graph_format  format,
-  std::istream& is,
-  S&            shape,
+  graph_format                format,
+  std::istream&               is,
+  utilz::square_matrix<T, A>& shape,
   TArgs... args)
 {
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
+  using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
+  using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
+  using matrix_replace        = utilz::procedures::matrix_replace<utilz::square_matrix<T, A>>;
 
-  using SS = utilz::procedures::matrix_set_dimensions<S>;
-  using SW = utilz::procedures::matrix_at<S>;
-  using RP = utilz::procedures::matrix_replace<S>;
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
-  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
+  matrix_set_dimensions set_dimensions;
+  matrix_at             get_at;
+  matrix_replace        replace;
 
-  SS ss;
-  SW sw;
-  RP rp;
-
-  auto ss_fn = std::function([&ss, &rp, &args...](S& c, size_type vertex_count) -> void {
-    ss(c, vertex_count, args...);
-    rp(c, value_type(), utilz::constants::infinity<value_type>());
+  auto ss_fn = std::function([&set_dimensions, &replace, &args...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
+    set_dimensions(c, vertex_count, args...);
+    replace(c, value_type(), utilz::constants::infinity<value_type>());
   });
-  auto se_fn = std::function([](S& c, size_type edge_count) -> void {
+  auto se_fn = std::function([](utilz::square_matrix<T, A>& c, size_type edge_count) -> void {
   });
-  auto sw_fn = std::function([&sw](S& c, size_type f, size_type t, value_type w) -> void {
-    sw(c, f, t) = w;
+  auto sw_fn = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
+    get_at(c, f, t) = w;
   });
 
   utilz::graphs::io::scan_graph(format, is, shape, ss_fn, se_fn, sw_fn);
 };
 
-template<typename S>
+template<typename T, typename A>
 void
 print_graph(
-  graph_format  format,
-  std::ostream& os,
-  S&            shape)
+  graph_format                format,
+  std::ostream&               os,
+  utilz::square_matrix<T, A>& shape)
 {
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
+  static_assert(utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::is_matrix::value, "erro: input type has to be a square_matrix");
 
-  using iter_type  = typename utilz::graphs::io::shapes::iterator<S>;
-  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
+  using iter_type  = typename utilz::graphs::io::shapes::iterator<utilz::square_matrix<T, A>>;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
   auto gt_fn = std::function([](S& c) -> std::tuple<iter_type, iter_type> {
     auto begin = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::begin_iterator());
@@ -131,7 +129,7 @@ public:
   iterator(S& s, _value_type infinity, begin_iterator)
     : m_s(s)
   {
-    utilz::procedures::matrix_get_dimensions<S>  get_dimensions;
+    utilz::procedures::matrix_get_dimensions<S> get_dimensions;
 
     auto dimensions = get_dimensions(s);
 
@@ -155,7 +153,7 @@ public:
   iterator(S& s, _value_type infinity, end_iterator)
     : m_s(s)
   {
-    utilz::procedures::matrix_get_dimensions<S>  get_dimensions;
+    utilz::procedures::matrix_get_dimensions<S> get_dimensions;
 
     auto dimensions = get_dimensions(s);
 
