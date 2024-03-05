@@ -2,9 +2,7 @@
 
 #include <numeric>
 
-#include "rect-matrix.hpp"
-#include "square-matrix.hpp"
-
+#include "matrix.hpp"
 #include "matrix-traits.hpp"
 
 namespace utilz {

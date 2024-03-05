@@ -1,7 +1,6 @@
 #pragma once
 
-#include "rect-matrix.hpp"
-#include "square-matrix.hpp"
+#include "matrix.hpp"
 
 namespace utilz {
 namespace traits {

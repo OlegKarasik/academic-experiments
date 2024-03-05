@@ -22,17 +22,14 @@
   #include <unistd.h>
 #endif
 
+#include "constants.hpp"
+
 #include "graphs-generators.hpp"
 #include "graphs-io.hpp"
 
-#include "square-shape.hpp"
-
-template<typename T>
-constexpr T
-infinity()
-{
-  return ((std::numeric_limits<T>::max)() / T(2)) - T(1);
-};
+#include "matrix.hpp"
+#include "matrix-manip.hpp"
+#include "matrix-io.hpp"
 
 // This is a tiny program which generates random graphs
 //
@@ -214,7 +211,7 @@ main(int argc, char* argv[])
 
   // All graph generators do fill adjacency matrix with edges information
   //
-  utilz::square_shape<bool> adjacency_matrix;
+  utilz::square_matrix<bool> adjacency_matrix;
 
   try {
     switch (opt_algorithm) {
@@ -267,12 +264,12 @@ main(int argc, char* argv[])
 
   // Weight matrix
   //
-  utilz::square_shape<int> weight_matrix(adjacency_matrix.size());
+  utilz::square_matrix<int> weight_matrix(adjacency_matrix.size());
 
   // Initialise weight matrix with infinity values before updateding it with data
   //
-  utilz::procedures::square_shape_replace<utilz::square_shape<int>> replace;
-  replace(weight_matrix, int(), infinity<int>());
+  utilz::procedures::matrix_replace<utilz::square_matrix<int>> replace;
+  replace(weight_matrix, int(), utilz::constants::infinity<int>());
 
   // Update adjacency matrix with weight values, effectively transforming
   // it to representation of directed, weighted graph
@@ -287,8 +284,7 @@ main(int argc, char* argv[])
   utilz::graphs::io::print_graph(
     opt_output_format,
     output_stream,
-    weight_matrix,
-    infinity<int>());
+    weight_matrix);
 
   // Flush output stream
   //

@@ -25,19 +25,16 @@
   #include <unistd.h>
 #endif
 
+#include "constants.hpp"
+
 #include "communities-io.hpp"
 #include "graphs-io.hpp"
-#include "square-shape.hpp"
+
+#include "matrix.hpp"
+#include "matrix-io.hpp"
 
 using Index = long;
 using Value = long;
-
-template<typename T>
-constexpr T
-infinity()
-{
-  return ((std::numeric_limits<T>::max)() / T(2)) - T(1);
-};
 
 enum analysis_options
 {
@@ -47,7 +44,7 @@ enum analysis_options
 void
 analyse_communities_intersections(
   std::ostream&                     os,
-  utilz::square_shape<Index>&       graph_matrix,
+  utilz::square_matrix<Index>&      graph_matrix,
   std::map<Index, std::set<Index>>& communities_map);
 
 // This is a tiny program which performs an analysis of graphs
@@ -138,12 +135,12 @@ main(int argc, char* argv[])
   }
 
   if (!opt_input_graph.empty() && opt_graph_format == utilz::graphs::io::graph_fmt_none ||
-       opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
+      opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
     std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
   if (!opt_input_communities.empty() && opt_communities_format == utilz::communities::io::communities_fmt_none ||
-       opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
+      opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
     std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
@@ -152,7 +149,7 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  utilz::square_shape<Index>       graph_matrix;
+  utilz::square_matrix<Index>      graph_matrix;
   std::map<Index, std::set<Index>> communities_map;
 
   if (!opt_input_graph.empty()) {
@@ -165,8 +162,7 @@ main(int argc, char* argv[])
     utilz::graphs::io::scan_graph(
       opt_graph_format,
       graph_stream,
-      graph_matrix,
-      infinity<Index>());
+      graph_matrix);
   }
   if (!opt_input_communities.empty()) {
     auto set_v = std::function([](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
@@ -187,7 +183,8 @@ main(int argc, char* argv[])
     utilz::communities::io::scan_communities(
       opt_communities_format,
       communities_stream,
-      communities_map, set_v);
+      communities_map,
+      set_v);
   }
 
   std::ofstream output_stream(opt_output);
@@ -202,7 +199,7 @@ main(int argc, char* argv[])
 void
 analyse_communities_intersections(
   std::ostream&                     os,
-  utilz::square_shape<Index>&       graph_matrix,
+  utilz::square_matrix<Index>&      graph_matrix,
   std::map<Index, std::set<Index>>& communities_map)
 {
   auto total_bv  = size_t(0);
@@ -214,7 +211,7 @@ analyse_communities_intersections(
   auto edge_count   = size_t(0);
   for (auto i = 0; i < graph_matrix.size(); ++i)
     for (auto j = 0; j < graph_matrix.size(); ++j)
-      if (graph_matrix.at(i, j) != infinity<Index>())
+      if (graph_matrix.at(i, j) != utilz::constants::infinity<Index>())
         edge_count++;
 
   std::map<Index, std::set<Index>>                      communities_path;
@@ -242,7 +239,7 @@ analyse_communities_intersections(
   }
 
   for (auto community : communities_map) {
-    auto paths = communities_path.find(community.first);
+    auto paths       = communities_path.find(community.first);
     auto connections = communities_cn.find(community.first);
 
     auto pvt = communities_pvt.find(community.first);
@@ -256,10 +253,10 @@ analyse_communities_intersections(
       auto edges = graph_matrix.at(i);
 
       auto f = false;
-      for (auto j = utilz::square_shape<Index>::size_type(0); j < graph_matrix.size(); ++j) {
+      for (auto j = utilz::square_matrix<Index>::size_type(0); j < graph_matrix.size(); ++j) {
         // If there is an edge between vertices (because we load adjucency matrix we treat all infities as none)
         //
-        if (edges[j] != infinity<Index>()) {
+        if (edges[j] != utilz::constants::infinity<Index>()) {
           // Increment community edge count (both inner and outer)
           //
           ec->second++;

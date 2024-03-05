@@ -3,8 +3,7 @@
 #include "constants.hpp"
 #include "graphs-io.hpp"
 
-#include "square-matrix.hpp"
-
+#include "matrix.hpp"
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 
@@ -12,34 +11,34 @@ namespace utilz {
 namespace graphs {
 namespace io {
 
-template<typename S, typename... TArgs>
+template<typename T, typename A, typename... TArgs>
 void
 scan_graph(
-  graph_format  format,
-  std::istream& is,
-  S&            shape,
+  graph_format                format,
+  std::istream&               is,
+  utilz::square_matrix<T, A>& matrix,
   TArgs... args);
 
-template<typename S>
+template<typename T, typename A>
 void
 print_graph(
-  graph_format  format,
-  std::ostream& os,
-  S&            shape);
+  graph_format                format,
+  std::ostream&               os,
+  utilz::square_matrix<T, A>& matrix);
 
-namespace shapes {
+namespace impl {
 
 template<typename T>
 class iterator;
 
-} // namespace shapes
+} // namespace impl
 
 template<typename T, typename A, typename... TArgs>
 void
 scan_graph(
   graph_format                format,
   std::istream&               is,
-  utilz::square_matrix<T, A>& shape,
+  utilz::square_matrix<T, A>& matrix,
   TArgs... args)
 {
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
@@ -63,7 +62,7 @@ scan_graph(
     get_at(c, f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, shape, ss_fn, se_fn, sw_fn);
+  utilz::graphs::io::scan_graph(format, is, matrix, ss_fn, se_fn, sw_fn);
 };
 
 template<typename T, typename A>
@@ -71,23 +70,23 @@ void
 print_graph(
   graph_format                format,
   std::ostream&               os,
-  utilz::square_matrix<T, A>& shape)
+  utilz::square_matrix<T, A>& matrix)
 {
   static_assert(utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::is_matrix::value, "erro: input type has to be a square_matrix");
 
-  using iter_type  = typename utilz::graphs::io::shapes::iterator<utilz::square_matrix<T, A>>;
+  using iter_type  = typename utilz::graphs::io::impl::iterator<utilz::square_matrix<T, A>>;
   using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
-  auto gt_fn = std::function([](S& c) -> std::tuple<iter_type, iter_type> {
+  auto gt_fn = std::function([](utilz::square_matrix<T, A>& c) -> std::tuple<iter_type, iter_type> {
     auto begin = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::begin_iterator());
     auto end   = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::end_iterator());
     return std::make_tuple(begin, end);
   });
 
-  utilz::graphs::io::print_graph(format, os, shape, gt_fn);
+  utilz::graphs::io::print_graph(format, os, matrix, gt_fn);
 };
 
-namespace shapes {
+namespace impl {
 
 template<typename S>
 class iterator
@@ -216,7 +215,7 @@ public:
   };
 };
 
-} // namespace shapes
+} // namespace impl
 
 } // namespace io
 } // namespace graphs
