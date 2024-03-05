@@ -31,11 +31,11 @@ struct impl_get_dimensions;
 template<typename S, class Enable = void>
 struct impl_at;
 
-template<typename S>
-struct impl_replace;
+template<typename S, class Enable = void>
+struct impl_set_dimensions;
 
 template<typename S>
-struct impl_set_dimensions;
+struct impl_replace;
 
 } // namespace impl
 
@@ -351,38 +351,28 @@ public:
   }
 };
 
-template<typename S>
-struct impl_replace
-{
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
-
-private:
-  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
-
-public:
-  void
-  operator()(S& s, value_type f, value_type t)
-  {
-    matrix_at<S>             get_at;
-    matrix_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(s);
-    for (auto i = size_type(0); i < dimensions.h(); ++i)
-      for (auto j = size_type(0); j < dimensions.w(); ++j)
-        if (get_at(s, i, j) == f)
-          get_at(s, i, j) = t;
-  }
-};
-
-template<typename S>
+template<typename S, class Enable>
 struct impl_set_dimensions
 {
-  static_assert(utilz::traits::matrix_traits<S>::is::value, "erro: input type has to be a matrix");
+  static_assert(false, "erro: input type has to be a matrix");
 };
 
 template<typename T, typename A>
-struct impl_set_dimensions<utilz::square_matrix<T, A>>
+struct impl_set_dimensions<utilz::rect_matrix<T, A>, typename std::enable_if<utilz::traits::matrix_traits<T>::is_type::value>::type>
+{
+private:
+  using size_type = typename utilz::traits::matrix_traits<rect_matrix<T, A>>::size_type;
+
+public:
+  void
+  operator()(utilz::rect_matrix<T, A>& s, size_type width, size_type height)
+  {
+    s = utilz::rect_matrix<T, A>(width, height, s.get_allocator());
+  }
+};
+
+template<typename T, typename A>
+struct impl_set_dimensions<utilz::square_matrix<T, A>, typename std::enable_if<utilz::traits::matrix_traits<T>::is_type::value>::type>
 {
 private:
   using size_type = typename utilz::traits::matrix_traits<square_matrix<T, A>>::size_type;
@@ -440,6 +430,31 @@ public:
       }
   }
 };
+
+template<typename S>
+struct impl_replace
+{
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
+
+private:
+  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
+
+public:
+  void
+  operator()(S& s, value_type f, value_type t)
+  {
+    matrix_at<S>             get_at;
+    matrix_get_dimensions<S> get_dimensions;
+
+    auto dimensions = get_dimensions(s);
+    for (auto i = size_type(0); i < dimensions.h(); ++i)
+      for (auto j = size_type(0); j < dimensions.w(); ++j)
+        if (get_at(s, i, j) == f)
+          get_at(s, i, j) = t;
+  }
+};
+
 
 } // namespace get_dimensions
 
