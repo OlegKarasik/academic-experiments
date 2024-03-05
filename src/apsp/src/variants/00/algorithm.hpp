@@ -2,7 +2,7 @@
 
 #include "portables/hacks/defines.h"
 
-#include "square-matrix.hpp"
+#include "matrix.hpp"
 
 template<typename T, typename A>
 

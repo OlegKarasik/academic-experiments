@@ -14,7 +14,7 @@
 
 // local utilz
 #include "graphs-io.hpp"
-#include "square-matrix.hpp"
+#include "matrix.hpp"
 #include "matrix-traits.hpp"
 #include "matrix-manip.hpp"
 #include "matrix-io.hpp"
