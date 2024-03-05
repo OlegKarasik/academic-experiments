@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "square-shape.hpp"
+#include "square-matrix.hpp"
 
 namespace utilz {
 namespace graphs {

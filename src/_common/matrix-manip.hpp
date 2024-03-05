@@ -2,10 +2,10 @@
 
 #include <numeric>
 
-#include "rect-shape.hpp"
-#include "square-shape.hpp"
+#include "rect-matrix.hpp"
+#include "square-matrix.hpp"
 
-#include "shapes-traits.hpp"
+#include "matrix-traits.hpp"
 
 namespace utilz {
 namespace procedures {
@@ -393,13 +393,13 @@ private:
 
 public:
   void
-  operator()(utilz::square_matrix<utilz::square_matrix<T, A>>& s, size_type total_size, size_type item_size)
+  operator()(utilz::square_matrix<utilz::square_matrix<T, A>, U>& s, size_type total_size, size_type item_size)
   {
     auto own_size = total_size / item_size;
     if (total_size % item_size != size_type(0))
       ++own_size;
 
-    s = utilz::square_matrix<utilz::square_matrix<T, A>>(own_size, s.get_allocator());
+    s = utilz::square_matrix<utilz::square_matrix<T, A>, U>(own_size, s.get_allocator());
     for (auto i = size_type(0); i < s.size(); ++i)
       for (auto j = size_type(0); j < s.size(); ++j) {
         typename U::template rebind<A>::other allocator(s.get_allocator());
@@ -417,11 +417,11 @@ private:
 
 public:
   void
-  operator()(utilz::square_matrix<utilz::rect_matrix<T, A>>& s, size_type total_size, std::vector<size_type> item_sizes)
+  operator()(utilz::square_matrix<utilz::rect_matrix<T, A>, U>& s, size_type total_size, std::vector<size_type> item_sizes)
   {
     auto own_size = item_sizes.size();
 
-    s = utilz::square_matrix<utilz::rect_matrix<T, A>>(own_size, s.get_allocator());
+    s = utilz::square_matrix<utilz::rect_matrix<T, A>, U>(own_size, s.get_allocator());
     for (auto i = size_type(0); i < s.size(); ++i)
       for (auto j = size_type(0); j < s.size(); ++j) {
         typename U::template rebind<A>::other allocator(s.get_allocator());

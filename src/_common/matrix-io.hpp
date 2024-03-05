@@ -3,9 +3,10 @@
 #include "constants.hpp"
 #include "graphs-io.hpp"
 
-#include "square-shape.hpp"
-#include "shapes-traits.hpp"
-#include "shapes-manip.hpp"
+#include "square-matrix.hpp"
+
+#include "matrix-traits.hpp"
+#include "matrix-manip.hpp"
 
 namespace utilz {
 namespace graphs {

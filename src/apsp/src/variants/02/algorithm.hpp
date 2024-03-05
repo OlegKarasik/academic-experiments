@@ -5,7 +5,7 @@
 #include "portables/hacks/defines.h"
 
 #include "memory.hpp"
-#include "square-shape.hpp"
+#include "square-matrix.hpp"
 #include "constants.hpp"
 
 template<typename T>

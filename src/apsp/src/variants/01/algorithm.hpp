@@ -4,7 +4,7 @@
 
 #include "portables/hacks/defines.h"
 
-#include "square-shape.hpp"
+#include "square-matrix.hpp"
 
 template<typename T, typename A>
 void

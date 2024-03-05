@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rect-shape.hpp"
-#include "square-shape.hpp"
+#include "rect-matrix.hpp"
+#include "square-matrix.hpp"
 
 namespace utilz {
 namespace traits {
