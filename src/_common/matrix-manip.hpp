@@ -424,7 +424,7 @@ public:
       for (auto j = size_type(0); j < s.size(); ++j) {
         typename U::template rebind<A>::other allocator(s.get_allocator());
 
-        s.at(i, i) = utilz::rect_matrix<T, A>(item_sizes[j], item_sizes[i], allocator);
+        s.at(i, j) = utilz::rect_matrix<T, A>(item_sizes[j], item_sizes[i], allocator);
       }
   }
 };
