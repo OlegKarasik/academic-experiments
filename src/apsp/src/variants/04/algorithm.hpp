@@ -1,6 +1,6 @@
 #pragma once
 
-#define APSP_ALG_HAS_BLOCKS
+#define APSP_ALG_HAS_UNEQUAL_BLOCKS
 
 #include "portables/hacks/defines.h"
 
@@ -8,21 +8,24 @@
 
 template<typename T, typename A>
 void
-calculate_block(::utilz::square_matrix<T, A>& ij, ::utilz::square_matrix<T, A>& ik, ::utilz::square_matrix<T, A>& kj)
+calculate_block(utilz::rect_matrix<T, A>& ij, utilz::rect_matrix<T, A>& ik, utilz::rect_matrix<T, A>& kj)
 {
-  using size_type = typename ::utilz::traits::matrix_traits<utilz::square_matrix<T>>::size_type;
+  using size_type = typename utilz::traits::matrix_traits<utilz::rect_matrix<T>>::size_type;
 
-  const auto x = ij.size();
-  for (auto k = size_type(0); k < x; ++k)
-    for (auto i = size_type(0); i < x; ++i)
+  const auto kj_size = kj.height();
+  const auto ij_w = ij.width();
+  const auto ij_h = ij.height();
+
+  for (auto k = size_type(0); k < kj_size; ++k)
+    for (auto i = size_type(0); i < ij_h; ++i)
       __hack_ivdep
-      for (auto j = size_type(0); j < x; ++j)
+      for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
 
 template<typename T, typename A, typename U>
 __hack_noinline void
-run(::utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks)
+run(::utilz::square_matrix<utilz::rect_matrix<T, A>, U>& blocks)
 {
   using size_type = typename ::utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
 
@@ -77,7 +80,7 @@ run(::utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks)
 #ifdef _OPENMP
   #pragma omp taskwait
 #endif
-      };
-    }
+    };
   }
+}
 };

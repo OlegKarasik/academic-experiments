@@ -14,19 +14,29 @@
 
 // local utilz
 #include "graphs-io.hpp"
-#include "matrix.hpp"
-#include "matrix-traits.hpp"
-#include "matrix-manip.hpp"
 #include "matrix-io.hpp"
+#include "matrix-manip.hpp"
+#include "matrix-traits.hpp"
+#include "matrix.hpp"
 
 // local includes
 //
 #include "algorithm.hpp"
 
-const auto graph_names = std::array<std::string, 2>({ "10-14.source.g", "32-376.source.g" });
-
-#ifdef APSP_ALG_HAS_BLOCKS
-const auto block_sizes = std::array<int, 3>({ 2, 4, 5 });
+#if defined(APSP_ALG_HAS_BLOCKS)
+const auto parameters = std::array<std::tuple<std::string, size_t>, 6>(
+  { std::make_tuple("10-14.source.g", 2),
+    std::make_tuple("10-14.source.g", 4),
+    std::make_tuple("10-14.source.g", 5),
+    std::make_tuple("32-376.source.g", 2),
+    std::make_tuple("32-376.source.g", 4),
+    std::make_tuple("32-376.source.g", 5) });
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+const auto parameters = std::array<std::tuple<std::string, std::vector<size_t>>, 2>(
+  { std::make_tuple("10-14.source.g", std::vector<size_t>{ 2, 3, 3, 2 }),
+    std::make_tuple("32-376.source.g", std::vector<size_t>{ 4, 5, 10, 4, 4, 5 }) });
+#else
+const auto parameters = std::array<std::tuple<std::string>, 2>({ "10-14.source.g", "32-376.source.g" });
 #endif
 
 template<typename T>
@@ -38,8 +48,10 @@ class Fixture : public benchmark::Fixture
   using buffer = utilz::memory::buffer_dyn;
 #endif
 
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
   using matrix = utilz::square_matrix<::utilz::square_matrix<T>>;
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  using matrix = utilz::square_matrix<::utilz::rect_matrix<T>>;
 #else
   using matrix = utilz::square_matrix<T>;
 #endif
@@ -57,29 +69,25 @@ public:
 
     std::filesystem::path root_path = workspace::root();
 
-#ifdef APSP_ALG_HAS_BLOCKS
-    for (auto block_size : block_sizes) {
-#endif
-      for (auto graph_name : graph_names) {
-        std::filesystem::path src_path = root_path / "data/_test/direct-acyclic-graphs/" / graph_name;
+    for (auto params : parameters) {
+      std::filesystem::path src_path = root_path / "data/_test/direct-acyclic-graphs/" / std::get<0>(params);
 
-        std::ifstream src_fs(src_path);
-        if (!src_fs.is_open())
-          throw std::logic_error("erro: the file '" + src_path.generic_string() + "' doesn't exist.");
+      std::ifstream src_fs(src_path);
+      if (!src_fs.is_open())
+        throw std::logic_error("erro: the file '" + src_path.generic_string() + "' doesn't exist.");
 
-        matrix src_matrix;
+      matrix src_matrix;
 
-#ifdef APSP_ALG_HAS_BLOCKS
-        utilz::graphs::io::scan_graph(format, src_fs, src_matrix, block_size);
+#if defined(APSP_ALG_HAS_BLOCKS)
+      utilz::graphs::io::scan_graph(format, src_fs, src_matrix, std::get<1>(params));
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+      utilz::graphs::io::scan_graph(format, src_fs, src_matrix, std::get<1>(params));
 #else
-        utilz::graphs::io::scan_graph(format, src_fs, src_matrix);
+      utilz::graphs::io::scan_graph(format, src_fs, src_matrix);
 #endif
 
-        this->m_src.push_back(std::move(src_matrix));
-      }
-#ifdef APSP_ALG_HAS_BLOCKS
+      this->m_src.push_back(std::move(src_matrix));
     }
-#endif
   }
   ~Fixture()
   {
@@ -119,11 +127,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 }
 
 BENCHMARK_REGISTER_F(Fixture, ExecuteInt)
-#ifdef APSP_ALG_HAS_BLOCKS
-  ->DenseRange(0, graph_names.size() * block_sizes.size() - 1, 1)
-#else
-  ->DenseRange(0, graph_names.size() - 1, 1)
-#endif
+  ->DenseRange(0, parameters.size() - 1, 1)
   ->UseManualTime()
   ->DisplayAggregatesOnly()
   ->Repetitions(10);

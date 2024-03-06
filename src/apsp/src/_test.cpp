@@ -13,10 +13,10 @@
 
 // local utilz
 #include "graphs-io.hpp"
-#include "matrix.hpp"
-#include "matrix-traits.hpp"
-#include "matrix-manip.hpp"
 #include "matrix-io.hpp"
+#include "matrix-manip.hpp"
+#include "matrix-traits.hpp"
+#include "matrix.hpp"
 
 // local includes
 //
@@ -32,8 +32,10 @@ public:
   using buffer = utilz::memory::buffer_dyn;
 #endif
 
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
   using source_matrix = utilz::square_matrix<utilz::square_matrix<T>>;
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  using source_matrix = utilz::square_matrix<utilz::rect_matrix<T>>;
 #else
   using source_matrix = utilz::square_matrix<T>;
 #endif
@@ -41,7 +43,7 @@ public:
   using source_matrix_gt = utilz::procedures::matrix_at<source_matrix>;
   using source_matrix_dm = utilz::procedures::matrix_get_dimensions<source_matrix>;
 
-  using result_matrix = utilz::square_matrix<T>;
+  using result_matrix    = utilz::square_matrix<T>;
   using result_matrix_gt = utilz::procedures::matrix_at<result_matrix>;
   using result_matrix_dm = utilz::procedures::matrix_get_dimensions<result_matrix>;
 
@@ -55,10 +57,14 @@ public:
   source_matrix m_src;
   result_matrix m_res;
 
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
   Fixture(
     const std::string& graph_name,
     const size_type    block_size)
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  Fixture(
+    const std::string&         graph_name,
+    const std::vector<size_t>& block_sizes)
 #else
   Fixture(
     const std::string& graph_name)
@@ -80,13 +86,15 @@ public:
     if (!res_fs.is_open())
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
     utilz::graphs::io::scan_graph(format, src_fs, this->m_src, block_size);
-    utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+    utilz::graphs::io::scan_graph(format, src_fs, this->m_src, block_sizes);
 #else
     utilz::graphs::io::scan_graph(format, src_fs, this->m_src);
-    utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
 #endif
+
+    utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
   };
   ~Fixture(){};
 
@@ -120,10 +128,8 @@ public:
 
 using FixtureT = Fixture<int>;
 
-const auto graph_names = testing::Values("10-14", "32-376");
-
-#ifdef APSP_ALG_HAS_BLOCKS
-const auto block_sizes = testing::Values(2, 4, 5);
+#if defined(APSP_ALG_HAS_BLOCKS)
+const auto values = testing::Combine(testing::Values("10-14", "32-376"), testing::Values(2, 4, 5));
 
 class FixtureP
   : public FixtureT
@@ -136,8 +142,27 @@ public:
   }
 };
 
-INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, testing::Combine(graph_names, block_sizes));
+INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+const auto values = testing::Values(
+  std::make_tuple("10-14", std::vector<size_t>{ 2, 3, 3, 2 }),
+  std::make_tuple("32-376", std::vector<size_t>{ 4, 5, 10, 4, 4, 5 }));
+
+class FixtureP
+  : public FixtureT
+  , public ::testing::WithParamInterface<std::tuple<std::string, std::vector<size_t>>>
+{
+public:
+  FixtureP()
+    : FixtureT(std::get<0>(GetParam()), std::get<1>(GetParam()))
+  {
+  }
+};
+
+INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #else
+const auto values = testing::Values("10-14", "32-376");
+
 class FixtureP
   : public FixtureT
   , public ::testing::WithParamInterface<std::string>
@@ -149,7 +174,7 @@ public:
   }
 };
 
-INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, graph_names);
+INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #endif
 
 TEST_P(FixtureP, correctness)
