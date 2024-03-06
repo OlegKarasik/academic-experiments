@@ -14,7 +14,6 @@
 #include <memory>
 #include <string>
 
-
 // global C includes
 //
 #include <stdlib.h>
@@ -32,14 +31,14 @@
 
 // local utilz
 //
+#include "graphs-io.hpp"
 #include "measure.hpp"
 #include "memory.hpp"
-#include "graphs-io.hpp"
 
-#include "matrix.hpp"
-#include "matrix-traits.hpp"
-#include "matrix-manip.hpp"
 #include "matrix-io.hpp"
+#include "matrix-manip.hpp"
+#include "matrix-traits.hpp"
+#include "matrix.hpp"
 
 // local includes
 //
@@ -54,8 +53,11 @@ using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
 using matrix_block = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+using matrix_block = utilz::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
 #else
 using matrix = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
@@ -74,10 +76,14 @@ main(int argc, char* argv[]) __hack_noexcept
   std::string opt_input;
   std::string opt_output;
 
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
   matrix::size_type opt_block_size = matrix::size_type(0);
 
   const char* options = "g:G:o:O:pr:a:s:";
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  std::vector<matrix::size_type> opt_block_sizes;
+
+  const char* options = "g:G:o:O:pr:a:";
 #else
   const char* options = "g:G:o:O:pr:a:";
 #endif
@@ -166,7 +172,7 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-a' option detected" << '\n';
         return 1;
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
       case 's':
         if (opt_block_size == matrix::size_type(0)) {
           std::cerr << "-s: " << optarg << "\n";
@@ -241,10 +247,15 @@ main(int argc, char* argv[]) __hack_noexcept
   //
   matrix m(buffer_allocator);
 
-#ifdef APSP_ALG_HAS_BLOCKS
+#if defined(APSP_ALG_HAS_BLOCKS)
   auto scan_ms = utilz::measure_milliseconds(
     [&m, &input_stream, opt_input_format, opt_block_size]() -> void {
       utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, opt_block_size);
+    });
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  auto scan_ms = utilz::measure_milliseconds(
+    [&m, &input_stream, opt_input_format, &opt_block_sizes]() -> void {
+      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, opt_block_sizes);
     });
 #else
   auto scan_ms = utilz::measure_milliseconds(
