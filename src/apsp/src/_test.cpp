@@ -12,6 +12,7 @@
 #include "workspace.hpp"
 
 // local utilz
+#include "communities-io.hpp"
 #include "graphs-io.hpp"
 #include "matrix-io.hpp"
 #include "matrix-manip.hpp"
@@ -63,38 +64,66 @@ public:
     const size_type    block_size)
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
   Fixture(
-    const std::string&         graph_name,
-    const std::vector<size_t>& block_sizes)
+    const std::string& graph_name,
+    const std::string& communities_name)
 #else
   Fixture(
     const std::string& graph_name)
 #endif
   {
-    utilz::graphs::io::graph_format format = utilz::graphs::io::graph_format::graph_fmt_weightlist;
+    utilz::graphs::io::graph_format graph_format = utilz::graphs::io::graph_format::graph_fmt_weightlist;
+
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+    utilz::communities::io::communities_format communities_format = utilz::communities::io::communities_format::communities_fmt_rlang;
+#endif
 
     std::filesystem::path root_path = workspace::root();
     std::filesystem::path data_path = "data/_test/direct-acyclic-graphs";
 
-    std::filesystem::path src_path = root_path / data_path / (graph_name + ".source.g");
-    std::filesystem::path res_path = root_path / data_path / (graph_name + ".result.g");
+    std::filesystem::path src_path             = root_path / data_path / (graph_name + ".source.g");
+    std::filesystem::path src_communities_path = root_path / data_path / (communities_name + ".communities.g");
+    std::filesystem::path res_path             = root_path / data_path / (graph_name + ".result.g");
 
     std::ifstream src_fs(src_path);
     if (!src_fs.is_open())
       throw std::logic_error("erro: the file '" + src_path.generic_string() + "' doesn't exist.");
+
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+    std::ifstream src_communities_fs(src_communities_path);
+    if (!src_communities_fs.is_open())
+      throw std::logic_error("erro: the file '" + src_communities_path.generic_string() + "' doesn't exist.");
+#endif
 
     std::ifstream res_fs(res_path);
     if (!res_fs.is_open())
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
 #if defined(APSP_ALG_HAS_BLOCKS)
-    utilz::graphs::io::scan_graph(format, src_fs, this->m_src, block_size);
+    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_size);
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
-    utilz::graphs::io::scan_graph(format, src_fs, this->m_src, block_sizes);
+    std::map<size_type, std::vector<size_type>> communities;
+
+    auto set_v = std::function([](std::map<size_type, std::vector<size_type>>& c, size_type ci, size_type vi) -> void {
+      auto set = c.find(ci);
+      if (set == c.end()) {
+        c.emplace(ci, std::vector<size_type>({ vi }));
+      } else {
+        set->second.push_back(vi);
+      }
+    });
+
+    utilz::communities::io::scan_communities(communities_format, src_communities_fs, communities, set_v);
+
+    std::vector<size_type> block_sizes;
+    for (auto community : communities)
+      block_sizes.push_back(community.second.size());
+
+    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_sizes);
 #else
-    utilz::graphs::io::scan_graph(format, src_fs, this->m_src);
+    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src);
 #endif
 
-    utilz::graphs::io::scan_graph(format, res_fs, this->m_res);
+    utilz::graphs::io::scan_graph(graph_format, res_fs, this->m_res);
   };
   ~Fixture(){};
 
@@ -145,12 +174,12 @@ public:
 INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
 const auto values = testing::Values(
-  std::make_tuple("10-14", std::vector<size_t>{ 2, 3, 3, 2 }),
-  std::make_tuple("32-376", std::vector<size_t>{ 4, 5, 10, 4, 4, 5 }));
+  std::make_tuple("10-14", "10-14"),
+  std::make_tuple("32-376", "32-376"));
 
 class FixtureP
   : public FixtureT
-  , public ::testing::WithParamInterface<std::tuple<std::string, std::vector<size_t>>>
+  , public ::testing::WithParamInterface<std::tuple<std::string, std::string>>
 {
 public:
   FixtureP()
