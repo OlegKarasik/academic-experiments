@@ -35,6 +35,12 @@ struct impl_set_dimensions;
 template<typename S>
 struct impl_replace;
 
+template<typename S>
+struct impl_swap_rows;
+
+template<typename S>
+struct impl_swap_cols;
+
 } // namespace impl
 
 //
@@ -52,6 +58,12 @@ using matrix_at = impl::impl_at<S>;
 
 template<typename S>
 using matrix_replace = impl::impl_replace<S>;
+
+template<typename S>
+using matrix_swap_rows = impl::impl_swap_rows<S>;
+
+template<typename S>
+using matrix_swap_cols = impl::impl_swap_cols<S>;
 
 template<matrix_dimensions_variant TVariant, typename S>
 class matrix_dimensions
@@ -453,6 +465,51 @@ public:
   }
 };
 
+template<typename S>
+struct impl_swap_rows
+{
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
+
+private:
+  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
+
+public:
+  void
+  operator()(S& s, size_type x, size_type y)
+  {
+    matrix_at<S>             get_at;
+    matrix_get_dimensions<S> get_dimensions;
+
+    auto dimensions = get_dimensions(s);
+    for (auto j = size_type(0); j < dimensions.w(); ++j)
+      std::swap(get_at(s, x, j), get_at(s, y, j));
+  }
+};
+
+template<typename S>
+struct impl_swap_cols
+{
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
+
+private:
+  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
+
+public:
+  void
+  operator()(S& s, size_type x, size_type y)
+  {
+    matrix_at<S>             get_at;
+    matrix_get_dimensions<S> get_dimensions;
+
+    auto zx =  get_at(s, y, 0);
+
+    auto dimensions = get_dimensions(s);
+    for (auto i = size_type(0); i < dimensions.h(); ++i)
+      std::swap(get_at(s, i, x), get_at(s, i, y));
+  }
+};
 
 } // namespace get_dimensions
 

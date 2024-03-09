@@ -43,6 +43,8 @@ public:
 
   using source_matrix_gt = utilz::procedures::matrix_at<source_matrix>;
   using source_matrix_dm = utilz::procedures::matrix_get_dimensions<source_matrix>;
+  using source_matrix_sr = utilz::procedures::matrix_swap_rows<source_matrix>;
+  using source_matrix_sc = utilz::procedures::matrix_swap_cols<source_matrix>;
 
   using result_matrix    = utilz::square_matrix<T>;
   using result_matrix_gt = utilz::procedures::matrix_at<result_matrix>;
@@ -54,6 +56,8 @@ public:
 #ifdef APSP_ALG_HAS_OPTIONS
   buffer m_buf;
 #endif
+
+  std::map<size_type, std::vector<size_type>> m_src_communities;
 
   source_matrix m_src;
   result_matrix m_res;
@@ -101,7 +105,6 @@ public:
 #if defined(APSP_ALG_HAS_BLOCKS)
     utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_size);
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
-    std::map<size_type, std::vector<size_type>> communities;
 
     auto set_v = std::function([](std::map<size_type, std::vector<size_type>>& c, size_type ci, size_type vi) -> void {
       auto set = c.find(ci);
@@ -112,10 +115,10 @@ public:
       }
     });
 
-    utilz::communities::io::scan_communities(communities_format, src_communities_fs, communities, set_v);
+    utilz::communities::io::scan_communities(communities_format, src_communities_fs, this->m_src_communities, set_v);
 
     std::vector<size_type> block_sizes;
-    for (auto community : communities)
+    for (auto community : this->m_src_communities)
       block_sizes.push_back(community.second.size());
 
     utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_sizes);
@@ -137,7 +140,40 @@ public:
 
     down(this->m_src, this->m_buf, options);
 #else
+
+    source_matrix_sr swap_rows;
+    source_matrix_sc swap_cols;
+
+    auto mapping_index = size_type(0);
+    std::map<size_type, size_type> mapping;
+
+    for (auto community : this->m_src_communities) {
+      for (auto vert : community.second) {
+        auto v = mapping.find(vert);
+        if (v == mapping.end()) {
+          mapping.emplace(mapping_index, vert);
+
+          swap_rows(this->m_src, mapping_index, vert);
+          swap_cols(this->m_src, mapping_index, vert);
+        } else {
+          mapping.emplace(mapping_index, v->second);
+
+          swap_rows(this->m_src, mapping_index, v->second);
+          swap_cols(this->m_src, mapping_index, v->second);
+        }
+
+
+        ++mapping_index;
+      }
+    }
+
     run(this->m_src);
+
+
+    for (auto i = mapping.rbegin(); i != mapping.rend(); ++i) {
+      swap_rows(this->m_src, i->first, i->second);
+      swap_cols(this->m_src, i->first, i->second);
+    }
 #endif
 
     source_matrix_gt src_gt;
