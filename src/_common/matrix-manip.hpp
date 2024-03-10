@@ -427,14 +427,14 @@ private:
 
 public:
   void
-  operator()(utilz::square_matrix<utilz::rect_matrix<T, A>, U>& s, size_type total_size, std::vector<size_type> item_sizes)
+  operator()(utilz::square_matrix<utilz::rect_matrix<T, A>, U>& s, std::vector<size_type> item_sizes)
   {
     auto own_size = item_sizes.size();
 
     s = utilz::square_matrix<utilz::rect_matrix<T, A>, U>(own_size, s.get_allocator());
     for (auto i = size_type(0); i < s.size(); ++i)
       for (auto j = size_type(0); j < s.size(); ++j) {
-        typename U::template rebind<A>::other allocator(s.get_allocator());
+        typename std::allocator_traits<U>::template rebind_alloc<A> allocator(s.get_allocator());
 
         s.at(i, j) = utilz::rect_matrix<T, A>(item_sizes[j], item_sizes[i], allocator);
       }
