@@ -40,6 +40,11 @@ public:
 #else
   using source_matrix = utilz::square_matrix<T>;
 #endif
+  using size_type = typename utilz::traits::matrix_traits<source_matrix>::size_type;
+
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  using source_clusters = utilz::matrix_clusters<size_type>;
+#endif
 
   using source_matrix_gt = utilz::procedures::matrix_at<source_matrix>;
   using source_matrix_dm = utilz::procedures::matrix_get_dimensions<source_matrix>;
@@ -50,14 +55,12 @@ public:
   using result_matrix_gt = utilz::procedures::matrix_at<result_matrix>;
   using result_matrix_dm = utilz::procedures::matrix_get_dimensions<result_matrix>;
 
-  using size_type = typename utilz::traits::matrix_traits<source_matrix>::size_type;
-
 public:
 #ifdef APSP_ALG_HAS_OPTIONS
   buffer m_buf;
 #endif
 
-  std::map<size_type, std::vector<size_type>> m_src_communities;
+  source_clusters m_src_clusters;
 
   source_matrix m_src;
   result_matrix m_res;
@@ -105,23 +108,8 @@ public:
 #if defined(APSP_ALG_HAS_BLOCKS)
     utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_size);
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
-
-    auto set_v = std::function([](std::map<size_type, std::vector<size_type>>& c, size_type ci, size_type vi) -> void {
-      auto set = c.find(ci);
-      if (set == c.end()) {
-        c.emplace(ci, std::vector<size_type>({ vi }));
-      } else {
-        set->second.push_back(vi);
-      }
-    });
-
-    utilz::communities::io::scan_communities(communities_format, src_communities_fs, this->m_src_communities, set_v);
-
-    std::vector<size_type> block_sizes;
-    for (auto community : this->m_src_communities)
-      block_sizes.push_back(community.second.size());
-
-    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_sizes);
+    utilz::communities::io::scan_communities(communities_format, src_communities_fs, this->m_src_clusters);
+    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, this->m_src_clusters);
 #else
     utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src);
 #endif
@@ -144,11 +132,11 @@ public:
     source_matrix_sr swap_rows;
     source_matrix_sc swap_cols;
 
-    auto mapping_index = size_type(0);
+    auto                           mapping_index = size_type(0);
     std::map<size_type, size_type> mapping;
 
-    for (auto community : this->m_src_communities) {
-      for (auto vert : community.second) {
+    for (auto kv : this->m_src_clusters.get_all()) {
+      for (auto vert : kv.second) {
         auto v = mapping.find(vert);
         if (v == mapping.end()) {
           mapping.emplace(mapping_index, vert);
@@ -162,13 +150,11 @@ public:
           swap_cols(this->m_src, mapping_index, v->second);
         }
 
-
         ++mapping_index;
       }
     }
 
     run(this->m_src);
-
 
     for (auto i = mapping.rbegin(); i != mapping.rend(); ++i) {
       swap_rows(this->m_src, i->first, i->second);

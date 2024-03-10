@@ -3,11 +3,39 @@
 #include "constants.hpp"
 #include "graphs-io.hpp"
 
-#include "matrix.hpp"
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
+#include "matrix.hpp"
 
 namespace utilz {
+
+namespace communities {
+namespace io {
+
+template<typename I>
+void
+scan_communities(
+  communities_format         format,
+  std::istream&              is,
+  utilz::matrix_clusters<I>& clusters);
+
+template<typename I>
+void
+scan_communities(
+  communities_format         format,
+  std::istream&              is,
+  utilz::matrix_clusters<I>& clusters)
+{
+  auto set_v = std::function([](utilz::matrix_clusters<I>& c, I cindex, I vindex) -> void {
+    c.insert(cindex, vindex);
+  });
+
+  utilz::communities::io::scan_communities(format, is, clusters, set_v);
+};
+
+} // namespace io
+} // namespace communities
+
 namespace graphs {
 namespace io {
 
@@ -17,7 +45,15 @@ scan_graph(
   graph_format                format,
   std::istream&               is,
   utilz::square_matrix<T, A>& matrix,
-  TArgs... args);
+  TArgs... item_sizes);
+
+template<typename T, typename A>
+void
+scan_graph(
+  graph_format                                                                                          format,
+  std::istream&                                                                                         is,
+  utilz::square_matrix<T, A>&                                                                           matrix,
+  utilz::matrix_clusters<typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type>& clusters);
 
 template<typename T, typename A>
 void
@@ -39,7 +75,7 @@ scan_graph(
   graph_format                format,
   std::istream&               is,
   utilz::square_matrix<T, A>& matrix,
-  TArgs... args)
+  TArgs... item_sizes)
 {
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
   using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
@@ -50,11 +86,11 @@ scan_graph(
 
   matrix_set_dimensions set_dimensions;
   matrix_at             get_at;
-  matrix_replace        replace;
+  matrix_replace        replace_all;
 
-  auto ss_fn = std::function([&set_dimensions, &replace, &args...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
-    set_dimensions(c, vertex_count, args...);
-    replace(c, value_type(), utilz::constants::infinity<value_type>());
+  auto ss_fn = std::function([&set_dimensions, &replace_all, &item_sizes...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
+    set_dimensions(c, vertex_count, item_sizes...);
+    replace_all(c, value_type(), utilz::constants::infinity<value_type>());
   });
   auto se_fn = std::function([](utilz::square_matrix<T, A>& c, size_type edge_count) -> void {
   });
@@ -63,6 +99,39 @@ scan_graph(
   });
 
   utilz::graphs::io::scan_graph(format, is, matrix, ss_fn, se_fn, sw_fn);
+};
+
+template<typename T, typename A>
+void
+scan_graph(
+  graph_format                                                                                          format,
+  std::istream&                                                                                         is,
+  utilz::square_matrix<T, A>&                                                                           matrix,
+  utilz::matrix_clusters<typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type>& clusters)
+{
+  using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
+  using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
+  using matrix_replace        = utilz::procedures::matrix_replace<utilz::square_matrix<T, A>>;
+
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+
+  matrix_set_dimensions set_dimensions;
+  matrix_at             get_at;
+  matrix_replace        replace_all;
+
+  std::vector<size_type> item_sizes;
+  for (auto size : clusters.get() | std::views::transform([](auto& v) -> size_t { return v.size(); }))
+    item_sizes.push_back(size);
+
+  set_dimensions(matrix, item_sizes);
+  replace_all(matrix, value_type(), utilz::constants::infinity<value_type>());
+
+  auto sw_fn = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
+    get_at(c, f, t) = w;
+  });
+
+  utilz::graphs::io::scan_graph(format, is, matrix, sw_fn);
 };
 
 template<typename T, typename A>
