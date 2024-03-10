@@ -47,7 +47,7 @@ void
 scan_communities(
   std::istream& is,
   C&            communities,
-  SV&           set_w);
+  SV&           set_v);
 
 } // namespace impl
 
