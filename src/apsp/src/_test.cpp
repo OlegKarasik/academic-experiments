@@ -61,7 +61,9 @@ public:
   buffer m_buf;
 #endif
 
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
   source_clusters m_src_clusters;
+#endif
 
   source_matrix m_src;
   result_matrix m_res;
@@ -89,7 +91,11 @@ public:
     std::filesystem::path data_path = "data/_test/direct-acyclic-graphs";
 
     std::filesystem::path src_path             = root_path / data_path / (graph_name + ".source.g");
+
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
     std::filesystem::path src_communities_path = root_path / data_path / (communities_name + ".communities.g");
+#endif
+
     std::filesystem::path res_path             = root_path / data_path / (graph_name + ".result.g");
 
     std::ifstream src_fs(src_path);

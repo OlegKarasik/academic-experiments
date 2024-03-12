@@ -425,7 +425,7 @@ public:
     s = utilz::square_matrix<utilz::square_matrix<T, A>, U>(own_size, s.get_allocator());
     for (auto i = size_type(0); i < s.size(); ++i)
       for (auto j = size_type(0); j < s.size(); ++j) {
-        typename U::template rebind<A>::other allocator(s.get_allocator());
+        typename std::allocator_traits<U>::template rebind_alloc<A> allocator(s.get_allocator());
 
         s.at(i, j) = utilz::square_matrix<T, A>(item_size, allocator);
       }
