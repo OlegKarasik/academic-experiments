@@ -41,7 +41,7 @@ public:
   {
     auto it = this->m_clusters.find(cindex);
     if (it == this->m_clusters.end()) {
-      this->m_clusters.emplace(cindex, std::vector<size_type>({ vindex }));
+      this->m_clusters.emplace(cindex, std::vector<T>({ vindex }));
     } else {
       it->second.push_back(vindex);
     }

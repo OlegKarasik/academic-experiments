@@ -1,5 +1,6 @@
 #pragma once
 
+#include "communities-io.hpp"
 #include "constants.hpp"
 #include "graphs-io.hpp"
 
