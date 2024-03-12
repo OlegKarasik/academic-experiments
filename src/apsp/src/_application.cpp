@@ -57,8 +57,9 @@ using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
 using matrix_block = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
-using matrix_block = utilz::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+using matrix_block    = utilz::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix          = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+using matrix_clusters = utilz::matrix_clusters<typename utilz::traits::matrix_traits<matrix>::size_type>;
 #else
 using matrix = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
@@ -81,9 +82,11 @@ main(int argc, char* argv[]) __hack_noexcept
 
   const char* options = "g:G:o:O:pr:a:s:";
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
-  std::vector<matrix::size_type> opt_block_sizes;
+  utilz::communities::io::communities_format opt_input_clusters_format = utilz::communities::io::communities_format::communities_fmt_none;
 
-  const char* options = "g:G:o:O:pr:a:";
+  std::string opt_input_clusters;
+
+  const char* options = "g:G:o:O:pr:a:c:C:";
 #else
   const char* options = "g:G:o:O:pr:a:";
 #endif
@@ -114,6 +117,29 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-G' option detected" << '\n';
         return 1;
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+      case 'c':
+        if (opt_input_clusters.empty()) {
+          std::cerr << "-c: " << optarg << "\n";
+
+          opt_input_clusters = optarg;
+          break;
+        }
+        std::cerr << "erro: unexpected '-c' option detected" << '\n';
+        return 1;
+      case 'C':
+        if (opt_input_clusters_format == utilz::communities::io::communities_format::communities_fmt_none) {
+          std::cerr << "-C: " << optarg << "\n";
+
+          if (!utilz::communities::io::parse_communities_format(optarg, opt_input_clusters_format)) {
+            std::cerr << "erro: invalid communities format has been detected in '-C' option" << '\n';
+            return 1;
+          }
+          break;
+        }
+        std::cerr << "erro: unexpected '-C' option detected" << '\n';
+        return 1;
+#endif
       case 'o':
         if (opt_output.empty()) {
           std::cerr << "-o: " << optarg << "\n";
@@ -203,8 +229,19 @@ main(int argc, char* argv[]) __hack_noexcept
   //
   std::ifstream input_fstream(opt_input);
   if (!input_fstream.is_open()) {
-    std::cerr << "warn: using standard input instead of a file (please use -g option to redirect input to a file)";
+    std::cerr << "erro: the -g parameter is required";
+    return 1;
   }
+
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  // Open the input clusters stream
+  //
+  std::ifstream input_clusters_fstream(opt_input_clusters);
+  if (!input_clusters_fstream.is_open()) {
+    std::cerr << "erro: the -c parameter is required";
+    return 1;
+  }
+#endif
 
   // Open the output stream
   //
@@ -213,7 +250,12 @@ main(int argc, char* argv[]) __hack_noexcept
     std::cerr << "warn: using standard output instead of a file (please use -o option to redirect output to a file)";
   }
 
-  std::istream& input_stream  = input_fstream.is_open() ? input_fstream : std::cin;
+  std::istream& input_stream = input_fstream;
+
+#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  std::istream& input_clusters_stream = input_fstream;
+#endif
+
   std::ostream& output_stream = output_fstream.is_open() ? output_fstream : std::cout;
 
   std::shared_ptr<char> memory;
@@ -253,9 +295,14 @@ main(int argc, char* argv[]) __hack_noexcept
       utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, opt_block_size);
     });
 #elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+  // Define the clusters
+  //
+  matrix_clusters c;
+
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &input_stream, opt_input_format, &opt_block_sizes]() -> void {
-      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, opt_block_sizes);
+    [&m, &input_stream, opt_input_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
+      utilz::communities::io::scan_communities(opt_input_clusters_format, input_clusters_stream, c);
+      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, c);
     });
 #else
   auto scan_ms = utilz::measure_milliseconds(
