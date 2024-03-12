@@ -50,6 +50,7 @@ public:
   using source_matrix_dm = utilz::procedures::matrix_get_dimensions<source_matrix>;
   using source_matrix_sr = utilz::procedures::matrix_swap_rows<source_matrix>;
   using source_matrix_sc = utilz::procedures::matrix_swap_cols<source_matrix>;
+  using source_matrix_ra = utilz::procedures::matrix_rearrange<source_matrix>;
 
   using result_matrix    = utilz::square_matrix<T>;
   using result_matrix_gt = utilz::procedures::matrix_at<result_matrix>;
@@ -121,52 +122,29 @@ public:
   void
   invoke()
   {
+    source_matrix_gt src_gt;
+    source_matrix_dm src_dm;
+
+    result_matrix_gt res_gt;
+    result_matrix_dm res_dm;
+
 #ifdef APSP_ALG_HAS_OPTIONS
     auto options = up(this->m_src, this->m_buf);
 
     run(this->m_src, options);
 
     down(this->m_src, this->m_buf, options);
-#else
+#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+    source_matrix_ra src_ra;
 
-    source_matrix_sr swap_rows;
-    source_matrix_sc swap_cols;
-
-    auto                           mapping_index = size_type(0);
-    std::map<size_type, size_type> mapping;
-
-    for (auto kv : this->m_src_clusters.get_all()) {
-      for (auto vert : kv.second) {
-        auto v = mapping.find(vert);
-        if (v == mapping.end()) {
-          mapping.emplace(mapping_index, vert);
-
-          swap_rows(this->m_src, mapping_index, vert);
-          swap_cols(this->m_src, mapping_index, vert);
-        } else {
-          mapping.emplace(mapping_index, v->second);
-
-          swap_rows(this->m_src, mapping_index, v->second);
-          swap_cols(this->m_src, mapping_index, v->second);
-        }
-
-        ++mapping_index;
-      }
-    }
+    src_ra(this->m_src, this->m_src_clusters, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
 
     run(this->m_src);
 
-    for (auto i = mapping.rbegin(); i != mapping.rend(); ++i) {
-      swap_rows(this->m_src, i->first, i->second);
-      swap_cols(this->m_src, i->first, i->second);
-    }
+    src_ra(this->m_src, this->m_src_clusters, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
+#else
+    run(this->m_src);
 #endif
-
-    source_matrix_gt src_gt;
-    source_matrix_dm src_dm;
-
-    result_matrix_gt res_gt;
-    result_matrix_dm res_dm;
 
     auto src_dimensions = src_dm(this->m_src);
     auto res_dimensions = res_dm(this->m_res);

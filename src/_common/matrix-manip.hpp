@@ -1,9 +1,10 @@
 #pragma once
 
+#include <map>
 #include <numeric>
 
-#include "matrix.hpp"
 #include "matrix-traits.hpp"
+#include "matrix.hpp"
 
 namespace utilz {
 namespace procedures {
@@ -12,6 +13,12 @@ enum matrix_dimensions_variant
 {
   matrix_dimensions_variant_rect   = 1,
   matrix_dimensions_variant_square = 2
+};
+
+enum matrix_rearrangement_variant
+{
+  matrix_rearrangement_forward  = 1,
+  matrix_rearrangement_backward = 2
 };
 
 // ---
@@ -41,6 +48,9 @@ struct impl_swap_rows;
 template<typename S>
 struct impl_swap_cols;
 
+template<typename S>
+struct impl_rearrange_matrix;
+
 } // namespace impl
 
 //
@@ -64,6 +74,9 @@ using matrix_swap_rows = impl::impl_swap_rows<S>;
 
 template<typename S>
 using matrix_swap_cols = impl::impl_swap_cols<S>;
+
+template<typename S>
+using matrix_rearrange = impl::impl_rearrange_matrix<S>;
 
 template<matrix_dimensions_variant TVariant, typename S>
 class matrix_dimensions
@@ -328,7 +341,7 @@ private:
       auto dimensions = get_dimensions(s.at(z, z));
       if (!hf) {
         if (i < h + dimensions.h()) {
-          y = z;
+          y  = z;
           hf = true;
         } else {
           h = h + dimensions.h();
@@ -336,7 +349,7 @@ private:
       }
       if (!wf) {
         if (j < w + dimensions.w()) {
-          x = z;
+          x  = z;
           wf = true;
         } else {
           w = w + dimensions.w();
@@ -454,8 +467,8 @@ public:
   void
   operator()(S& s, value_type f, value_type t)
   {
-    matrix_at<S>             get_at;
-    matrix_get_dimensions<S> get_dimensions;
+    impl_at<S>             get_at;
+    impl_get_dimensions<S> get_dimensions;
 
     auto dimensions = get_dimensions(s);
     for (auto i = size_type(0); i < dimensions.h(); ++i)
@@ -478,8 +491,8 @@ public:
   void
   operator()(S& s, size_type x, size_type y)
   {
-    matrix_at<S>             get_at;
-    matrix_get_dimensions<S> get_dimensions;
+    impl_at<S>             get_at;
+    impl_get_dimensions<S> get_dimensions;
 
     auto dimensions = get_dimensions(s);
     for (auto j = size_type(0); j < dimensions.w(); ++j)
@@ -500,14 +513,66 @@ public:
   void
   operator()(S& s, size_type x, size_type y)
   {
-    matrix_at<S>             get_at;
-    matrix_get_dimensions<S> get_dimensions;
+    impl_at<S>             get_at;
+    impl_get_dimensions<S> get_dimensions;
 
-    auto zx =  get_at(s, y, 0);
+    auto zx = get_at(s, y, 0);
 
     auto dimensions = get_dimensions(s);
     for (auto i = size_type(0); i < dimensions.h(); ++i)
       std::swap(get_at(s, i, x), get_at(s, i, y));
+  }
+};
+
+template<typename S>
+struct impl_rearrange_matrix
+{
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
+
+private:
+  using size_type = typename utilz::traits::matrix_traits<S>::size_type;
+
+private:
+  template<typename Iterator>
+  void
+  rearrange_matrix(S& matrix, Iterator begin, Iterator end)
+  {
+    impl_swap_rows<S> swap_rows;
+    impl_swap_cols<S> swap_cols;
+
+    for (auto i = begin; i != end; ++i) {
+      swap_rows(matrix, i->first, i->second);
+      swap_cols(matrix, i->first, i->second);
+    }
+  }
+
+public:
+  void
+  operator()(S& matrix, utilz::matrix_clusters<size_type>& clusters, matrix_rearrangement_variant rearrangement)
+  {
+    std::map<size_type, size_type> mapping;
+
+    auto mindex = size_type(0);
+    for (auto cindex : clusters.list()) {
+      for (auto vindex : clusters.get(cindex)) {
+        auto v = mapping.find(vindex);
+
+        mapping.emplace(mindex, v == mapping.end() ? vindex : v->second);
+
+        ++mindex;
+      }
+    }
+
+    switch (rearrangement) {
+      case matrix_rearrangement_variant::matrix_rearrangement_forward:
+        rearrange_matrix(matrix, mapping.begin(), mapping.end());
+        break;
+      case matrix_rearrangement_variant::matrix_rearrangement_backward:
+        rearrange_matrix(matrix, mapping.rbegin(), mapping.rend());
+        break;
+      default:
+        throw std::logic_error("erro: unsupported matrix rearrangement algorithm");
+    }
   }
 };
 

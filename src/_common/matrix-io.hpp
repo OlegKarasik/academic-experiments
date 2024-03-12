@@ -109,19 +109,21 @@ scan_graph(
   utilz::square_matrix<T, A>&                                                                           matrix,
   utilz::matrix_clusters<typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type>& clusters)
 {
+  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+
+  using matrix_clusters = utilz::matrix_clusters<size_type>;
+
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
   using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
   using matrix_replace        = utilz::procedures::matrix_replace<utilz::square_matrix<T, A>>;
-
-  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
   matrix_set_dimensions set_dimensions;
   matrix_at             get_at;
   matrix_replace        replace_all;
 
   std::vector<size_type> item_sizes;
-  for (auto size : clusters.get() | std::views::transform([](auto& v) -> size_t { return v.size(); }))
+  for (auto size : clusters.list() | std::views::transform([&clusters](auto& cindex) -> typename matrix_clusters::size_type { return clusters.count(cindex); }))
     item_sizes.push_back(size);
 
   set_dimensions(matrix, item_sizes);

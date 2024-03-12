@@ -4,7 +4,6 @@
 #include <ranges>
 #include <vector>
 
-
 #include <memory>
 #include <utility>
 
@@ -38,44 +37,38 @@ private:
 
 public:
   void
-  insert(T& cindex, T& vindex)
+  insert(const T& cindex, const T& vindex) noexcept
   {
-    auto kv = this->m_clusters.find(cindex);
-    if (kv == this->m_clusters.end()) {
+    auto it = this->m_clusters.find(cindex);
+    if (it == this->m_clusters.end()) {
       this->m_clusters.emplace(cindex, std::vector<size_type>({ vindex }));
     } else {
-      kv->second.push_back(vindex);
+      it->second.push_back(vindex);
     }
   }
 
-  auto
-  get_all()
-  {
-    return std::views::all(this->m_clusters);
-  }
-
-  auto
-  get()
-  {
-    return std::views::values(this->m_clusters);
-  }
-
-  auto
-  get(T& cindex)
-  {
-    return std::views::all(this->m_clusters[cindex]);
-  }
-
   size_type
-  count(T& cindex)
-  {
-    return this->m_clusters[cindex].size();
-  }
-
-  size_type
-  size() const
+  size() const noexcept
   {
     return this->m_clusters.size();
+  }
+
+  auto
+  list() const noexcept
+  {
+    return std::views::keys(this->m_clusters);
+  }
+
+  auto
+  get(const T& cindex) const
+  {
+    return std::views::all(this->m_clusters.at(cindex));
+  }
+
+  size_type
+  count(const T& cindex) const
+  {
+    return this->m_clusters.at(cindex).size();
   }
 };
 
