@@ -1,6 +1,6 @@
 #pragma once
 
-#define APSP_ALG_HAS_BLOCKS
+#define APSP_ALG_MATRIX_BLOCKS
 
 #include "portables/hacks/defines.h"
 

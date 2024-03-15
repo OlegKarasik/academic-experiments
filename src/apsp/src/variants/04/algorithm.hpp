@@ -1,6 +1,8 @@
 #pragma once
 
-#define APSP_ALG_HAS_UNEQUAL_BLOCKS
+#define APSP_ALG_MATRIX_CLUSTERS
+
+#define APSP_ALG_EXTRA_REARRANGEMENTS
 
 #include "portables/hacks/defines.h"
 

@@ -1,6 +1,8 @@
 #pragma once
 
-#define APSP_ALG_HAS_OPTIONS
+#define APSP_ALG_MATRIX
+
+#define APSP_ALG_EXTRA_OPTIONS
 
 #include "portables/hacks/defines.h"
 

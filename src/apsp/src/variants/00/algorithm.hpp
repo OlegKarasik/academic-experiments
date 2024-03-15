@@ -1,5 +1,7 @@
 #pragma once
 
+#define APSP_ALG_MATRIX
+
 #include "portables/hacks/defines.h"
 
 #include "matrix.hpp"

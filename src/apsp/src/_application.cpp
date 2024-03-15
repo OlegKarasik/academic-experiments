@@ -53,41 +53,49 @@ using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
-#if defined(APSP_ALG_HAS_BLOCKS)
+#ifdef APSP_ALG_MATRIX_BLOCKS
 using matrix_block = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+#endif
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
 using matrix_block    = utilz::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 using matrix          = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
 using matrix_clusters = utilz::matrix_clusters<typename utilz::traits::matrix_traits<matrix>::size_type>;
-#else
+#endif
+
+#ifdef APSP_ALG_MATRIX
 using matrix = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
 
 int
 main(int argc, char* argv[]) __hack_noexcept
 {
-  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::graphs::io::graph_format opt_input_graph_format  = utilz::graphs::io::graph_format::graph_fmt_none;
   utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
 
   bool   opt_pages     = false;
   size_t opt_reserve   = size_t(0);
   size_t opt_alignment = size_t(0);
 
-  std::string opt_input;
+  std::string opt_input_graph;
   std::string opt_output;
 
-#if defined(APSP_ALG_HAS_BLOCKS)
+#ifdef APSP_ALG_MATRIX_BLOCKS
   matrix::size_type opt_block_size = matrix::size_type(0);
 
   const char* options = "g:G:o:O:pr:a:s:";
-#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+#endif
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
   utilz::communities::io::communities_format opt_input_clusters_format = utilz::communities::io::communities_format::communities_fmt_none;
 
   std::string opt_input_clusters;
 
   const char* options = "g:G:o:O:pr:a:c:C:";
-#else
+#endif
+
+#ifdef APSP_ALG_MATRIX
   const char* options = "g:G:o:O:pr:a:";
 #endif
 
@@ -97,19 +105,19 @@ main(int argc, char* argv[]) __hack_noexcept
   while ((opt = getopt(argc, argv, options)) != -1) {
     switch (opt) {
       case 'g':
-        if (opt_input.empty()) {
+        if (opt_input_graph.empty()) {
           std::cerr << "-g: " << optarg << "\n";
 
-          opt_input = optarg;
+          opt_input_graph = optarg;
           break;
         }
         std::cerr << "erro: unexpected '-g' option detected" << '\n';
         return 1;
       case 'G':
-        if (opt_input_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_input_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
           std::cerr << "-G: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_format)) {
+          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
             return 1;
           }
@@ -117,7 +125,7 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-G' option detected" << '\n';
         return 1;
-#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+#ifdef APSP_ALG_MATRIX_CLUSTERS
       case 'c':
         if (opt_input_clusters.empty()) {
           std::cerr << "-c: " << optarg << "\n";
@@ -198,7 +206,7 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-a' option detected" << '\n';
         return 1;
-#if defined(APSP_ALG_HAS_BLOCKS)
+#ifdef APSP_ALG_MATRIX_BLOCKS
       case 's':
         if (opt_block_size == matrix::size_type(0)) {
           std::cerr << "-s: " << optarg << "\n";
@@ -216,7 +224,7 @@ main(int argc, char* argv[]) __hack_noexcept
 #endif
     }
   }
-  if (opt_input_format == utilz::graphs::io::graph_fmt_none) {
+  if (opt_input_graph_format == utilz::graphs::io::graph_fmt_none) {
     std::cerr << "erro: the -G parameter is required";
     return 1;
   }
@@ -227,13 +235,13 @@ main(int argc, char* argv[]) __hack_noexcept
 
   // Open the input stream
   //
-  std::ifstream input_fstream(opt_input);
-  if (!input_fstream.is_open()) {
+  std::ifstream input_graph_fstream(opt_input_graph);
+  if (!input_graph_fstream.is_open()) {
     std::cerr << "erro: the -g parameter is required";
     return 1;
   }
 
-#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+#ifdef APSP_ALG_MATRIX_CLUSTERS
   // Open the input clusters stream
   //
   std::ifstream input_clusters_fstream(opt_input_clusters);
@@ -250,10 +258,10 @@ main(int argc, char* argv[]) __hack_noexcept
     std::cerr << "warn: using standard output instead of a file (please use -o option to redirect output to a file)";
   }
 
-  std::istream& input_stream = input_fstream;
+  std::istream& input_graph_stream = input_graph_fstream;
 
-#if defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
-  std::istream& input_clusters_stream = input_fstream;
+#if defined(APSP_ALG_MATRIX_CLUSTERS)
+  std::istream& input_clusters_stream = input_clusters_fstream;
 #endif
 
   std::ostream& output_stream = output_fstream.is_open() ? output_fstream : std::cout;
@@ -289,31 +297,43 @@ main(int argc, char* argv[]) __hack_noexcept
   //
   matrix m(buffer_allocator);
 
-#if defined(APSP_ALG_HAS_BLOCKS)
+#ifdef APSP_ALG_MATRIX_BLOCKS
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &input_stream, opt_input_format, opt_block_size]() -> void {
-      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, opt_block_size);
+    [&m, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
+      utilz::graphs::io::scan_graph(opt_input_graph_format, input_graph_stream, m, opt_block_size);
     });
-#elif defined(APSP_ALG_HAS_UNEQUAL_BLOCKS)
+#endif
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
   // Define the clusters
   //
   matrix_clusters c;
 
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &input_stream, opt_input_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
+    [&m, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
       utilz::communities::io::scan_communities(opt_input_clusters_format, input_clusters_stream, c);
-      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m, c);
+      utilz::graphs::io::scan_graph(opt_input_graph_format, input_graph_stream, m, c);
     });
-#else
+#endif
+
+#ifdef APSP_ALG_MATRIX
   auto scan_ms = utilz::measure_milliseconds(
-    [&m, &input_stream, opt_input_format]() -> void {
-      utilz::graphs::io::scan_graph(opt_input_format, input_stream, m);
+    [&m, &input_graph_stream, opt_input_graph_format]() -> void {
+      utilz::graphs::io::scan_graph(opt_input_graph_format, input_graph_stream, m);
     });
 #endif
 
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_HAS_OPTIONS
+#ifdef APSP_ALG_MATRIX_CLUSTERS
+  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+    utilz::procedures::matrix_rearrange<matrix> rearrange_matrix;
+
+    rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
+  #endif
+#endif
+
+#ifdef APSP_ALG_EXTRA_OPTIONS
   // In cases when algorithm requires additional setup (ex. pre-allocated arrays)
   // it can be done in up procedure (and undone in down).
   //
@@ -324,7 +344,8 @@ main(int argc, char* argv[]) __hack_noexcept
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(
-#ifdef APSP_ALG_HAS_OPTIONS
+
+#ifdef APSP_ALG_EXTRA_OPTIONS
     [&m, &o]() -> void {
 #else
     [&m]() -> void {
@@ -336,7 +357,7 @@ main(int argc, char* argv[]) __hack_noexcept
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
-#ifdef APSP_ALG_HAS_OPTIONS
+#ifdef APSP_ALG_EXTRA_OPTIONS
       run(m, o);
 #else
       run(m);
@@ -349,8 +370,14 @@ main(int argc, char* argv[]) __hack_noexcept
 
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_HAS_OPTIONS
+#ifdef APSP_ALG_EXTRA_OPTIONS
   down(m, buffer_fx, o);
+#endif
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
+#ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+    rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
+#endif
 #endif
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &output_stream, opt_output_format]() -> void {
