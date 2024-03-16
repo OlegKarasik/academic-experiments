@@ -219,9 +219,11 @@ main(int argc, char* argv[]) __hack_noexcept
           }
           break;
         }
-        std::cerr << "erro: unexpected '-a' option detected" << '\n';
+        std::cerr << "erro: unexpected '-s' option detected" << '\n';
         return 1;
 #endif
+      default:
+        return 1;
     }
   }
   if (opt_input_graph_format == utilz::graphs::io::graph_fmt_none) {
@@ -240,6 +242,14 @@ main(int argc, char* argv[]) __hack_noexcept
     std::cerr << "erro: the -g parameter is required";
     return 1;
   }
+
+
+#ifdef APSP_ALG_MATRIX_BLOCKS
+  if (opt_block_size == matrix::size_type(0)) {
+    std::cerr << "erro: the -s parameter is required";
+    return 1;
+  }
+#endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   // Open the input clusters stream
