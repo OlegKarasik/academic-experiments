@@ -19,7 +19,7 @@
     },
     {
       "name": "mingw-gcc-debug",
-      "displayName": "GCC 13.2.0 (Debug)",
+      "displayName": "GCC (Debug)",
       "inherits": [
         "mingw-gcc"
       ],
@@ -29,7 +29,7 @@
     },
     {
       "name": "mingw-gcc-release",
-      "displayName": "GCC 13.2.0 (Release)",
+      "displayName": "GCC (Release)",
       "inherits": [
         "mingw-gcc"
       ],
