@@ -70,12 +70,6 @@ template<typename S>
 using matrix_replace = impl::impl_replace<S>;
 
 template<typename S>
-using matrix_swap_rows = impl::impl_swap_rows<S>;
-
-template<typename S>
-using matrix_swap_cols = impl::impl_swap_cols<S>;
-
-template<typename S>
 using matrix_rearrange = impl::impl_rearrange_matrix<S>;
 
 template<matrix_dimensions_variant TVariant, typename S>
@@ -553,8 +547,8 @@ public:
     std::map<size_type, size_type> mapping;
 
     auto mindex = size_type(0);
-    for (auto cindex : clusters.list()) {
-      for (auto vindex : clusters.get(cindex)) {
+    for (auto cindex : clusters.list_clusters()) {
+      for (auto vindex : clusters.get_vertices(cindex)) {
         auto v = mapping.find(vindex);
 
         mapping.emplace(mindex, v == mapping.end() ? vindex : v->second);

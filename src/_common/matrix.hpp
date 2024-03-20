@@ -34,16 +34,37 @@ public:
 
 private:
   std::map<T, std::vector<T>> m_clusters;
+  std::map<T, std::vector<T>> m_bridges;
+  std::unordered_map<T, T>    m_reverse;
 
 public:
+  // Inserts a mapping between cluster and vertex
+  //
   void
-  insert(const T& cindex, const T& vindex) noexcept
+  insert(const T& cindex, const T& vindex)
   {
     auto it = this->m_clusters.find(cindex);
     if (it == this->m_clusters.end()) {
       this->m_clusters.emplace(cindex, std::vector<T>({ vindex }));
+      this->m_bridges.emplace(cindex, std::vector<T>());
     } else {
       it->second.push_back(vindex);
+    }
+    this->m_reverse.emplace(vindex, cindex);
+  }
+
+  // Inserts bridge information about an `edge` (requires the clusters to
+  // be filled with the mappings between clusters and vertecies)
+  //
+  void
+  insert(std::pair<T, T>& edge)
+  {
+    auto x = this->m_reverse.at(edge.first);
+    auto z = this->m_reverse.at(edge.second);
+
+    if (x != z) {
+      this->m_bridges.at(x).push_back(edge.first);
+      this->m_bridges.at(z).push_back(edge.second);
     }
   }
 
@@ -54,19 +75,19 @@ public:
   }
 
   auto
-  list() const noexcept
+  list_clusters() const noexcept
   {
     return std::views::keys(this->m_clusters);
   }
 
   auto
-  get(const T& cindex) const
+  get_vertices(const T& cindex) const
   {
     return std::views::all(this->m_clusters.at(cindex));
   }
 
   size_type
-  count(const T& cindex) const
+  count_vertices(const T& cindex) const
   {
     return this->m_clusters.at(cindex).size();
   }

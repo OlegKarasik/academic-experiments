@@ -116,15 +116,17 @@ scan_graph(
   using matrix_clusters = utilz::matrix_clusters<size_type>;
 
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
+  using matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<utilz::square_matrix<T, A>>;
   using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
   using matrix_replace        = utilz::procedures::matrix_replace<utilz::square_matrix<T, A>>;
 
   matrix_set_dimensions set_dimensions;
+  matrix_get_dimensions get_dimensions;
   matrix_at             get_at;
   matrix_replace        replace_all;
 
   std::vector<size_type> item_sizes;
-  for (auto size : clusters.list() | std::views::transform([&clusters](auto& cindex) -> typename matrix_clusters::size_type { return clusters.count(cindex); }))
+  for (auto size : clusters.list_clusters() | std::views::transform([&clusters](auto& cindex) -> typename matrix_clusters::size_type { return clusters.count_vertices(cindex); }))
     item_sizes.push_back(size);
 
   set_dimensions(matrix, item_sizes);
@@ -135,6 +137,16 @@ scan_graph(
   });
 
   utilz::graphs::io::scan_graph(format, is, matrix, sw_fn);
+
+  auto dimensions = get_dimensions(matrix);
+
+  for (auto i = size_type(0); i < dimensions.s(); ++i)
+    for (auto j = size_type(0); j < dimensions.s(); ++j) {
+      if (get_at(matrix, i, j) != utilz::constants::infinity<value_type>()) {
+        auto edge = std::make_pair(i, j);
+        clusters.insert(edge);
+      }
+    }
 };
 
 template<typename T, typename A>
