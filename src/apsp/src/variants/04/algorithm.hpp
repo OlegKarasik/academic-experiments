@@ -10,6 +10,27 @@
 
 template<typename T, typename A>
 void
+calculate_block(
+  utilz::rect_matrix<T, A>& ij,
+  utilz::rect_matrix<T, A>& ik,
+  utilz::rect_matrix<T, A>& kj,
+  auto bridges)
+{
+  using size_type = typename utilz::traits::matrix_traits<utilz::rect_matrix<T>>::size_type;
+
+  const auto kj_size = kj.height();
+  const auto ij_w = ij.width();
+  const auto ij_h = ij.height();
+
+  for (auto k : bridges)
+    for (auto i = size_type(0); i < ij_h; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < ij_w; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
+template<typename T, typename A>
+void
 calculate_block(utilz::rect_matrix<T, A>& ij, utilz::rect_matrix<T, A>& ik, utilz::rect_matrix<T, A>& kj)
 {
   using size_type = typename utilz::traits::matrix_traits<utilz::rect_matrix<T>>::size_type;
@@ -27,17 +48,19 @@ calculate_block(utilz::rect_matrix<T, A>& ij, utilz::rect_matrix<T, A>& ik, util
 
 template<typename T, typename A, typename U>
 __hack_noinline void
-run(::utilz::square_matrix<utilz::rect_matrix<T, A>, U>& blocks)
+run(
+  utilz::square_matrix<utilz::rect_matrix<T, A>, U>& blocks,
+  utilz::matrix_clusters<typename utilz::traits::matrix_traits<utilz::rect_matrix<T>>::size_type>& clusters)
 {
-  using size_type = typename ::utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
 
-#ifdef _OPENMP
-  #pragma omp parallel default(none) shared(blocks)
-#endif
+// #ifdef _OPENMP
+//   #pragma omp parallel default(none) shared(blocks)
+// #endif
   {
-#ifdef _OPENMP
-  #pragma omp single
-#endif
+// #ifdef _OPENMP
+//   #pragma omp single
+// #endif
     {
       for (auto m = size_type(0); m < blocks.size(); ++m) {
         auto& mm = blocks.at(m, m);
@@ -49,20 +72,20 @@ run(::utilz::square_matrix<utilz::rect_matrix<T, A>, U>& blocks)
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm)
-#endif
-            calculate_block(im, im, mm);
+// #ifdef _OPENMP
+//   #pragma omp task untied default(none) shared(im, mm)
+// #endif
+            calculate_block(im, im, mm, clusters.get_indeces(m));
 
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm)
-#endif
-            calculate_block(mi, mm, mi);
+// #ifdef _OPENMP
+//   #pragma omp task untied default(none) shared(mi, mm)
+// #endif
+            calculate_block(mi, mm, mi, clusters.get_indeces(m));
           }
         }
-#ifdef _OPENMP
-  #pragma omp taskwait
-#endif
+// #ifdef _OPENMP
+//   #pragma omp taskwait
+// #endif
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
             auto& im = blocks.at(i, m);
@@ -71,17 +94,17 @@ run(::utilz::square_matrix<utilz::rect_matrix<T, A>, U>& blocks)
                 auto& ij = blocks.at(i, j);
                 auto& mj = blocks.at(m, j);
 
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, im, mj)
-#endif
-                calculate_block(ij, im, mj);
+// #ifdef _OPENMP
+//   #pragma omp task untied default(none) shared(ij, im, mj)
+// #endif
+                calculate_block(ij, im, mj, clusters.get_indeces(m));
               }
             }
           }
         }
-#ifdef _OPENMP
-  #pragma omp taskwait
-#endif
+// #ifdef _OPENMP
+//   #pragma omp taskwait
+// #endif
     };
   }
 }

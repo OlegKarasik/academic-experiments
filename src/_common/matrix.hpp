@@ -35,6 +35,7 @@ public:
 private:
   std::map<T, std::vector<T>> m_clusters;
   std::map<T, std::vector<T>> m_bridges;
+  std::map<T, std::vector<T>> m_indeces;
   std::unordered_map<T, T>    m_reverse;
 
 public:
@@ -47,6 +48,7 @@ public:
     if (it == this->m_clusters.end()) {
       this->m_clusters.emplace(cindex, std::vector<T>({ vindex }));
       this->m_bridges.emplace(cindex, std::vector<T>());
+      this->m_indeces.emplace(cindex, std::vector<T>());
     } else {
       it->second.push_back(vindex);
     }
@@ -63,8 +65,25 @@ public:
     auto z = this->m_reverse.at(edge.second);
 
     if (x != z) {
-      this->m_bridges.at(x).push_back(edge.first);
-      this->m_bridges.at(z).push_back(edge.second);
+      auto& vx = this->m_bridges.at(x);
+      auto& vz = this->m_bridges.at(z);
+
+      if (std::find(vx.begin(), vx.end(), edge.first) == vx.end()) {
+        this->m_bridges.at(x).push_back(edge.first);
+
+        auto c = this->m_clusters.at(x);
+        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), edge.first));
+
+        this->m_indeces.at(x).push_back(v);
+      }
+      if (std::find(vz.begin(), vz.end(), edge.second) == vz.end()) {
+        this->m_bridges.at(z).push_back(edge.second);
+
+        auto c = this->m_clusters.at(z);
+        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), edge.second));
+
+        this->m_indeces.at(z).push_back(v);
+      }
     }
   }
 
@@ -72,6 +91,18 @@ public:
   size() const noexcept
   {
     return this->m_clusters.size();
+  }
+
+  auto
+  get_bridges(const T& cindex) const
+  {
+    return std::views::all(this->m_bridges.at(cindex));
+  }
+
+  auto
+  get_indeces(const T& cindex) const
+  {
+    return std::views::all(this->m_indeces.at(cindex));
   }
 
   auto

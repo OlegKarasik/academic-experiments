@@ -159,7 +159,11 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 #ifdef APSP_ALG_EXTRA_OPTIONS
     run(this->m_src[src_index], options);
 #else
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+    run(this->m_src[src_index], this->m_src_clusters[src_index]);
+  #else
     run(this->m_src[src_index]);
+  #endif
 #endif
 
     auto end = std::chrono::high_resolution_clock::now();

@@ -79,8 +79,7 @@ public:
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
     Fixture(
-      const std::string& graph_name,
-      const std::string& communities_name)
+      const std::string& graph_name)
 #endif
 
 #ifdef APSP_ALG_MATRIX
@@ -101,7 +100,7 @@ public:
     std::filesystem::path src_path = root_path / data_path / (graph_name + ".source.g");
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-    std::filesystem::path src_communities_path = root_path / data_path / (communities_name + ".communities.g");
+    std::filesystem::path src_communities_path = root_path / data_path / (graph_name + ".communities.g");
 #endif
 
     std::filesystem::path res_path = root_path / data_path / (graph_name + ".result.g");
@@ -147,11 +146,11 @@ public:
     result_matrix_get_dimensions res_get_dimensions;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-#ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     source_matrix_rearrange src_rearrange;
 
     src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
-#endif
+  #endif
 #endif
 
 #ifdef APSP_ALG_EXTRA_OPTIONS
@@ -161,13 +160,17 @@ public:
 
     down(this->m_src, this->m_buf, options);
 #else
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+    run(this->m_src, this->m_src_clusters);
+  #else
     run(this->m_src);
+  #endif
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-#ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
-#endif
+  #endif
 #endif
 
     auto src_dimensions = src_get_dimensions(this->m_src);
@@ -182,7 +185,7 @@ public:
 using FixtureT = Fixture<int>;
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-const auto values = testing::Combine(testing::Values("10-14", "32-376"), testing::Values(2, 4, 5));
+const auto values = testing::Combine(testing::Values("10-14", "10-36", "32-376"), testing::Values(2, 4, 5));
 
 class FixtureP
   : public FixtureT
@@ -199,17 +202,15 @@ INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-const auto values = testing::Values(
-  std::make_tuple("10-14", "10-14"),
-  std::make_tuple("32-376", "32-376"));
+const auto values = testing::Values("10-14", "10-36", "32-376");
 
 class FixtureP
   : public FixtureT
-  , public ::testing::WithParamInterface<std::tuple<std::string, std::string>>
+  , public ::testing::WithParamInterface<std::string>
 {
 public:
   FixtureP()
-    : FixtureT(std::get<0>(GetParam()), std::get<1>(GetParam()))
+    : FixtureT(GetParam())
   {
   }
 };
@@ -218,7 +219,7 @@ INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #endif
 
 #ifdef APSP_ALG_MATRIX
-const auto values = testing::Values("10-14", "32-376");
+const auto values = testing::Values("10-14", "10-36", "32-376");
 
 class FixtureP
   : public FixtureT

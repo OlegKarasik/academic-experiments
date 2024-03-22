@@ -71,8 +71,8 @@ using matrix = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calcu
 int
 main(int argc, char* argv[]) __hack_noexcept
 {
-  utilz::graphs::io::graph_format opt_input_graph_format  = utilz::graphs::io::graph_format::graph_fmt_none;
-  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::graphs::io::graph_format opt_input_graph_format = utilz::graphs::io::graph_format::graph_fmt_none;
+  utilz::graphs::io::graph_format opt_output_format      = utilz::graphs::io::graph_format::graph_fmt_none;
 
   bool   opt_pages     = false;
   size_t opt_reserve   = size_t(0);
@@ -243,7 +243,6 @@ main(int argc, char* argv[]) __hack_noexcept
     return 1;
   }
 
-
 #ifdef APSP_ALG_MATRIX_BLOCKS
   if (opt_block_size == matrix::size_type(0)) {
     std::cerr << "erro: the -s parameter is required";
@@ -337,9 +336,9 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    utilz::procedures::matrix_rearrange<matrix> rearrange_matrix;
+  utilz::procedures::matrix_rearrange<matrix> rearrange_matrix;
 
-    rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
+  rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
   #endif
 #endif
 
@@ -358,7 +357,11 @@ main(int argc, char* argv[]) __hack_noexcept
 #ifdef APSP_ALG_EXTRA_OPTIONS
     [&m, &o]() -> void {
 #else
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+    [&m, &c]() -> void {
+  #else
     [&m]() -> void {
+  #endif
 #endif
 
 #ifdef ITT_TRACE
@@ -370,7 +373,11 @@ main(int argc, char* argv[]) __hack_noexcept
 #ifdef APSP_ALG_EXTRA_OPTIONS
       run(m, o);
 #else
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+      run(m, c);
+  #else
       run(m);
+  #endif
 #endif
 
 #ifdef ITT_TRACE
@@ -385,9 +392,9 @@ main(int argc, char* argv[]) __hack_noexcept
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-#ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
-#endif
+  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+  rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
+  #endif
 #endif
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &output_stream, opt_output_format]() -> void {
