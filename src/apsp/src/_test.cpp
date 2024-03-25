@@ -184,8 +184,14 @@ public:
 
 using FixtureT = Fixture<int>;
 
+#ifdef APSP_ALG_LIMIT_NOCYCLES
+const auto graphs = testing::Values("10-14", "32-376");
+#else
+const auto graphs = testing::Values("10-14", "10-36", "32-376");
+#endif
+
 #ifdef APSP_ALG_MATRIX_BLOCKS
-const auto values = testing::Combine(testing::Values("10-14", "10-36", "32-376"), testing::Values(2, 4, 5));
+const auto values = testing::Combine(graphs, testing::Values(2, 4, 5));
 
 class FixtureP
   : public FixtureT
@@ -202,7 +208,7 @@ INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-const auto values = testing::Values("10-14", "10-36", "32-376");
+const auto values = graphs;
 
 class FixtureP
   : public FixtureT
@@ -219,7 +225,7 @@ INSTANTIATE_TEST_SUITE_P(FIXTURE_NAME, FixtureP, values);
 #endif
 
 #ifdef APSP_ALG_MATRIX
-const auto values = testing::Values("10-14", "10-36", "32-376");
+const auto values = graphs;
 
 class FixtureP
   : public FixtureT

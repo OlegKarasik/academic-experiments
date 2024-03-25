@@ -4,6 +4,8 @@
 
 #define APSP_ALG_EXTRA_OPTIONS
 
+#define APSP_ALG_LIMIT_NOCYCLES
+
 #include "portables/hacks/defines.h"
 
 #include "memory.hpp"
