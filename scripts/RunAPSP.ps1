@@ -32,8 +32,8 @@ Write-Verbose -Message "RUN PROFILE        : $RunProf" -ErrorAction Stop;
 Write-Host "Reading launch config..." -ErrorAction Stop;
 $LaunchConfig = Get-Content -Path $LaunchConfigPath -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop;
 
-$SourceDirectory = $LaunchConfig.source_dir;
-$ApplicationDirectory = $LaunchConfig.app_dir;
+$SourceDirectory = $LaunchConfig.SourceDirectory;
+$ApplicationDirectory = $LaunchConfig.ApplicationDirectory;
 
 Write-Verbose -Message "SOURCE DIRECTORY      : $SourceDirectory" -ErrorAction Stop;
 Write-Verbose -Message "APPLICATION DIRECTORY : $ApplicationDirectory" -ErrorAction Stop;
@@ -58,15 +58,20 @@ Write-Host "Starting experiements..." -ErrorAction Stop;
 $OutputHash = @()
 $RunConfig | ForEach-Object {
   $Params = $_;
-  $Params.versions | ForEach-Object {
+  $Params.Versions | ForEach-Object {
     $Version = $_;
 
-    $Params.graphs | ForEach-Object {
+    $Params.Graphs | ForEach-Object {
       $Graph = $_;
-      $Graph.args | ForEach-Object {
-        $Size = $Graph.size;
+      $Graph.Args | ForEach-Object {
+        $Code = $Graph.Code;
         $Arguments = $_;
-        $ExperimentCode = "$Size.$Version.$($Arguments -join '')";
+
+        $ExperimentCode = "$Code.$Version";
+
+        # Resolve arguments
+        #
+        $Arguments = $Arguments | % { return $_ -replace '%SOURCE_DIRECTORY%',$SourceDirectory };
 
         Write-Host "Experiment code: $ExperimentCode" -ErrorAction Stop;
 
@@ -83,31 +88,34 @@ $RunConfig | ForEach-Object {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'base' -ErrorAction Stop;
 
-            $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
-            $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
+            $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Code-$Version.out" -ErrorAction Stop;
             $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'cout.txt' -ErrorAction Stop;
 
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
             Write-Verbose -Message "Running application" -ErrorAction Stop;
-            Write-Verbose -Message "Executable : _application-$version.exe" -ErrorAction Stop;
-            Write-Verbose -Message "Arguments  : $arguments" -ErrorAction Stop;
-            Write-Verbose -Message "Input      : $ExperimentInputFile" -ErrorAction Stop;
+            Write-Verbose -Message "Executable : _application-$Version.exe" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
+            Write-Verbose -Message "Arguments  : $Arguments" -ErrorAction Stop;
+            $Arguments | % {
+              Write-Verbose -Message "  : $_" -ErrorAction Stop;
+            };
 
             if ($MeasureEnergy) {
               $ExperimentEnergyResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'energy' -ErrorAction Stop;
               & $socwatch -f power -f hw-cpu-pstate `
                 -o $ExperimentEnergyResultsFile `
-                --program "$ApplicationDirectory\_application-$version.exe" `
-                -i $ExperimentInputFile `
-                -o $ExperimentOutputFile $arguments `
+                --program "$ApplicationDirectory\_application-$Version.exe" `
+                -o $ExperimentOutputFile `
+                -O weightlist `
+                $Arguments `
                 2> $ExperimentResultsFile 1> $null;
             } else {
-              & "$ApplicationDirectory\_application-$version.exe" `
-                -i $ExperimentInputFile `
-                -o $ExperimentOutputFile $arguments `
+              & "$ApplicationDirectory\_application-$Version.exe" `
+                -o $ExperimentOutputFile `
+                -O weightlist `
+                $Arguments `
                 2> $ExperimentResultsFile 1> $null;
             }
 
@@ -177,18 +185,19 @@ $RunConfig | ForEach-Object {
             $ExperimentIterationDirectory = Join-Path -Path $ExperimentOutputDirectory -ChildPath "$i" -ErrorAction Stop;
             $ExperimentResultsDirectory = Join-Path -Path $ExperimentIterationDirectory -ChildPath 'prof' -ErrorAction Stop;
 
-            $ExperimentInputFile = Join-Path -Path $SourceDirectory -ChildPath "$Size.g" -ErrorAction Stop;
-            $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Size.g-$version.out" -ErrorAction Stop;
+            $ExperimentOutputFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath "$Code-$Version.out" -ErrorAction Stop;
             $ExperimentResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'vtune-cout.txt' -ErrorAction Stop;
 
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
             Write-Verbose -Message "Running application (vTune)" -ErrorAction Stop;
-            Write-Verbose -Message "Executable : _application-$version-itt.exe" -ErrorAction Stop;
-            Write-Verbose -Message "Arguments  : $arguments" -ErrorAction Stop;
-            Write-Verbose -Message "Input      : $ExperimentInputFile" -ErrorAction Stop;
+            Write-Verbose -Message "Executable : _application-$Version-itt.exe" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
+            Write-Verbose -Message "Arguments  : $Arguments" -ErrorAction Stop;
+            $Arguments | % {
+              Write-Verbose -Message "  : $_" -ErrorAction Stop;
+            };
 
             & $vtune -collect-with runsa `
               -no-summary -result-dir $ExperimentResultsDirectory `
@@ -197,7 +206,7 @@ $RunConfig | ForEach-Object {
               -allow-multiple-runs `
               -data-limit=10000 `
               --app-working-dir=$ApplicationDirectory `
-              -- "$ApplicationDirectory\_application-$version-itt.exe" -i $ExperimentInputFile -o $ExperimentOutputFile $arguments `
+              -- "$ApplicationDirectory\_application-$Version-itt.exe" -o $ExperimentOutputFile -O weightlist $Arguments `
               2> $ExperimentResultsFile 1> $null;
 
             if ($LastExitCode -ne 0) {
