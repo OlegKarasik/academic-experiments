@@ -114,7 +114,7 @@ main(int argc, char* argv[])
 
           opt_algorithm = atoi(optarg);
 
-          if (opt_algorithm < OPT_ALGORITHM_DAG || opt_algorithm > OPT_ALGORITHM_CONNECTED) {
+          if (opt_algorithm < OPT_ALGORITHM_DAG && opt_algorithm > OPT_ALGORITHM_CONNECTED) {
             std::cerr << "erro: unsupported algorithm specified in '-a' option";
             return 1;
           }
