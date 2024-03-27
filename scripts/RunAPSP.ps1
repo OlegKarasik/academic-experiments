@@ -97,7 +97,7 @@ $RunConfig | ForEach-Object {
             Write-Verbose -Message "Executable : _application-$Version.exe" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
-            Write-Verbose -Message "Arguments  : $Arguments" -ErrorAction Stop;
+            Write-Verbose -Message "Arguments  :" -ErrorAction Stop;
             $Arguments | % {
               Write-Verbose -Message "  : $_" -ErrorAction Stop;
             };
@@ -108,14 +108,12 @@ $RunConfig | ForEach-Object {
                 -o $ExperimentEnergyResultsFile `
                 --program "$ApplicationDirectory\_application-$Version.exe" `
                 -o $ExperimentOutputFile `
-                -O weightlist `
-                $Arguments `
+                -O 'weightlist' $Arguments `
                 2> $ExperimentResultsFile 1> $null;
             } else {
               & "$ApplicationDirectory\_application-$Version.exe" `
                 -o $ExperimentOutputFile `
-                -O weightlist `
-                $Arguments `
+                -O 'weightlist' $Arguments `
                 2> $ExperimentResultsFile 1> $null;
             }
 
@@ -194,7 +192,7 @@ $RunConfig | ForEach-Object {
             Write-Verbose -Message "Executable : _application-$Version-itt.exe" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
-            Write-Verbose -Message "Arguments  : $Arguments" -ErrorAction Stop;
+            Write-Verbose -Message "Arguments  :" -ErrorAction Stop;
             $Arguments | % {
               Write-Verbose -Message "  : $_" -ErrorAction Stop;
             };
@@ -206,7 +204,7 @@ $RunConfig | ForEach-Object {
               -allow-multiple-runs `
               -data-limit=10000 `
               --app-working-dir=$ApplicationDirectory `
-              -- "$ApplicationDirectory\_application-$Version-itt.exe" -o $ExperimentOutputFile -O weightlist $Arguments `
+              -- "$ApplicationDirectory\_application-$Version-itt.exe" -o $ExperimentOutputFile -O 'weightlist' $Arguments `
               2> $ExperimentResultsFile 1> $null;
 
             if ($LastExitCode -ne 0) {
