@@ -243,14 +243,8 @@ public:
 
     this->m_infinity = infinity;
 
-    // If initial state of the iterator is infinity - then advance the iterator to first
-    // non infinity value
-    //
-    if (!s.empty()) {
-      utilz::procedures::matrix_at<S> get_at;
-      if (get_at(s, this->m_i, this->m_j) == this->m_infinity)
-        ++(*this);
-    }
+    if (!s.empty())
+      ++(*this);
   }
 
   iterator(S& s, _value_type infinity, end_iterator)
@@ -291,7 +285,7 @@ public:
           break;
         }
       }
-    } while (get_at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
+    } while (this->m_i == this->m_j || get_at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
 
     return *this;
   }
