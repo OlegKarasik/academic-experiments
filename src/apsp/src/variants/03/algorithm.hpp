@@ -4,8 +4,6 @@
 
 #define APSP_ALG_EXTRA_OPTIONS
 
-#define APSP_ALG_LIMIT_NOCYCLES
-
 #include "portables/hacks/defines.h"
 
 #include "memory.hpp"
@@ -66,14 +64,6 @@ up(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory::b
   arrays.ckb1w = reinterpret_cast<T*>(b.allocate(allocation_size));
   arrays.ckb3w = reinterpret_cast<T*>(b.allocate(allocation_size));
 
-  // The algorithm requires that all self-loops have non "infinite" value. This
-  // doesn't affect correctness of calculations.
-  //
-  for (size_type i = size_type(0); i < sz(blocks).s(); ++i) {
-    if (at(blocks, i, i) == utilz::constants::infinity<value_type>())
-      at(blocks, i, i) = size_type(0);
-  }
-
   for (size_type i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
     arrays.mm_array_cur_row[i] = utilz::constants::infinity<value_type>();
     arrays.mm_array_prv_col[i] = utilz::constants::infinity<value_type>();
@@ -108,13 +98,6 @@ down(utilz::square_matrix<utilz::square_matrix<T, A>, U>& blocks, utilz::memory:
   b.deallocate(reinterpret_cast<alptr_type>(o.ck1b1), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.ckb1w), o.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(o.ckb3w), o.allocation_size);
-
-  // Restoring the matrix to a state where self-loop is represented as
-  // infinity instead of 0.
-  //
-  for (size_type i = size_type(0); i < sz(blocks).s(); ++i)
-    if (at(blocks, i, i) == size_type(0))
-      at(blocks, i, i) = utilz::constants::infinity<value_type>();
 }
 
 template<typename T, typename A>

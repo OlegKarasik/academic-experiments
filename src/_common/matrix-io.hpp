@@ -79,19 +79,18 @@ scan_graph(
   TArgs... item_sizes)
 {
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
+  using matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<utilz::square_matrix<T, A>>;
   using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
-  using matrix_replace        = utilz::procedures::matrix_replace<utilz::square_matrix<T, A>>;
 
   using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
   using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
 
   matrix_set_dimensions set_dimensions;
+  matrix_get_dimensions get_dimensions;
   matrix_at             get_at;
-  matrix_replace        replace_all;
 
-  auto ss_fn = std::function([&set_dimensions, &replace_all, &item_sizes...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
+  auto ss_fn = std::function([&set_dimensions, &item_sizes...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
     set_dimensions(c, vertex_count, item_sizes...);
-    replace_all(c, value_type(), utilz::constants::infinity<value_type>());
   });
   auto se_fn = std::function([](utilz::square_matrix<T, A>& c, size_type edge_count) -> void {
   });
@@ -100,6 +99,18 @@ scan_graph(
   });
 
   utilz::graphs::io::scan_graph(format, is, matrix, ss_fn, se_fn, sw_fn);
+
+  auto dimensions = get_dimensions(matrix);
+
+  for (auto i = size_type(0); i < dimensions.s(); ++i)
+    for (auto j = size_type(0); j < dimensions.s(); ++j) {
+      auto v = get_at(matrix, i, j);
+      if (v == value_type(0))
+        get_at(matrix, i, j) = utilz::constants::infinity<value_type>();
+
+      if (i == j)
+        get_at(matrix, i, j) = value_type(0);
+    }
 };
 
 template<typename T, typename A>
@@ -130,7 +141,6 @@ scan_graph(
     item_sizes.push_back(size);
 
   set_dimensions(matrix, item_sizes);
-  replace_all(matrix, value_type(), utilz::constants::infinity<value_type>());
 
   auto sw_fn = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
     get_at(c, f, t) = w;
@@ -139,6 +149,16 @@ scan_graph(
   utilz::graphs::io::scan_graph(format, is, matrix, sw_fn);
 
   auto dimensions = get_dimensions(matrix);
+
+  for (auto i = size_type(0); i < dimensions.s(); ++i)
+    for (auto j = size_type(0); j < dimensions.s(); ++j) {
+      auto v = get_at(matrix, i, j);
+      if (v == value_type(0))
+        get_at(matrix, i, j) = utilz::constants::infinity<value_type>();
+
+      if (i == j)
+        get_at(matrix, i, j) = value_type(0);
+    }
 
   for (auto i = size_type(0); i < dimensions.s(); ++i)
     for (auto j = size_type(0); j < dimensions.s(); ++j) {
