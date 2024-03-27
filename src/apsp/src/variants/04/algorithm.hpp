@@ -54,16 +54,18 @@ run(
 {
   using size_type = typename utilz::traits::matrix_traits<utilz::square_matrix<utilz::square_matrix<T, A>, U>>::size_type;
 
-// #ifdef _OPENMP
-//   #pragma omp parallel default(none) shared(blocks)
-// #endif
+#ifdef _OPENMP
+  #pragma omp parallel default(none) shared(blocks, clusters)
+#endif
   {
-// #ifdef _OPENMP
-//   #pragma omp single
-// #endif
+#ifdef _OPENMP
+  #pragma omp single
+#endif
     {
       for (auto m = size_type(0); m < blocks.size(); ++m) {
         auto& mm = blocks.at(m, m);
+
+        auto indeces = clusters.get_indeces(m);
 
         calculate_block(mm, mm, mm);
 
@@ -72,20 +74,20 @@ run(
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
-// #ifdef _OPENMP
-//   #pragma omp task untied default(none) shared(im, mm)
-// #endif
-            calculate_block(im, im, mm, clusters.get_indeces(m));
+#ifdef _OPENMP
+  #pragma omp task untied default(none) firstprivate(indeces) shared(im, mm)
+#endif
+            calculate_block(im, im, mm, indeces);
 
-// #ifdef _OPENMP
-//   #pragma omp task untied default(none) shared(mi, mm)
-// #endif
-            calculate_block(mi, mm, mi, clusters.get_indeces(m));
+#ifdef _OPENMP
+  #pragma omp task untied default(none) firstprivate(indeces) shared(mi, mm)
+#endif
+            calculate_block(mi, mm, mi, indeces);
           }
         }
-// #ifdef _OPENMP
-//   #pragma omp taskwait
-// #endif
+#ifdef _OPENMP
+  #pragma omp taskwait
+#endif
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
             auto& im = blocks.at(i, m);
@@ -94,17 +96,17 @@ run(
                 auto& ij = blocks.at(i, j);
                 auto& mj = blocks.at(m, j);
 
-// #ifdef _OPENMP
-//   #pragma omp task untied default(none) shared(ij, im, mj)
-// #endif
-                calculate_block(ij, im, mj, clusters.get_indeces(m));
+#ifdef _OPENMP
+  #pragma omp task untied default(none) firstprivate(indeces) shared(ij, im, mj, clusters)
+#endif
+                calculate_block(ij, im, mj, indeces);
               }
             }
           }
         }
-// #ifdef _OPENMP
-//   #pragma omp taskwait
-// #endif
+#ifdef _OPENMP
+  #pragma omp taskwait
+#endif
     };
   }
 }
