@@ -65,8 +65,6 @@ run(
       for (auto m = size_type(0); m < blocks.size(); ++m) {
         auto& mm = blocks.at(m, m);
 
-        auto indeces = clusters.get_indeces(m);
-
         calculate_block(mm, mm, mm);
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
@@ -75,14 +73,14 @@ run(
             auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) firstprivate(indeces) shared(im, mm)
+  #pragma omp task untied default(none) shared(im, mm, clusters, m)
 #endif
-            calculate_block(im, im, mm, indeces);
+            calculate_block(im, im, mm, clusters.get_indeces(m));
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) firstprivate(indeces) shared(mi, mm)
+  #pragma omp task untied default(none) shared(mi, mm, clusters, m)
 #endif
-            calculate_block(mi, mm, mi, indeces);
+            calculate_block(mi, mm, mi, clusters.get_indeces(m));
           }
         }
 #ifdef _OPENMP
@@ -97,9 +95,9 @@ run(
                 auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) firstprivate(indeces) shared(ij, im, mj, clusters)
+  #pragma omp task untied default(none) shared(ij, im, mj, clusters, m)
 #endif
-                calculate_block(ij, im, mj, indeces);
+                calculate_block(ij, im, mj, clusters.get_indeces(m));
               }
             }
           }
