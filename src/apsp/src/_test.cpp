@@ -184,7 +184,7 @@ public:
 
 using FixtureT = Fixture<int>;
 
-const auto graphs = testing::Values("10-14", "10-36", "32-376");
+const auto graphs = testing::Values("10-14", "10-36", "17-67", "32-376");
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
 const auto values = testing::Combine(graphs, testing::Values(2, 4, 5));
