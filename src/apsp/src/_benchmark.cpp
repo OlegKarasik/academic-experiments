@@ -60,7 +60,7 @@ public:
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   using matrix           = utilz::square_matrix<::utilz::rect_matrix<T>>;
   using matrix_clusters  = utilz::matrix_clusters<typename utilz::square_matrix<::utilz::square_matrix<T>>::size_type>;
-  using matrix_rearrange = utilz::procedures::matrix_rearrange<matrix>;
+  using matrix_arrange_clusters = utilz::procedures::matrix_arrange_clusters<matrix>;
 #endif
 
 #ifdef APSP_ALG_MATRIX
@@ -87,12 +87,13 @@ public:
 #endif
 
     std::filesystem::path root_path = workspace::root();
+    std::filesystem::path data_path = "data/_test/graphs";
 
     for (auto params : parameters) {
-      std::filesystem::path src_graph_path = root_path / "data/_test/direct-acyclic-graphs/" / std::get<0>(params);
+      std::filesystem::path src_graph_path = root_path / data_path / std::get<0>(params);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      std::filesystem::path src_communities_path = root_path / "data/_test/direct-acyclic-graphs/" / std::get<1>(params);
+      std::filesystem::path src_communities_path = root_path / data_path / std::get<1>(params);
 #endif
 
       std::ifstream src_graph_fs(src_graph_path);
@@ -144,9 +145,9 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    matrix_rearrange src_rearrange;
+    matrix_arrange_clusters src_rearrange;
 
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
+    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -180,7 +181,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
+    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
   }

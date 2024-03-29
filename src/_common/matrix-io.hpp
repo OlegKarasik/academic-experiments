@@ -81,6 +81,7 @@ scan_graph(
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
   using matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<utilz::square_matrix<T, A>>;
   using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
+  using matrix_set_all        = utilz::procedures::matrix_set_all<utilz::square_matrix<T, A>>;
 
   using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
   using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
@@ -88,29 +89,23 @@ scan_graph(
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
   matrix_at             get_at;
+  matrix_set_all        set_all;
 
-  auto ss_fn = std::function([&set_dimensions, &item_sizes...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
+  auto set_vertex_count = std::function([&set_dimensions, &set_all, &item_sizes...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
     set_dimensions(c, vertex_count, item_sizes...);
+    set_all(c, utilz::constants::infinity<value_type>());
   });
-  auto se_fn = std::function([](utilz::square_matrix<T, A>& c, size_type edge_count) -> void {
+  auto set_edge_count   = std::function([](utilz::square_matrix<T, A>& c, size_type edge_count) -> void {
   });
-  auto sw_fn = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
+  auto set_edge         = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
     get_at(c, f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, matrix, ss_fn, se_fn, sw_fn);
+  utilz::graphs::io::scan_graph(format, is, matrix, set_vertex_count, set_edge_count, set_edge);
 
   auto dimensions = get_dimensions(matrix);
-
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    for (auto j = size_type(0); j < dimensions.s(); ++j) {
-      auto v = get_at(matrix, i, j);
-      if (v == value_type(0))
-        get_at(matrix, i, j) = utilz::constants::infinity<value_type>();
-
-      if (i == j)
-        get_at(matrix, i, j) = value_type(0);
-    }
+    get_at(matrix, i, i) = value_type(0);
 };
 
 template<typename T, typename A>
@@ -129,36 +124,30 @@ scan_graph(
   using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
   using matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<utilz::square_matrix<T, A>>;
   using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
-  using matrix_replace        = utilz::procedures::matrix_replace<utilz::square_matrix<T, A>>;
+  using matrix_set_all        = utilz::procedures::matrix_set_all<utilz::square_matrix<T, A>>;
 
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
   matrix_at             get_at;
-  matrix_replace        replace_all;
+
+  matrix_set_all set_all;
 
   std::vector<size_type> item_sizes;
-  for (auto size : clusters.list_clusters() | std::views::transform([&clusters](auto& cindex) -> typename matrix_clusters::size_type { return clusters.count_vertices(cindex); }))
+  for (auto size : clusters.list_clusters() | std::views::transform([&clusters](auto& cindex) -> auto { return clusters.count_vertices(cindex); }))
     item_sizes.push_back(size);
 
   set_dimensions(matrix, item_sizes);
+  set_all(matrix, utilz::constants::infinity<value_type>());
 
-  auto sw_fn = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
+  auto set_edge = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
     get_at(c, f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, matrix, sw_fn);
+  utilz::graphs::io::scan_graph(format, is, matrix, set_edge);
 
   auto dimensions = get_dimensions(matrix);
-
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    for (auto j = size_type(0); j < dimensions.s(); ++j) {
-      auto v = get_at(matrix, i, j);
-      if (v == value_type(0))
-        get_at(matrix, i, j) = utilz::constants::infinity<value_type>();
-
-      if (i == j)
-        get_at(matrix, i, j) = value_type(0);
-    }
+    get_at(matrix, i, i) = value_type(0);
 
   for (auto i = size_type(0); i < dimensions.s(); ++i)
     for (auto j = size_type(0); j < dimensions.s(); ++j) {

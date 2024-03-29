@@ -336,9 +336,9 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  utilz::procedures::matrix_rearrange<matrix> rearrange_matrix;
+  utilz::procedures::matrix_arrange_clusters<matrix> rearrange_matrix;
 
-  rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
+  rearrange_matrix(m, c, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -393,7 +393,7 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  rearrange_matrix(m, c, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
+  rearrange_matrix(m, c, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 

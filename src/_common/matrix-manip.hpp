@@ -15,10 +15,10 @@ enum matrix_dimensions_variant
   matrix_dimensions_variant_square = 2
 };
 
-enum matrix_rearrangement_variant
+enum matrix_clusters_arrangement
 {
-  matrix_rearrangement_forward  = 1,
-  matrix_rearrangement_backward = 2
+  matrix_clusters_arrangement_forward  = 1,
+  matrix_clusters_arrangement_backward = 2
 };
 
 // ---
@@ -40,16 +40,13 @@ template<typename S, class Enable = void>
 struct impl_set_dimensions;
 
 template<typename S>
-struct impl_replace;
+struct impl_set_all;
 
 template<typename S>
-struct impl_swap_rows;
+struct impl_replace_all;
 
 template<typename S>
-struct impl_swap_cols;
-
-template<typename S>
-struct impl_rearrange_matrix;
+struct impl_matrix_arrange_clusters;
 
 } // namespace impl
 
@@ -67,10 +64,13 @@ template<typename S>
 using matrix_at = impl::impl_at<S>;
 
 template<typename S>
-using matrix_replace = impl::impl_replace<S>;
+using matrix_set_all = impl::impl_set_all<S>;
 
 template<typename S>
-using matrix_rearrange = impl::impl_rearrange_matrix<S>;
+using matrix_replace_all = impl::impl_replace_all<S>;
+
+template<typename S>
+using matrix_arrange_clusters = impl::impl_matrix_arrange_clusters<S>;
 
 template<matrix_dimensions_variant TVariant, typename S>
 class matrix_dimensions
@@ -449,7 +449,30 @@ public:
 };
 
 template<typename S>
-struct impl_replace
+struct impl_set_all
+{
+  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
+
+private:
+  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
+  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
+
+public:
+  void
+  operator()(S& s, value_type v)
+  {
+    impl_at<S>             get_at;
+    impl_get_dimensions<S> get_dimensions;
+
+    auto dimensions = get_dimensions(s);
+    for (auto i = size_type(0); i < dimensions.h(); ++i)
+      for (auto j = size_type(0); j < dimensions.w(); ++j)
+        get_at(s, i, j) = v;
+  }
+};
+
+template<typename S>
+struct impl_replace_all
 {
   static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
 
@@ -473,53 +496,7 @@ public:
 };
 
 template<typename S>
-struct impl_swap_rows
-{
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
-
-private:
-  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
-
-public:
-  void
-  operator()(S& s, size_type x, size_type y)
-  {
-    impl_at<S>             get_at;
-    impl_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(s);
-    for (auto j = size_type(0); j < dimensions.w(); ++j)
-      std::swap(get_at(s, x, j), get_at(s, y, j));
-  }
-};
-
-template<typename S>
-struct impl_swap_cols
-{
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
-
-private:
-  using size_type  = typename utilz::traits::matrix_traits<S>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<S>::value_type;
-
-public:
-  void
-  operator()(S& s, size_type x, size_type y)
-  {
-    impl_at<S>             get_at;
-    impl_get_dimensions<S> get_dimensions;
-
-    auto zx = get_at(s, y, 0);
-
-    auto dimensions = get_dimensions(s);
-    for (auto i = size_type(0); i < dimensions.h(); ++i)
-      std::swap(get_at(s, i, x), get_at(s, i, y));
-  }
-};
-
-template<typename S>
-struct impl_rearrange_matrix
+struct impl_matrix_arrange_clusters
 {
   static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
 
@@ -529,20 +506,24 @@ private:
 private:
   template<typename Iterator>
   void
-  rearrange_matrix(S& matrix, Iterator begin, Iterator end)
+  matrix_arrange_clusters(S& matrix, Iterator begin, Iterator end)
   {
-    impl_swap_rows<S> swap_rows;
-    impl_swap_cols<S> swap_cols;
+    impl_at<S>             get_at;
+    impl_get_dimensions<S> get_dimensions;
 
-    for (auto i = begin; i != end; ++i) {
-      swap_rows(matrix, i->first, i->second);
-      swap_cols(matrix, i->first, i->second);
+    auto dimensions = get_dimensions(matrix);
+    for (auto it = begin; it != end; ++it) {
+      for (auto j = size_type(0); j < dimensions.w(); ++j)
+        std::swap(get_at(matrix, it->first, j), get_at(matrix, it->second, j));
+
+      for (auto i = size_type(0); i < dimensions.h(); ++i)
+        std::swap(get_at(matrix, i, it->first), get_at(matrix, i, it->second));
     }
   }
 
 public:
   void
-  operator()(S& matrix, utilz::matrix_clusters<size_type>& clusters, matrix_rearrangement_variant rearrangement)
+  operator()(S& matrix, utilz::matrix_clusters<size_type>& clusters, matrix_clusters_arrangement arrangement)
   {
     std::map<size_type, size_type> mapping;
 
@@ -557,15 +538,15 @@ public:
       }
     }
 
-    switch (rearrangement) {
-      case matrix_rearrangement_variant::matrix_rearrangement_forward:
-        rearrange_matrix(matrix, mapping.begin(), mapping.end());
+    switch (arrangement) {
+      case matrix_clusters_arrangement::matrix_clusters_arrangement_forward:
+        matrix_arrange_clusters(matrix, mapping.begin(), mapping.end());
         break;
-      case matrix_rearrangement_variant::matrix_rearrangement_backward:
-        rearrange_matrix(matrix, mapping.rbegin(), mapping.rend());
+      case matrix_clusters_arrangement::matrix_clusters_arrangement_backward:
+        matrix_arrange_clusters(matrix, mapping.rbegin(), mapping.rend());
         break;
       default:
-        throw std::logic_error("erro: unsupported matrix rearrangement algorithm");
+        throw std::logic_error("erro: unsupported matrix clusters arrangement");
     }
   }
 };

@@ -53,7 +53,7 @@ public:
 
   using source_matrix_get_at         = utilz::procedures::matrix_at<source_matrix>;
   using source_matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<source_matrix>;
-  using source_matrix_rearrange      = utilz::procedures::matrix_rearrange<source_matrix>;
+  using source_matrix_rearrange      = utilz::procedures::matrix_arrange_clusters<source_matrix>;
 
   using result_matrix                = utilz::square_matrix<T>;
   using result_matrix_get_at         = utilz::procedures::matrix_at<result_matrix>;
@@ -95,7 +95,7 @@ public:
 #endif
 
     std::filesystem::path root_path = workspace::root();
-    std::filesystem::path data_path = "data/_test/direct-acyclic-graphs";
+    std::filesystem::path data_path = "data/_test/graphs";
 
     std::filesystem::path src_path = root_path / data_path / (graph_name + ".source.g");
 
@@ -149,7 +149,7 @@ public:
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     source_matrix_rearrange src_rearrange;
 
-    src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_forward);
+    src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -169,7 +169,7 @@ public:
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_rearrangement_variant::matrix_rearrangement_backward);
+    src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 
