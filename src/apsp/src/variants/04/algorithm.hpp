@@ -18,7 +18,6 @@ calculate_block(
 {
   using size_type = typename utilz::traits::matrix_traits<utilz::rect_matrix<T>>::size_type;
 
-  const auto kj_size = kj.height();
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
 
@@ -67,20 +66,22 @@ run(
 
         calculate_block(mm, mm, mm);
 
+        auto indeces = clusters.get_indeces(m);
+
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, clusters, m)
+  #pragma omp task untied default(none) shared(im, mm, indeces)
 #endif
-            calculate_block(im, im, mm, clusters.get_indeces(m));
+            calculate_block(im, im, mm, indeces);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, clusters, m)
+  #pragma omp task untied default(none) shared(mi, mm, indeces)
 #endif
-            calculate_block(mi, mm, mi, clusters.get_indeces(m));
+            calculate_block(mi, mm, mi, indeces);
           }
         }
 #ifdef _OPENMP
@@ -95,9 +96,9 @@ run(
                 auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, im, mj, clusters, m)
+  #pragma omp task untied default(none) shared(ij, im, mj, indeces)
 #endif
-                calculate_block(ij, im, mj, clusters.get_indeces(m));
+                calculate_block(ij, im, mj, indeces);
               }
             }
           }
