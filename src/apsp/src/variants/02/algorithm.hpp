@@ -83,20 +83,13 @@ run(utilz::square_matrix<T, A>& m, support_arrays<T>& support_arrays)
 
     const auto z = k - size_type(1);
 
-#ifdef _OPENMP
-  #pragma omp parallel for default(none) shared(m, support_arrays) firstprivate(k, x, z)
-#endif
     for (auto i = size_type(0); i < k; ++i) {
       const auto v = m.at(k, i);
       const auto w = support_arrays.mm_array_prv_col[i];
 
       auto minimum = utilz::constants::infinity<value_type>();
 
-#ifdef _OPENMP
-  #pragma omp simd
-#else
       __hack_ivdep
-#endif
       for (auto j = size_type(0); j < k; ++j) {
         m.at(i, j) = (std::min)(m.at(i, j), w + m.at(z, j));
 
