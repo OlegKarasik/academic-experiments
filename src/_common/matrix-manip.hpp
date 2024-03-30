@@ -513,6 +513,9 @@ private:
 
     auto dimensions = get_dimensions(matrix);
     for (auto it = begin; it != end; ++it) {
+      if (it->first == it->second)
+        continue;
+
       for (auto j = size_type(0); j < dimensions.w(); ++j)
         std::swap(get_at(matrix, it->first, j), get_at(matrix, it->second, j));
 
@@ -530,9 +533,21 @@ public:
     auto mindex = size_type(0);
     for (auto cindex : clusters.list_clusters()) {
       for (auto vindex : clusters.get_vertices(cindex)) {
-        auto v = mapping.find(vindex);
+        auto map = mapping.find(vindex);
+        if (map != mapping.end()) {
+          auto chain_map = map;
+          while (true) {
+            auto chain_link = mapping.find(chain_map->second);
+            if (chain_link != mapping.end()) {
+              chain_map = chain_link;
+            } else {
+              map = chain_map;
+              break;
+            }
+          }
+        }
 
-        mapping.emplace(mindex, v == mapping.end() ? vindex : v->second);
+        mapping.emplace(mindex, map == mapping.end() ? vindex : map->second);
 
         ++mindex;
       }
