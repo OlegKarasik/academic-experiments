@@ -253,11 +253,16 @@ $RunConfig | ForEach-Object {
 
 Write-Host "Starting verification..." -ErrorAction Stop;
 Write-Host "Comparing $($OutputHash.Count) file hashes..."
-$UniqueHash = $OutputHash | Group-Object -Property 'Hash'
+$UniqueHash = $OutputHash | Group-Object -Property 'Hash' -AsHashtable
 if ($UniqueHash.Count -eq 1) {
   Write-Host "Verification completed. No failures detected."
 } else {
   Write-Host "Verification completed. Detected multiple hash origins:"
-  $UniqueHash | % { $_.Group | % { Write-Host "- $($_.Path)" -ErrorAction Stop; } }
+  $UniqueHash.Keys | % {
+    Write-Host $_
+    $UniqueHash[$_] | % {
+      Write-Host $_.Path
+    }
+  }
 }
 
