@@ -798,6 +798,10 @@ print_graph(
     default:
       throw std::logic_error("erro: The format is not supported");
   }
+
+  // Flush the output stream to ensure all of the graph content is in it
+  //
+  os.flush();
 };
 
 template<typename G, typename It>
@@ -840,6 +844,10 @@ print_graph(
     default:
       throw std::logic_error("erro: The format is not supported");
   }
+
+  // Flush the output stream to ensure all of the graph content is in it
+  //
+  os.flush();
 };
 
 namespace impl {
@@ -1264,7 +1272,6 @@ print_graph(
   std::stringstream ss;
 
   io::graph_preamble<F, I> preamble = print_graph_edges<F, G, It, I, W, GI>(ss, graph, get_it);
-
   if (!(os << preamble))
     throw std::logic_error("erro: can't print 'graph_preamble' because of IO problem");
 
