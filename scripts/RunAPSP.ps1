@@ -55,7 +55,7 @@ Set-Variable `
   -ErrorAction Stop;
 
 Write-Host "Starting experiements..." -ErrorAction Stop;
-$OutputHash = @()
+$OutputHashTable = @{}
 $RunConfig | ForEach-Object {
   $Params = $_;
   $Params.Versions | ForEach-Object {
@@ -65,9 +65,12 @@ $RunConfig | ForEach-Object {
       $Graph = $_;
       $Graph.Args | ForEach-Object {
         $Code = $Graph.Code;
-        $Arguments = $_;
 
-        $ExperimentCode = "$Code.$Version";
+        $ArgumentsKey = $_.Key;
+        $Arguments    = $_.Value;
+
+        $ExperimentHash = @();
+        $ExperimentCode = "$Code.$Version.$ArgumentsKey";
 
         # Resolve arguments
         #
@@ -121,7 +124,7 @@ $RunConfig | ForEach-Object {
               throw "Algorithm execution has failed with exit code: '$LastExitCode'. Please investigate.";
             }
 
-            $OutputHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
+            $ExperimentHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
           }
           & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
@@ -211,7 +214,7 @@ $RunConfig | ForEach-Object {
               throw "Algorithm execution (profiled) has failed with exit code: '$LastExitCode'. Please investigate.";
             }
 
-            $OutputHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
+            $ExperimentHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
 
             Write-Verbose -Message "Running analysis (vTune)" -ErrorAction Stop;
 
@@ -246,22 +249,28 @@ $RunConfig | ForEach-Object {
                       -Destination $(Join-Path -Path $OutputDirectory -ChildPath "$($ExperimentCode).-vtune.txt" -ErrorAction Stop) `
                       -ErrorAction Stop
         }
+
+        $OutputHashTable[$Code] += $ExperimentHash;
       }
     }
   }
 }
 
 Write-Host "Starting verification..." -ErrorAction Stop;
-Write-Host "Comparing $($OutputHash.Count) file hashes..."
-$UniqueHash = $OutputHash | Group-Object -Property 'Hash' -AsHashtable
-if ($UniqueHash.Count -eq 1) {
-  Write-Host "Verification completed. No failures detected."
-} else {
-  Write-Host "Verification completed. Detected multiple hash origins:"
-  $UniqueHash.Keys | % {
-    Write-Host $_
-    $UniqueHash[$_] | % {
-      Write-Host $_.Path
+$OutputHashTable.Keys | % {
+  $OutputHash = $OutputHashTable[$_];
+
+  Write-Host "Comparing $($OutputHash.Count) file hashes..."
+  $UniqueHash = $OutputHash | Group-Object -Property 'Hash' -AsHashtable
+  if ($UniqueHash.Count -eq 1) {
+    Write-Host "Verification completed. No failures detected."
+  } else {
+    Write-Host "Verification completed. Detected multiple hash origins:"
+    $UniqueHash.Keys | % {
+      Write-Host $_
+      $UniqueHash[$_] | % {
+        Write-Host $_.Path
+      }
     }
   }
 }
