@@ -274,6 +274,15 @@ analyse_communities_intersections(
                 //
                 bv->second++;
                 f = true;
+
+                // Here we check if there is a path from community A -> B but not from
+                // B -> A. In this case, we also have to increment bridge vertices count
+                // of B community
+                //
+                if (graph_matrix.at(j, i) == utilz::constants::infinity<Index>()) {
+                  auto reverse_bv = communities_bv.find(c.first);
+                  reverse_bv->second++;
+                }
               }
               // Increment bridge edges count
               //
