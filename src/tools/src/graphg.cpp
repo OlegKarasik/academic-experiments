@@ -268,8 +268,8 @@ main(int argc, char* argv[])
 
   // Initialise weight matrix with infinity values before updateding it with data
   //
-  utilz::procedures::matrix_replace<utilz::square_matrix<int>> replace;
-  replace(weight_matrix, int(), utilz::constants::infinity<int>());
+  utilz::procedures::matrix_replace_all<utilz::square_matrix<int>> replace_all;
+  replace_all(weight_matrix, int(), utilz::constants::infinity<int>());
 
   // Update adjacency matrix with weight values, effectively transforming
   // it to representation of directed, weighted graph
