@@ -129,7 +129,6 @@ list(APPEND omp_targets "01-omp")
 list(APPEND omp_targets "02-omp")
 list(APPEND omp_targets "03-omp")
 list(APPEND omp_targets "04-omp")
-list(APPEND omp_targets "05-omp")
 
 # Initialise algorithms targets
 #
@@ -143,8 +142,6 @@ list(APPEND targets_names "03")
 list(APPEND targets_names "03-omp")
 list(APPEND targets_names "04")
 list(APPEND targets_names "04-omp")
-list(APPEND targets_names "05")
-list(APPEND targets_names "05-omp")
 
 # Initialise algorithms aliases
 #
@@ -158,8 +155,6 @@ list(APPEND targets_alias "03")
 list(APPEND targets_alias "03")
 list(APPEND targets_alias "04")
 list(APPEND targets_alias "04")
-list(APPEND targets_alias "05")
-list(APPEND targets_alias "05")
 
 # Initialise ITT targets if ITT is enabled
 #
@@ -174,8 +169,6 @@ if (ITT_FOUND)
   list(APPEND itt_targets "03-omp-itt")
   list(APPEND itt_targets "04-itt")
   list(APPEND itt_targets "04-omp-itt")
-  list(APPEND itt_targets "05-itt")
-  list(APPEND itt_targets "05-omp-itt")
 
 
   list(APPEND omp_targets "00-omp-itt")
@@ -183,7 +176,6 @@ if (ITT_FOUND)
   list(APPEND omp_targets "02-omp-itt")
   list(APPEND omp_targets "03-omp-itt")
   list(APPEND omp_targets "04-omp-itt")
-  list(APPEND omp_targets "05-omp-itt")
 
   list(APPEND targets_names "00-itt")
   list(APPEND targets_names "00-omp-itt")
@@ -195,8 +187,6 @@ if (ITT_FOUND)
   list(APPEND targets_names "03-omp-itt")
   list(APPEND targets_names "04-itt")
   list(APPEND targets_names "04-omp-itt")
-  list(APPEND targets_names "05-itt")
-  list(APPEND targets_names "05-omp-itt")
 
   list(APPEND targets_alias "00")
   list(APPEND targets_alias "00")
@@ -208,8 +198,6 @@ if (ITT_FOUND)
   list(APPEND targets_alias "03")
   list(APPEND targets_alias "04")
   list(APPEND targets_alias "04")
-  list(APPEND targets_alias "05")
-  list(APPEND targets_alias "05")
 endif()
 
 add_custom_target(tests)
