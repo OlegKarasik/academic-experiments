@@ -27,9 +27,10 @@
 #include "graphs-generators.hpp"
 #include "graphs-io.hpp"
 
-#include "matrix.hpp"
-#include "matrix-manip.hpp"
 #include "matrix-io.hpp"
+#include "matrix-manip.hpp"
+#include "matrix.hpp"
+
 
 // This is a tiny program which generates random graphs
 //
@@ -211,7 +212,7 @@ main(int argc, char* argv[])
 
   // All graph generators do fill adjacency matrix with edges information
   //
-  utilz::square_matrix<bool> adjacency_matrix;
+  utilz::matrices::square_matrix<bool> adjacency_matrix;
 
   try {
     switch (opt_algorithm) {
@@ -264,11 +265,11 @@ main(int argc, char* argv[])
 
   // Weight matrix
   //
-  utilz::square_matrix<int> weight_matrix(adjacency_matrix.size());
+  utilz::matrices::square_matrix<int> weight_matrix(adjacency_matrix.size());
 
   // Initialise weight matrix with infinity values before updateding it with data
   //
-  utilz::procedures::matrix_replace_all<utilz::square_matrix<int>> replace_all;
+  utilz::matrices::procedures::matrix_replace_all<utilz::matrices::square_matrix<int>> replace_all;
   replace_all(weight_matrix, int(), utilz::constants::infinity<int>());
 
   // Update adjacency matrix with weight values, effectively transforming
@@ -281,7 +282,7 @@ main(int argc, char* argv[])
 
   // Save
   //
-  utilz::graphs::io::print_graph(
+  utilz::matrices::io::print_matrix(
     opt_output_format,
     output_stream,
     weight_matrix);

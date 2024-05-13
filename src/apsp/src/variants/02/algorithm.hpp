@@ -13,7 +13,7 @@
 template<typename T>
 struct support_arrays
 {
-  using pointer = typename ::utilz::traits::matrix_traits<utilz::square_matrix<T>>::pointer;
+  using pointer = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -23,11 +23,11 @@ struct support_arrays
 
 template<typename T, typename A>
 __hack_noinline support_arrays<T>
-up(utilz::square_matrix<T, A>& m, utilz::memory::buffer& b)
+up(utilz::matrices::square_matrix<T, A>& m, utilz::memory::buffer& b)
 {
-  using pointer    = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::pointer;
-  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using pointer    = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::pointer;
+  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
 
   auto allocation_size = m.size() * sizeof(value_type);
 
@@ -50,10 +50,10 @@ up(utilz::square_matrix<T, A>& m, utilz::memory::buffer& b)
 
 template<typename T, typename A>
 __hack_noinline void
-down(utilz::square_matrix<T, A>& m, utilz::memory::buffer& b, support_arrays<T> o)
+down(utilz::matrices::square_matrix<T, A>& m, utilz::memory::buffer& b, support_arrays<T> o)
 {
-  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
 
   using alptr_type = typename utilz::memory::buffer::pointer;
 
@@ -67,10 +67,10 @@ down(utilz::square_matrix<T, A>& m, utilz::memory::buffer& b, support_arrays<T> 
 
 template<typename T, typename A>
 __hack_noinline void
-run(utilz::square_matrix<T, A>& m, support_arrays<T>& support_arrays)
+run(utilz::matrices::square_matrix<T, A>& m, support_arrays<T>& support_arrays)
 {
-  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
+  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
 
   support_arrays.mm_array_prv_col[0] = utilz::constants::infinity<value_type>();
   support_arrays.mm_array_nxt_col[0] = m.at(0, 1);

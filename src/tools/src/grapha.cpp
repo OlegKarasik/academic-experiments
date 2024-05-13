@@ -30,8 +30,9 @@
 #include "communities-io.hpp"
 #include "graphs-io.hpp"
 
-#include "matrix.hpp"
 #include "matrix-io.hpp"
+#include "matrix.hpp"
+
 
 using Index = long;
 using Value = long;
@@ -43,9 +44,9 @@ enum analysis_options
 
 void
 analyse_communities_intersections(
-  std::ostream&                     os,
-  utilz::square_matrix<Index>&      graph_matrix,
-  std::map<Index, std::set<Index>>& communities_map);
+  std::ostream&                          os,
+  utilz::matrices::square_matrix<Index>& graph_matrix,
+  std::map<Index, std::set<Index>>&      communities_map);
 
 // This is a tiny program which performs an analysis of graphs
 //
@@ -149,8 +150,8 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  utilz::square_matrix<Index>      graph_matrix;
-  std::map<Index, std::set<Index>> communities_map;
+  utilz::matrices::square_matrix<Index> graph_matrix;
+  std::map<Index, std::set<Index>>      communities_map;
 
   if (!opt_input_graph.empty()) {
     std::ifstream graph_stream(opt_input_graph);
@@ -159,7 +160,7 @@ main(int argc, char* argv[])
       return 1;
     }
 
-    utilz::graphs::io::scan_graph(
+    utilz::matrices::io::scan_matrix(
       opt_graph_format,
       graph_stream,
       graph_matrix);
@@ -198,9 +199,9 @@ main(int argc, char* argv[])
 
 void
 analyse_communities_intersections(
-  std::ostream&                     os,
-  utilz::square_matrix<Index>&      graph_matrix,
-  std::map<Index, std::set<Index>>& communities_map)
+  std::ostream&                          os,
+  utilz::matrices::square_matrix<Index>& graph_matrix,
+  std::map<Index, std::set<Index>>&      communities_map)
 {
   auto total_bv  = size_t(0);
   auto total_be  = size_t(0);
@@ -253,7 +254,7 @@ analyse_communities_intersections(
       auto edges = graph_matrix.at(i);
 
       auto f = false;
-      for (auto j = utilz::square_matrix<Index>::size_type(0); j < graph_matrix.size(); ++j) {
+      for (auto j = utilz::matrices::square_matrix<Index>::size_type(0); j < graph_matrix.size(); ++j) {
         // If there is an edge between vertices (because we load adjucency matrix we treat all infities as none)
         //
         if (edges[j] != utilz::constants::infinity<Index>()) {

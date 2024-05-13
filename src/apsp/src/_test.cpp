@@ -34,30 +34,30 @@ public:
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-  using source_matrix = utilz::square_matrix<utilz::square_matrix<T>>;
+  using source_matrix = utilz::matrices::square_matrix<utilz::matrices::square_matrix<T>>;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  using source_matrix = utilz::square_matrix<utilz::rect_matrix<T>>;
+  using source_matrix = utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T>>;
 #endif
 
 #ifdef APSP_ALG_MATRIX
-  using source_matrix = utilz::square_matrix<T>;
+  using source_matrix = utilz::matrices::square_matrix<T>;
 #endif
 
-  using size_type = typename utilz::traits::matrix_traits<source_matrix>::size_type;
+  using size_type = typename utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  using source_clusters = utilz::matrix_clusters<size_type>;
+  using source_clusters = utilz::matrices::clusters<size_type>;
 #endif
 
-  using source_matrix_get_at         = utilz::procedures::matrix_at<source_matrix>;
-  using source_matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<source_matrix>;
-  using source_matrix_rearrange      = utilz::procedures::matrix_arrange_clusters<source_matrix>;
+  using source_matrix_get_at         = utilz::matrices::procedures::matrix_at<source_matrix>;
+  using source_matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<source_matrix>;
+  using source_matrix_rearrange      = utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
 
-  using result_matrix                = utilz::square_matrix<T>;
-  using result_matrix_get_at         = utilz::procedures::matrix_at<result_matrix>;
-  using result_matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<result_matrix>;
+  using result_matrix                = utilz::matrices::square_matrix<T>;
+  using result_matrix_get_at         = utilz::matrices::procedures::matrix_at<result_matrix>;
+  using result_matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<result_matrix>;
 
 public:
 #ifdef APSP_ALG_EXTRA_OPTIONS
@@ -120,19 +120,18 @@ public:
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, block_size);
+    utilz::matrices::io::scan_matrix(graph_format, src_fs, this->m_src, block_size);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-    utilz::communities::io::scan_communities(communities_format, src_communities_fs, this->m_src_clusters);
-    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src, this->m_src_clusters);
+    utilz::matrices::io::scan_matrix(graph_format, src_fs, communities_format, src_communities_fs, this->m_src, this->m_src_clusters);
 #endif
 
 #ifdef APSP_ALG_MATRIX
-    utilz::graphs::io::scan_graph(graph_format, src_fs, this->m_src);
+    utilz::matrices::io::scan_matrix(graph_format, src_fs, this->m_src);
 #endif
 
-    utilz::graphs::io::scan_graph(graph_format, res_fs, this->m_res);
+    utilz::matrices::io::scan_matrix(graph_format, res_fs, this->m_res);
   };
   ~Fixture(){};
 
@@ -149,7 +148,7 @@ public:
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     source_matrix_rearrange src_rearrange;
 
-    src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    src_rearrange(this->m_src, this->m_src_clusters, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -169,7 +168,7 @@ public:
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    src_rearrange(this->m_src, this->m_src_clusters, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+    src_rearrange(this->m_src, this->m_src_clusters, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 

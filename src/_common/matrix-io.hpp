@@ -9,95 +9,83 @@
 #include "matrix.hpp"
 
 namespace utilz {
-
-namespace communities {
+namespace matrices {
 namespace io {
-
-template<typename I>
-void
-scan_communities(
-  communities_format         format,
-  std::istream&              is,
-  utilz::matrix_clusters<I>& clusters);
-
-template<typename I>
-void
-scan_communities(
-  communities_format         format,
-  std::istream&              is,
-  utilz::matrix_clusters<I>& clusters)
-{
-  auto set_v = std::function([](utilz::matrix_clusters<I>& c, I cindex, I vindex) -> void {
-    c.insert(cindex, vindex);
-  });
-
-  utilz::communities::io::scan_communities(format, is, clusters, set_v);
-};
-
-} // namespace io
-} // namespace communities
-
-namespace graphs {
-namespace io {
-
-template<typename T, typename A, typename... TArgs>
-void
-scan_graph(
-  graph_format                format,
-  std::istream&               is,
-  utilz::square_matrix<T, A>& matrix,
-  TArgs... item_sizes);
 
 template<typename T, typename A>
 void
-scan_graph(
-  graph_format                                                                                          format,
-  std::istream&                                                                                         is,
-  utilz::square_matrix<T, A>&                                                                           matrix,
-  utilz::matrix_clusters<typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type>& clusters);
+scan_matrix(
+  utilz::graphs::io::graph_format       format,
+  std::istream&                         is,
+  utilz::matrices::square_matrix<T, A>& matrix);
+
+template<typename T, typename A, typename U>
+void
+scan_matrix(
+  utilz::graphs::io::graph_format                                                             format,
+  std::istream&                                                                               is,
+  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>&                    block_matrix,
+  typename utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type block_size);
+
+template<typename T, typename A, typename U>
+void
+scan_matrix(
+  utilz::graphs::io::graph_format                                                                                              graph_format,
+  std::istream&                                                                                                                graph_is,
+  utilz::communities::io::communities_format                                                                                   communities_format,
+  std::istream&                                                                                                                communities_is,
+  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>&                                                       block_matrix,
+  utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type>& clusters);
 
 template<typename T, typename A>
 void
-print_graph(
-  graph_format                format,
-  std::ostream&               os,
-  utilz::square_matrix<T, A>& matrix);
+print_matrix(
+  utilz::graphs::io::graph_format       format,
+  std::ostream&                         os,
+  utilz::matrices::square_matrix<T, A>& matrix);
 
 namespace impl {
+
+template<typename S, typename Z>
+void
+empty_set_edges(S& s, Z z) {
+
+};
 
 template<typename T>
 class iterator;
 
 } // namespace impl
 
-template<typename T, typename A, typename... TArgs>
+template<typename T, typename A>
 void
-scan_graph(
-  graph_format                format,
-  std::istream&               is,
-  utilz::square_matrix<T, A>& matrix,
-  TArgs... item_sizes)
+scan_matrix(
+  utilz::graphs::io::graph_format       format,
+  std::istream&                         is,
+  utilz::matrices::square_matrix<T, A>& matrix)
 {
-  using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
-  using matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<utilz::square_matrix<T, A>>;
-  using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
-  using matrix_set_all        = utilz::procedures::matrix_set_all<utilz::square_matrix<T, A>>;
+  static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices type");
 
-  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  using matrix_type = utilz::matrices::square_matrix<T, A>;
+  using size_type   = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
+  using value_type  = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
+
+  using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
+  using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
+  using matrix_at             = utilz::matrices::procedures::matrix_at<matrix_type>;
+  using matrix_set_all        = utilz::matrices::procedures::matrix_set_all<matrix_type>;
 
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
   matrix_at             get_at;
   matrix_set_all        set_all;
 
-  auto set_vertex_count = std::function([&set_dimensions, &set_all, &item_sizes...](utilz::square_matrix<T, A>& c, size_type vertex_count) -> void {
-    set_dimensions(c, vertex_count, item_sizes...);
+  auto set_vertex_count = std::function([&set_dimensions, &set_all](matrix_type& c, size_type vertex_count) -> void {
+    set_dimensions(c, vertex_count);
     set_all(c, utilz::constants::infinity<value_type>());
   });
-  auto set_edge_count   = std::function([](utilz::square_matrix<T, A>& c, size_type edge_count) -> void {
-  });
-  auto set_edge         = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
+  auto set_edge_count   = std::function([](matrix_type& c, size_type edge_count) -> void { });
+  auto set_edge         = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
     get_at(c, f, t) = w;
   });
 
@@ -108,23 +96,67 @@ scan_graph(
     get_at(matrix, i, i) = value_type(0);
 };
 
-template<typename T, typename A>
+template<typename T, typename A, typename U>
 void
-scan_graph(
-  graph_format                                                                                          format,
-  std::istream&                                                                                         is,
-  utilz::square_matrix<T, A>&                                                                           matrix,
-  utilz::matrix_clusters<typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type>& clusters)
+scan_matrix(
+  utilz::graphs::io::graph_format                                                             format,
+  std::istream&                                                                               is,
+  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>&                    block_matrix,
+  typename utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type block_size)
 {
-  using size_type  = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
+  static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices of matrices type");
 
-  using matrix_clusters = utilz::matrix_clusters<size_type>;
+  using matrix_type = utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>;
+  using size_type   = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
+  using value_type  = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
 
-  using matrix_set_dimensions = utilz::procedures::matrix_set_dimensions<utilz::square_matrix<T, A>>;
-  using matrix_get_dimensions = utilz::procedures::matrix_get_dimensions<utilz::square_matrix<T, A>>;
-  using matrix_at             = utilz::procedures::matrix_at<utilz::square_matrix<T, A>>;
-  using matrix_set_all        = utilz::procedures::matrix_set_all<utilz::square_matrix<T, A>>;
+  using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
+  using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
+  using matrix_at             = utilz::matrices::procedures::matrix_at<matrix_type>;
+  using matrix_set_all        = utilz::matrices::procedures::matrix_set_all<matrix_type>;
+
+  matrix_set_dimensions set_dimensions;
+  matrix_get_dimensions get_dimensions;
+  matrix_at             get_at;
+  matrix_set_all        set_all;
+
+  auto set_vertex_count = std::function([&set_dimensions, &set_all, &block_size](matrix_type& c, size_type vertex_count) -> void {
+    set_dimensions(c, vertex_count, block_size);
+    set_all(c, utilz::constants::infinity<value_type>());
+  });
+  auto set_edge_count   = std::function([](matrix_type& c, size_type edge_count) -> void { });
+  auto set_edge         = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
+    get_at(c, f, t) = w;
+  });
+
+  utilz::graphs::io::scan_graph(format, is, block_matrix, set_vertex_count, set_edge_count, set_edge);
+
+  auto dimensions = get_dimensions(block_matrix);
+  for (auto i = size_type(0); i < dimensions.s(); ++i)
+    get_at(block_matrix, i, i) = value_type(0);
+};
+
+template<typename T, typename A, typename U>
+void
+scan_matrix(
+  utilz::graphs::io::graph_format                                                                                              graph_format,
+  std::istream&                                                                                                                graph_is,
+  utilz::communities::io::communities_format                                                                                   communities_format,
+  std::istream&                                                                                                                communities_is,
+  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>&                                                       block_matrix,
+  utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type>& clusters)
+{
+  static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices or matrices type");
+
+  using matrix_type   = utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>;
+  using size_type     = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
+  using value_type    = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
+  using clusters_type = utilz::matrices::clusters<size_type>;
+
+  using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
+  using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
+  using matrix_at             = utilz::matrices::procedures::matrix_at<matrix_type>;
+  using matrix_set_all        = utilz::matrices::procedures::matrix_set_all<matrix_type>;
 
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
@@ -132,51 +164,47 @@ scan_graph(
 
   matrix_set_all set_all;
 
+  auto set_cluster_value = std::function([](clusters_type& c, size_type cindex, size_type vindex) -> void {
+    c.insert_map(cindex, vindex);
+  });
+  utilz::communities::io::scan_communities(communities_format, communities_is, clusters, set_cluster_value);
+
   std::vector<size_type> item_sizes;
-  for (auto size : clusters.list_clusters() | std::views::transform([&clusters](auto& cindex) -> auto { return clusters.count_vertices(cindex); }))
+  for (auto size : clusters.list() | std::views::transform([&clusters](auto& cindex) -> auto { return clusters.count_vertices(cindex); }))
     item_sizes.push_back(size);
 
-  set_dimensions(matrix, item_sizes);
-  set_all(matrix, utilz::constants::infinity<value_type>());
+  set_dimensions(block_matrix, item_sizes);
+  set_all(block_matrix, utilz::constants::infinity<value_type>());
 
-  auto set_edge = std::function([&get_at](utilz::square_matrix<T, A>& c, size_type f, size_type t, value_type w) -> void {
+  auto set_matrix_value = std::function([&clusters, &get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
+    clusters.insert_edge(f, t);
+
     get_at(c, f, t) = w;
   });
+  utilz::graphs::io::scan_graph(graph_format, graph_is, block_matrix, set_matrix_value);
 
-  utilz::graphs::io::scan_graph(format, is, matrix, set_edge);
-
-  auto dimensions = get_dimensions(matrix);
+  auto dimensions = get_dimensions(block_matrix);
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    get_at(matrix, i, i) = value_type(0);
-
-  for (auto i = size_type(0); i < dimensions.s(); ++i)
-    for (auto j = size_type(0); j < dimensions.s(); ++j) {
-      if (get_at(matrix, i, j) != utilz::constants::infinity<value_type>()) {
-        auto edge = std::make_pair(i, j);
-        clusters.insert(edge);
-      }
-    }
+    get_at(block_matrix, i, i) = value_type(0);
 };
 
 template<typename T, typename A>
 void
-print_graph(
-  graph_format                format,
-  std::ostream&               os,
-  utilz::square_matrix<T, A>& matrix)
+print_matrix(
+  utilz::graphs::io::graph_format       format,
+  std::ostream&                         os,
+  utilz::matrices::square_matrix<T, A>& matrix)
 {
-  static_assert(utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::is_matrix::value, "erro: input type has to be a square_matrix");
+  using iterator_type = typename utilz::matrices::io::impl::iterator<utilz::matrices::square_matrix<T, A>>;
+  using value_type    = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
 
-  using iter_type  = typename utilz::graphs::io::impl::iterator<utilz::square_matrix<T, A>>;
-  using value_type = typename utilz::traits::matrix_traits<utilz::square_matrix<T, A>>::value_type;
-
-  auto gt_fn = std::function([](utilz::square_matrix<T, A>& c) -> std::tuple<iter_type, iter_type> {
-    auto begin = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::begin_iterator());
-    auto end   = iter_type(c, utilz::constants::infinity<value_type>(), typename iter_type::end_iterator());
+  auto get_iterators = std::function([](utilz::matrices::square_matrix<T, A>& c) -> std::tuple<iterator_type, iterator_type> {
+    auto begin = iterator_type(c, utilz::constants::infinity<value_type>(), typename iterator_type::begin_iterator());
+    auto end   = iterator_type(c, utilz::constants::infinity<value_type>(), typename iterator_type::end_iterator());
     return std::make_tuple(begin, end);
   });
 
-  utilz::graphs::io::print_graph(format, os, matrix, gt_fn);
+  utilz::graphs::io::print_graph(format, os, matrix, get_iterators);
 };
 
 namespace impl {
@@ -184,11 +212,11 @@ namespace impl {
 template<typename S>
 class iterator
 {
-  static_assert(utilz::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
+  static_assert(utilz::matrices::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
 
 private:
-  using _size_type  = typename utilz::traits::matrix_traits<S>::size_type;
-  using _value_type = typename utilz::traits::matrix_traits<S>::value_type;
+  using _size_type  = typename utilz::matrices::traits::matrix_traits<S>::size_type;
+  using _value_type = typename utilz::matrices::traits::matrix_traits<S>::value_type;
 
 public:
   // Iterator definitions
@@ -221,7 +249,7 @@ public:
   iterator(S& s, _value_type infinity, begin_iterator)
     : m_s(s)
   {
-    utilz::procedures::matrix_get_dimensions<S> get_dimensions;
+    utilz::matrices::procedures::matrix_get_dimensions<S> get_dimensions;
 
     auto dimensions = get_dimensions(s);
 
@@ -239,7 +267,7 @@ public:
   iterator(S& s, _value_type infinity, end_iterator)
     : m_s(s)
   {
-    utilz::procedures::matrix_get_dimensions<S> get_dimensions;
+    utilz::matrices::procedures::matrix_get_dimensions<S> get_dimensions;
 
     auto dimensions = get_dimensions(s);
 
@@ -254,7 +282,7 @@ public:
   value_type
   operator*()
   {
-    utilz::procedures::matrix_at<S> get_at;
+    utilz::matrices::procedures::matrix_at<S> get_at;
 
     return std::make_tuple(this->m_i, this->m_j, get_at(this->m_s, this->m_i, this->m_j));
   }
@@ -262,7 +290,7 @@ public:
   iterator&
   operator++()
   {
-    utilz::procedures::matrix_at<S> get_at;
+    utilz::matrices::procedures::matrix_at<S> get_at;
 
     do {
       if (++this->m_j == this->m_width) {
@@ -305,5 +333,5 @@ public:
 } // namespace impl
 
 } // namespace io
-} // namespace graphs
+} // namespace matrix
 } // namespace utilz

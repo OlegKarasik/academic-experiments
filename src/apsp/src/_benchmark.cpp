@@ -54,17 +54,17 @@ public:
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-  using matrix = utilz::square_matrix<::utilz::square_matrix<T>>;
+  using matrix = utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T>>;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  using matrix           = utilz::square_matrix<::utilz::rect_matrix<T>>;
-  using matrix_clusters  = utilz::matrix_clusters<typename utilz::square_matrix<::utilz::square_matrix<T>>::size_type>;
-  using matrix_arrange_clusters = utilz::procedures::matrix_arrange_clusters<matrix>;
+  using matrix                  = utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T>>;
+  using clusters                = utilz::matrices::clusters<typename utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T>>::size_type>;
+  using matrix_arrange_clusters = utilz::matrices::procedures::matrix_arrange_clusters<matrix>;
 #endif
 
 #ifdef APSP_ALG_MATRIX
-  using matrix = utilz::square_matrix<T>;
+  using matrix = utilz::matrices::square_matrix<T>;
 #endif
 
 public:
@@ -75,7 +75,7 @@ public:
   std::vector<matrix> m_src;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  std::vector<matrix_clusters> m_src_clusters;
+  std::vector<clusters> m_src_clusters;
 #endif
 
   Fixture()
@@ -109,20 +109,19 @@ public:
       matrix src_matrix;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      matrix_clusters src_clusters;
+      clusters src_clusters;
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-      utilz::graphs::io::scan_graph(graph_format, src_graph_fs, src_matrix, std::get<1>(params));
+      utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix, std::get<1>(params));
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      utilz::communities::io::scan_communities(communities_format, src_communities_fs, src_clusters);
-      utilz::graphs::io::scan_graph(graph_format, src_graph_fs, src_matrix, src_clusters);
+      utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix, src_clusters);
 #endif
 
 #ifdef APSP_ALG_MATRIX
-      utilz::graphs::io::scan_graph(graph_format, src_graph_fs, src_matrix);
+      utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix);
 #endif
 
       this->m_src.push_back(std::move(src_matrix));
@@ -147,7 +146,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     matrix_arrange_clusters src_rearrange;
 
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -181,7 +180,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
   }

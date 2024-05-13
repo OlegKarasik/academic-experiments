@@ -158,7 +158,7 @@ main(int argc, char* argv[])
   auto set_ec = std::function([&ec](std::vector<Tuple>& c, Index edge_count) -> void {
     ec = edge_count;
   });
-  auto set_w = std::function([](std::vector<Tuple>& c, Index f, Index t, Value w) -> void {
+  auto set_w  = std::function([](std::vector<Tuple>& c, Index f, Index t, Value w) -> void {
     c.push_back(std::make_tuple(f, t, w));
   });
 

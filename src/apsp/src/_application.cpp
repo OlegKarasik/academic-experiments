@@ -54,18 +54,18 @@ using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
 // aliasing
 //
 #ifdef APSP_ALG_MATRIX_BLOCKS
-using matrix_block = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+using matrix_block = utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix       = utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-using matrix_block    = utilz::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix          = utilz::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-using matrix_clusters = utilz::matrix_clusters<typename utilz::traits::matrix_traits<matrix>::size_type>;
+using matrix_block    = utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix          = utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+using clusters = utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<matrix>::size_type>;
 #endif
 
 #ifdef APSP_ALG_MATRIX
-using matrix = utilz::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix = utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 #endif
 
 int
@@ -309,26 +309,25 @@ main(int argc, char* argv[]) __hack_noexcept
 #ifdef APSP_ALG_MATRIX_BLOCKS
   auto scan_ms = utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
-      utilz::graphs::io::scan_graph(opt_input_graph_format, input_graph_stream, m, opt_block_size);
+      utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m, opt_block_size);
     });
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   // Define the clusters
   //
-  matrix_clusters c;
+  clusters c;
 
   auto scan_ms = utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
-      utilz::communities::io::scan_communities(opt_input_clusters_format, input_clusters_stream, c);
-      utilz::graphs::io::scan_graph(opt_input_graph_format, input_graph_stream, m, c);
+      utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, m, c);
     });
 #endif
 
 #ifdef APSP_ALG_MATRIX
   auto scan_ms = utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format]() -> void {
-      utilz::graphs::io::scan_graph(opt_input_graph_format, input_graph_stream, m);
+      utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m);
     });
 #endif
 
@@ -336,9 +335,9 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  utilz::procedures::matrix_arrange_clusters<matrix> arrange_matrix;
+  utilz::matrices::procedures::matrix_arrange_clusters<matrix> arrange_matrix;
 
-  arrange_matrix(m, c, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+  arrange_matrix(m, c, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -393,12 +392,12 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  arrange_matrix(m, c, utilz::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+  arrange_matrix(m, c, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 
   auto prnt_ms = utilz::measure_milliseconds([&m, &output_stream, opt_output_format]() -> void {
-    utilz::graphs::io::print_graph(opt_output_format, output_stream, m);
+    utilz::matrices::io::print_matrix(opt_output_format, output_stream, m);
   });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 }

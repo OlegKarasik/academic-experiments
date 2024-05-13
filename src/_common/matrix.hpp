@@ -8,13 +8,14 @@
 #include <utility>
 
 namespace utilz {
+namespace matrices {
 
 // ---
 // Forward declarations
 //
 
 template<typename T>
-class matrix_clusters;
+class clusters;
 
 template<typename T, typename A>
 class rect_matrix;
@@ -27,22 +28,22 @@ class square_matrix;
 // ---
 
 template<typename T>
-class matrix_clusters
+class clusters
 {
 public:
   using size_type = size_t;
 
 private:
-  std::map<T, std::vector<T>> m_clusters;
-  std::map<T, std::vector<T>> m_bridges;
-  std::map<T, std::vector<T>> m_indeces;
-  std::unordered_map<T, T>    m_reverse;
+  std::map<T, std::vector<T>>           m_clusters;
+  std::unordered_map<T, std::vector<T>> m_bridges;
+  std::unordered_map<T, std::vector<T>> m_indeces;
+  std::unordered_map<T, T>              m_reverse;
 
 public:
   // Inserts a mapping between cluster and vertex
   //
   void
-  insert(const T& cindex, const T& vindex)
+  insert_map(const T& cindex, const T& vindex)
   {
     auto it = this->m_clusters.find(cindex);
     if (it == this->m_clusters.end()) {
@@ -59,28 +60,28 @@ public:
   // be filled with the mappings between clusters and vertecies)
   //
   void
-  insert(std::pair<T, T>& edge)
+  insert_edge(const T& from, const T& to)
   {
-    auto x = this->m_reverse.at(edge.first);
-    auto z = this->m_reverse.at(edge.second);
+    auto x = this->m_reverse.at(from);
+    auto z = this->m_reverse.at(to);
 
     if (x != z) {
       auto& vx = this->m_bridges.at(x);
       auto& vz = this->m_bridges.at(z);
 
-      if (std::find(vx.begin(), vx.end(), edge.first) == vx.end()) {
-        this->m_bridges.at(x).push_back(edge.first);
+      if (std::find(vx.begin(), vx.end(), from) == vx.end()) {
+        this->m_bridges.at(x).push_back(from);
 
         auto c = this->m_clusters.at(x);
-        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), edge.first));
+        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), from));
 
         this->m_indeces.at(x).push_back(v);
       }
-      if (std::find(vz.begin(), vz.end(), edge.second) == vz.end()) {
-        this->m_bridges.at(z).push_back(edge.second);
+      if (std::find(vz.begin(), vz.end(), to) == vz.end()) {
+        this->m_bridges.at(z).push_back(to);
 
         auto c = this->m_clusters.at(z);
-        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), edge.second));
+        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), to));
 
         this->m_indeces.at(z).push_back(v);
       }
@@ -94,6 +95,12 @@ public:
   }
 
   auto
+  list() const noexcept
+  {
+    return std::views::keys(this->m_clusters);
+  }
+
+  auto
   get_bridges(const T& cindex) const
   {
     return std::views::all(this->m_bridges.at(cindex));
@@ -103,12 +110,6 @@ public:
   get_indeces(const T& cindex) const
   {
     return std::views::all(this->m_indeces.at(cindex));
-  }
-
-  auto
-  list_clusters() const noexcept
-  {
-    return std::views::keys(this->m_clusters);
   }
 
   auto
@@ -654,4 +655,5 @@ public:
   };
 };
 
+} // namespace matrices
 } // namespace utilz
