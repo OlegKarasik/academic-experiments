@@ -6,6 +6,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <type_traits>
+#include <algorithm>
 
 namespace utilz {
 namespace graphs {
