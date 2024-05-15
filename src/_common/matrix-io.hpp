@@ -46,12 +46,6 @@ print_matrix(
 
 namespace impl {
 
-template<typename S, typename Z>
-void
-empty_set_edges(S& s, Z z) {
-
-};
-
 template<typename T>
 class iterator;
 
@@ -80,16 +74,16 @@ scan_matrix(
   matrix_at             get_at;
   matrix_set_all        set_all;
 
-  auto set_vertex_count = std::function([&set_dimensions, &set_all](matrix_type& c, size_type vertex_count) -> void {
+  auto set_vc = std::function([&set_dimensions, &set_all](matrix_type& c, size_type vertex_count) -> void {
     set_dimensions(c, vertex_count);
     set_all(c, utilz::constants::infinity<value_type>());
   });
-  auto set_edge_count   = std::function([](matrix_type& c, size_type edge_count) -> void { });
-  auto set_edge         = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
+  auto set_ec = std::function([](matrix_type& c, size_type edge_count) -> void {});
+  auto set_wv = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
     get_at(c, f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, matrix, set_vertex_count, set_edge_count, set_edge);
+  utilz::graphs::io::scan_graph(format, is, matrix, set_vc, set_ec, set_wv);
 
   auto dimensions = get_dimensions(matrix);
   for (auto i = size_type(0); i < dimensions.s(); ++i)
@@ -120,16 +114,16 @@ scan_matrix(
   matrix_at             get_at;
   matrix_set_all        set_all;
 
-  auto set_vertex_count = std::function([&set_dimensions, &set_all, &block_size](matrix_type& c, size_type vertex_count) -> void {
+  auto set_vc = std::function([&set_dimensions, &set_all, &block_size](matrix_type& c, size_type vertex_count) -> void {
     set_dimensions(c, vertex_count, block_size);
     set_all(c, utilz::constants::infinity<value_type>());
   });
-  auto set_edge_count   = std::function([](matrix_type& c, size_type edge_count) -> void { });
-  auto set_edge         = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
+  auto set_ec = std::function([](matrix_type& c, size_type edge_count) -> void {});
+  auto set_wv = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
     get_at(c, f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, block_matrix, set_vertex_count, set_edge_count, set_edge);
+  utilz::graphs::io::scan_graph(format, is, block_matrix, set_vc, set_ec, set_wv);
 
   auto dimensions = get_dimensions(block_matrix);
   for (auto i = size_type(0); i < dimensions.s(); ++i)
