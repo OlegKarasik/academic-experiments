@@ -992,6 +992,10 @@ scan_graph(
   SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
 {
+  io::graph_preamble<F, I> preamble;
+  if (!(is >> preamble))
+    throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
+
   scan_graph<F, G, I, W, SV, SE, SW>(
     is,
     graph,
@@ -1011,6 +1015,10 @@ scan_graph(
   SW&           set_w,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
 {
+  io::graph_preamble<F, I> preamble;
+  if (!(is >> preamble))
+    throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
+
   scan_graph<F, G, I, W, SV, SE, SW>(
     is,
     graph,
