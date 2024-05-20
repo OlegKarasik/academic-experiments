@@ -15,7 +15,15 @@ param(
 # $SourceDirectory = 'D:\Projects\Profiling';
 # $ApplicationDirectory = 'D:\Projects\GitHub\academic-experiments\src\apsp\build';
 
-$VTuneRoot = $(Get-Item 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest').Target;
+$VTuneRoot = $null
+if (Test-Path -Path 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest' -PathType Container -ErrorAction Stop) {
+    $VTuneRoot = $(Get-Item 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest').Target;
+};
+
+if (($true -eq $RunProf) -and ($null -eq $VTuneRoot)) {
+    Write-Host 'Unable to run profiling without VTunes being installed. Please install oneAPI first';
+    return;
+};
 
 $vtune = "$VTuneRoot\bin64\vtune";
 $socwatch = "$VTuneRoot\socwatch\64\socwatch";
