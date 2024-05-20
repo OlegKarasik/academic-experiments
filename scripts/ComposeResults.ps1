@@ -54,7 +54,13 @@ try {
     Get-ChildItem -Path $_.FullName -File -ErrorAction Stop | ? { return $_.Name -match $NamePattern; } | Sort-Object $Sort | % {
       Write-Host "- Composing results from: '$($_.Name)'" -ErrorAction Stop;
       do {
-        Get-Content -Path $_.FullName -TotalCount $LineCount -ErrorAction Stop | % {
+        if ($LineCount -eq -1) {
+          $FileContent = Get-Content -Path $_.FullName -ErrorAction Stop;
+        } else {
+          $FileContent = Get-Content -Path $_.FullName -TotalCount $LineCount -ErrorAction Stop
+        }
+
+        $FileContent | % {
           $Group = $null;
           $Value = $null;
 
