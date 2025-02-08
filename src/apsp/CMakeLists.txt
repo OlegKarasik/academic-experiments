@@ -253,7 +253,7 @@ foreach(index RANGE ${length})
     target_include_directories(_application-v${t_name}        PRIVATE "C:\\Users\\Administrator\\Projects\\GitHub\\ak-kernel\\src\\Kernel.Core")
     target_include_directories(_application-v${t_name}        PRIVATE "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include")
 
-
+    target_link_libraries(_application-v${t_name}      PRIVATE "C:/Program Files/Oleg Karasik/Kernel/1.30.0/lib/Kernel.Core.lib")
   endif()
 
   # If compiler supports OpenMP, our build variant is to use OpenMP and

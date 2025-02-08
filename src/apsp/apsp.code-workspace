@@ -24,6 +24,15 @@
   },
   "settings": {
     "cmake.useCMakePresets": "always",
+    "cmake.debugConfig": {
+      "args": [
+        "-r", "2000",
+        "-g", "C:\\Users\\Administrator\\Projects\\Profiling\\4800-20.g",
+        "-G", "weightlist",
+        "-O", "weightlist",
+        "-o", "C:\\Users\\Administrator\\Projects\\Profiling\\basic.output"
+      ]
+    },
     "files.associations": {
       "array": "cpp",
       "atomic": "cpp",
