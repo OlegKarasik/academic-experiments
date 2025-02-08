@@ -122,6 +122,10 @@ include_directories(${INC_LIST})
 #
 enable_testing()
 
+# Initialise Kernel compatible targets
+#
+list(APPEND kernel_targets "05")
+
 # Initialise OpenMP compatible targets
 #
 list(APPEND omp_targets "00-omp")
@@ -142,6 +146,7 @@ list(APPEND targets_names "03")
 list(APPEND targets_names "03-omp")
 list(APPEND targets_names "04")
 list(APPEND targets_names "04-omp")
+list(APPEND targets_names "05")
 
 # Initialise algorithms aliases
 #
@@ -155,6 +160,7 @@ list(APPEND targets_alias "03")
 list(APPEND targets_alias "03")
 list(APPEND targets_alias "04")
 list(APPEND targets_alias "04")
+list(APPEND targets_alias "05")
 
 # Initialise ITT targets if ITT is enabled
 #
@@ -169,7 +175,7 @@ if (ITT_FOUND)
   list(APPEND itt_targets "03-omp-itt")
   list(APPEND itt_targets "04-itt")
   list(APPEND itt_targets "04-omp-itt")
-
+  list(APPEND itt_targets "05-itt")
 
   list(APPEND omp_targets "00-omp-itt")
   list(APPEND omp_targets "01-omp-itt")
@@ -187,6 +193,7 @@ if (ITT_FOUND)
   list(APPEND targets_names "03-omp-itt")
   list(APPEND targets_names "04-itt")
   list(APPEND targets_names "04-omp-itt")
+  list(APPEND targets_names "05-itt")
 
   list(APPEND targets_alias "00")
   list(APPEND targets_alias "00")
@@ -198,6 +205,7 @@ if (ITT_FOUND)
   list(APPEND targets_alias "03")
   list(APPEND targets_alias "04")
   list(APPEND targets_alias "04")
+  list(APPEND targets_alias "05")
 endif()
 
 add_custom_target(tests)
@@ -239,6 +247,14 @@ foreach(index RANGE ${length})
     endif()
   endif()
 
+  # If algorithm requires Kernel to execute then we link required libraries
+  #
+  if((${t_name} IN_LIST kernel_targets))
+    target_include_directories(_application-v${t_name}        PRIVATE "C:\\Users\\Administrator\\Projects\\GitHub\\ak-kernel\\src\\Kernel.Core")
+    target_include_directories(_application-v${t_name}        PRIVATE "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include")
+
+
+  endif()
 
   # If compiler supports OpenMP, our build variant is to use OpenMP and
   # algorithm supports OpenMP, then link OpenMP libraries and compiler options
