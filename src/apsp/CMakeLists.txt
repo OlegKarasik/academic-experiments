@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20.0)
+cmake_minimum_required(VERSION 3.24.0)
 
 # Setup policies
 #
@@ -54,6 +54,80 @@ endif()
 
 if (NOT ITT_FOUND)
   message(STATUS "Intel ITT - NOT FOUND")
+endif()
+
+# Find AK-Kernel if needed (Windows)
+#
+if (WIN32)
+  cmake_host_system_information(
+    RESULT CMAKE_KERNEL_ROOT_PATH
+    QUERY WINDOWS_REGISTRY "HKLM\\SOFTWARE\\Oleg Karasik\\AK-Kernel\\1.30.0"
+    VALUE "InstallPath")
+
+  find_path(KERNEL_INCLUDE_DIRS Kernel{Core}.h
+    PATHS ${CMAKE_KERNEL_ROOT_PATH}
+    PATH_SUFFIXES include)
+
+  find_path(KERNEL_LIBRARY_DIRS Kernel.Core.lib
+    PATHS ${CMAKE_KERNEL_ROOT_PATH}
+    PATH_SUFFIXES lib)
+
+  if(NOT KERNEL_INCLUDE_DIRS MATCHES NOTFOUND AND
+     NOT KERNEL_LIBRARY_DIRS MATCHES NOTFOUND)
+
+    message(STATUS "Found AK-Kernel includes in ${KERNEL_INCLUDE_DIRS}")
+    message(STATUS "Found AK-Kernel libraries in ${KERNEL_LIBRARY_DIRS}")
+
+    include_directories(${KERNEL_INCLUDE_DIRS})
+    link_directories(${KERNEL_LIBRARY_DIRS})
+
+    set(KERNEL_LIBRARY Kernel.Core.lib)
+    set(KERNEL_DLL "${CMAKE_KERNEL_ROOT_PATH}Kernel.Core.dll")
+    set(KERNEL_FOUND TRUE)
+
+    message(STATUS "AK-Kernel - FOUND")
+  endif()
+endif()
+
+if (NOT KERNEL_FOUND)
+  message(STATUS "AK-Kernel - NOT FOUND")
+endif()
+
+# Find Visual Studio if needed (Windows)
+#
+if (WIN32)
+  # Thanks to markdewit_ies
+  # for sharing this amazing way to find Visual Studio
+  # https://discourse.cmake.org/t/visual-studio-install-path-and-directory-query/3684/8
+  #
+  find_program(VSWHERE_TOOL_PATH
+    NAMES vswhere
+    PATHS "$ENV{ProgramFiles\(x86\)}/Microsoft Visual Studio/Installer")
+
+  if (NOT ${vswhere})
+    message(FATAL_ERROR "Could not locate vswhere.exe - unable to source vc redistributable")
+  endif()
+
+  execute_process(
+    COMMAND "${VSWHERE_TOOL_PATH}" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    OUTPUT_VARIABLE VS_INSTALL_PATH
+    RESULT_VARIABLE VSWHERE_EXIT_CODE
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  if(VS_INSTALL_PATH)
+    message(STATUS "Found Visual Studio includes in ${KERNEVS_INSTALL_PATHL_INCLUDE_DIRS}")
+    message(STATUS "Found AK-Kernel libraries in ${KERNEL_LIBRARY_DIRS}")
+
+    include_directories("${VS_INSTALL_PATH}\\VC\\Auxiliary\\VS\\include")
+
+    set(VS_FOUND TRUE)
+
+    message(STATUS "Visual Studio - FOUND")
+  endif()
+endif()
+
+if (NOT VS_FOUND)
+  message(STATUS "Visual Studio - NOT FOUND")
 endif()
 
 if ((CMAKE_CXX_COMPILER_ID STREQUAL "Intel") OR (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM"))
@@ -122,9 +196,9 @@ include_directories(${INC_LIST})
 #
 enable_testing()
 
-# Initialise Kernel compatible targets
+# Initialise Kernel compatible targets (Windows only)
 #
-list(APPEND kernel_targets "05")
+list(APPEND kernel_targets "05-kernel")
 
 # Initialise OpenMP compatible targets
 #
@@ -146,7 +220,7 @@ list(APPEND targets_names "03")
 list(APPEND targets_names "03-omp")
 list(APPEND targets_names "04")
 list(APPEND targets_names "04-omp")
-list(APPEND targets_names "05")
+list(APPEND targets_names "05-kernel")
 
 # Initialise algorithms aliases
 #
@@ -175,7 +249,7 @@ if (ITT_FOUND)
   list(APPEND itt_targets "03-omp-itt")
   list(APPEND itt_targets "04-itt")
   list(APPEND itt_targets "04-omp-itt")
-  list(APPEND itt_targets "05-itt")
+  list(APPEND itt_targets "05-kernel-itt")
 
   list(APPEND omp_targets "00-omp-itt")
   list(APPEND omp_targets "01-omp-itt")
@@ -193,7 +267,7 @@ if (ITT_FOUND)
   list(APPEND targets_names "03-omp-itt")
   list(APPEND targets_names "04-itt")
   list(APPEND targets_names "04-omp-itt")
-  list(APPEND targets_names "05-itt")
+  list(APPEND targets_names "05-kernel-itt")
 
   list(APPEND targets_alias "00")
   list(APPEND targets_alias "00")
@@ -205,7 +279,7 @@ if (ITT_FOUND)
   list(APPEND targets_alias "03")
   list(APPEND targets_alias "04")
   list(APPEND targets_alias "04")
-  list(APPEND targets_alias "05")
+  list(APPEND targets_alias "05-kernel-itt")
 endif()
 
 add_custom_target(tests)
@@ -222,6 +296,22 @@ foreach(index RANGE ${length})
 
   if (NOT SKIP_GSUITE)
     string(REPLACE - _ t_fixture ${t_name})
+  endif()
+
+  # If algorithm requires Kernel and Kernel isn't found then
+  # skip the target
+  #
+  if((${t_name} IN_LIST kernel_targets) AND (NOT (KERNEL_FOUND) OR NOT (VS_FOUND)))
+    message(STATUS "Skipping _application-v${t_name} because Kernel or Visual Studio is not found")
+    continue()
+  endif()
+
+  # If algorithm requires OpenMP and OpenMP isn't found then
+  # skip the target
+  #
+  if((${t_name} IN_LIST omp_targets) AND NOT (OpenMP_CXX_FOUND))
+    message(STATUS "Skipping _application-v${t_name} because OpenMP is not found")
+    continue()
   endif()
 
   add_executable(_application-v${t_name} ${APP_SRC_LIST})
@@ -247,30 +337,34 @@ foreach(index RANGE ${length})
     endif()
   endif()
 
-  # If algorithm requires Kernel to execute then we link required libraries
+  # If Kernel is found and target requires OpenMP,
+  # then link Kernel libraries
   #
-  if((${t_name} IN_LIST kernel_targets))
-    target_include_directories(_application-v${t_name}        PRIVATE "C:\\Users\\Administrator\\Projects\\GitHub\\ak-kernel\\src\\Kernel.Core")
-    target_include_directories(_application-v${t_name}        PRIVATE "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\VS\\include")
+  if ((KERNEL_FOUND) AND (${t_name} IN_LIST kernel_targets))
+    target_link_libraries(_application-v${t_name} PUBLIC ${KERNEL_LIBRARY})
 
-    target_link_libraries(_application-v${t_name}      PRIVATE "C:/Program Files/Oleg Karasik/Kernel/1.30.0/lib/Kernel.Core.lib")
+    if (NOT SKIP_GSUITE)
+      target_link_libraries(_test-v${t_name} PUBLIC ${KERNEL_LIBRARY})
+      target_link_libraries(_benchmark-v${t_name} PUBLIC ${KERNEL_LIBRARY})
+    endif()
+
+    file(COPY ${KERNEL_DLL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
   endif()
 
-  # If compiler supports OpenMP, our build variant is to use OpenMP and
-  # algorithm supports OpenMP, then link OpenMP libraries and compiler options
+  # If compiler supports OpenMP and target requires OpenMP,
+  # then link OpenMP libraries
   #
-  if((OpenMP_CXX_FOUND) AND (${t_name} IN_LIST omp_targets))
+  if ((OpenMP_CXX_FOUND) AND (${t_name} IN_LIST omp_targets))
     target_link_libraries(_application-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
 
     if (NOT SKIP_GSUITE)
       target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
       target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
-
-      target_compile_definitions(_test-v${t_name} PRIVATE FIXTURE_NAME=${t_fixture})
     endif()
   endif()
 
-  # If target is dedicated to ITT
+  # If target is dedicated to ITT the link ITT libraries and set compiler
+  # definitions
   #
   if ((ITT_FOUND) AND (${t_name} IN_LIST itt_targets))
     target_compile_definitions(_application-v${t_name} PRIVATE ITT_TRACE)
