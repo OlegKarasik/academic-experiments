@@ -9,6 +9,11 @@
 #include <vector>
 #include <utility>
 
+#ifdef __clang__
+#define _aligned_malloc aligned_alloc
+#define _aligned_free   free
+#endif
+
 namespace utilz {
 namespace memory {
 

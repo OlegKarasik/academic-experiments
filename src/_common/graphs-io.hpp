@@ -8,6 +8,10 @@
 #include <type_traits>
 #include <algorithm>
 
+#ifdef __clang__
+#include <sstream>
+#endif
+
 namespace utilz {
 namespace graphs {
 namespace io {

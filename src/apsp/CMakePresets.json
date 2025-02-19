@@ -15,6 +15,11 @@
         "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
         "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      },
+      "condition": {
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows",
+        "type": "equals"
       }
     },
     {
@@ -63,6 +68,11 @@
       "cacheVariables": {
         "CMAKE_MAKE_PROGRAM": "C:/msys64/mingw64/bin/mingw32-make.exe",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      },
+      "condition": {
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows",
+        "type": "equals"
       }
     },
     {
@@ -126,6 +136,42 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "hidden": true,
+      "name": "osx-llvm-clang",
+      "environment": {
+        "CPLUS_INCLUDE_PATH": "/opt/homebrew/Cellar/llvm/19.1.7/include/c++/v1"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/opt/homebrew/opt/llvm/bin/clang",
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++"
+      },
+      "condition": {
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin",
+        "type": "equals"
+      }
+    },
+    {
+      "name": "osx-llvm-clang-debug",
+      "displayName": "CLang (Debug)",
+      "inherits": [
+        "osx-llvm-clang"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "osx-llvm-clang-release",
+      "displayName": "CLang (Release)",
+      "inherits": [
+        "osx-llvm-clang"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
@@ -163,6 +209,18 @@
       "displayName": "Intel LLVM (Release)",
       "configuration": "Release",
       "configurePreset": "mingw-intel-icx-release"
+    },
+    {
+      "name": "osx-llvm-clang-debug",
+      "displayName": "Clang (Debug)",
+      "configuration": "Debug",
+      "configurePreset": "osx-llvm-clang-debug"
+    },
+    {
+      "name": "osx-llvm-clang-release",
+      "displayName": "Clang (Release)",
+      "configuration": "Release",
+      "configurePreset": "osx-llvm-clang-release"
     }
   ],
   "testPresets": [
@@ -178,6 +236,22 @@
       "name": "mingw-gcc-release",
       "displayName": "GCC (Release)",
       "configurePreset": "mingw-gcc-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "osx-llvm-clang-debug",
+      "displayName": "Clang (Debug)",
+      "configurePreset": "osx-llvm-clang-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "osx-llvm-clang-release",
+      "displayName": "Clang (Release)",
+      "configurePreset": "osx-llvm-clang-release",
       "output": {
         "outputOnFailure": true
       }

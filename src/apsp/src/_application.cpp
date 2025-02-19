@@ -27,7 +27,13 @@
 
 // local operating system level includes, manage if going cross-platform
 //
+#ifdef __APPLE__
+#include "osx-memory.hpp"
+#endif
+
+#ifdef _WIN32
 #include "win-memory.hpp"
+#endif
 
 // local utilz
 //
