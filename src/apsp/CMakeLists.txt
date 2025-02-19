@@ -115,8 +115,7 @@ if (WIN32)
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   if(VS_INSTALL_PATH)
-    message(STATUS "Found Visual Studio includes in ${KERNEVS_INSTALL_PATHL_INCLUDE_DIRS}")
-    message(STATUS "Found AK-Kernel libraries in ${KERNEL_LIBRARY_DIRS}")
+    message(STATUS "Found Visual Studio in ${VS_INSTALL_PATH}")
 
     include_directories("${VS_INSTALL_PATH}\\VC\\Auxiliary\\VS\\include")
 
