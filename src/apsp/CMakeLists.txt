@@ -18,6 +18,12 @@ include(FetchContent)
 #
 find_package(OpenMP)
 
+# Find Metal if needed (MacOS)
+#
+if (APPLE)
+  set(METAL_LIBS "-framework Metal" "-framework MetalKit" "-framework AppKit" "-framework Foundation" "-framework QuartzCore")
+endif()
+
 # Find Intel ITT if needed (Windows)
 #
 if(WIN32)
@@ -177,7 +183,7 @@ endif()
 # Configure global includes for all configuration
 # and targets
 #
-set(INC_LIST ../_common; src/utilz)
+set(INC_LIST ../_common; src/utilz; ../_deps)
 
 # Configure targets entry points
 #
@@ -209,7 +215,7 @@ endif()
 
 # Initialise Kernel compatible targets (Windows & Kernel)
 #
-if (WIN32 AND KERNEL_FOUND)
+if (WIN32 AND KERNEL_FOUND AND VS_FOUND)
   list(APPEND kernel_targets "05-kernel")
 endif()
 
@@ -230,7 +236,7 @@ if (ITT_FOUND)
     list(APPEND itt_metal_targets "06-metal-itt")
   endif()
 
-  if (WIN32 AND KERNEL_FOUND)
+  if (WIN32 AND KERNEL_FOUND AND VS_FOUND)
     list(APPEND itt_kernel_targets "05-kernel-itt")
   endif()
 
@@ -281,9 +287,12 @@ math(EXPR length "${_length}-1")
 
 # Initialise targets
 foreach(index RANGE ${length})
+  # Here we initialise `t_name` -- target name
+  #
   list(GET targets_names ${index} t_name)
 
-  # Here we parse the target name into an alias
+  # Here we parse the target name into an alias -- `t_alias`
+  #
   string(FIND "${t_name}" "-" position)
   if (position LESS 1)
     set(t_alias "${t_name}")
@@ -291,35 +300,35 @@ foreach(index RANGE ${length})
     string(SUBSTRING "${t_name}" 0 "${position}" t_alias)
   endif ()
 
-  message(STATUS "${t_alias}")
-
+  # Here if tests are enabled we initialize name of the
+  # test fixture -- `t_fixture`
+  #
   if (NOT SKIP_GSUITE)
     string(REPLACE - _ t_fixture ${t_name})
   endif()
 
-  # If algorithm requires Kernel and Kernel isn't found then
-  # skip the target
+  # Making a targeted copies of the targets to ensure
+  # they might include additional *.cpp to compile
   #
-  if((${t_name} IN_LIST kernel_targets) AND (NOT (KERNEL_FOUND) OR NOT (VS_FOUND)))
-    message(STATUS "Skipping _application-v${t_name} because Kernel or Visual Studio is not found")
-    continue()
+  set(t_app_src_list "${APP_SRC_LIST}")
+  set(t_tst_src_list "${TST_SRC_LIST}")
+  set(t_bnk_src_list "${BNK_SRC_LIST}")
+
+  # Include Metal.cpp into compilation list if the target is Metal
+  #
+  if ((APPLE) AND (${t_name} IN_LIST metal_targets))
+    list(APPEND t_app_src_list ../_deps/metal-cpp/Metal.cpp)
+    list(APPEND t_tst_src_list ../_deps/metal-cpp/Metal.cpp)
+    list(APPEND t_bnk_src_list ../_deps/metal-cpp/Metal.cpp)
   endif()
 
-  # If algorithm requires OpenMP and OpenMP isn't found then
-  # skip the target
-  #
-  if((${t_name} IN_LIST omp_targets) AND NOT (OpenMP_CXX_FOUND))
-    message(STATUS "Skipping _application-v${t_name} because OpenMP is not found")
-    continue()
-  endif()
-
-  add_executable(_application-v${t_name} ${APP_SRC_LIST})
+  add_executable(_application-v${t_name} ${t_app_src_list})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
 
   if (NOT SKIP_GSUITE)
-    add_executable(_test-v${t_name}        ${TST_SRC_LIST})
-    add_executable(_benchmark-v${t_name}   ${BNK_SRC_LIST})
+    add_executable(_test-v${t_name}        ${t_tst_src_list})
+    add_executable(_benchmark-v${t_name}   ${t_bnk_src_list})
 
     add_dependencies(tests _test-v${t_name})
 
@@ -369,6 +378,19 @@ foreach(index RANGE ${length})
     target_compile_definitions(_application-v${t_name} PRIVATE ITT_TRACE)
 
     target_link_libraries(_application-v${t_name} PUBLIC ${ITT_LIBRARY})
+  endif()
+
+  # If target is dedicated to Metal the link Metal libraries and set compiler
+  # definitions
+  #
+  if ((APPLE) AND (${t_name} IN_LIST metal_targets))
+    target_link_libraries(
+      _application-v${t_name} PUBLIC ${METAL_LIBS})
+
+    if (NOT SKIP_GSUITE)
+      target_link_libraries(_test-v${t_name} PUBLIC ${METAL_LIBS})
+      target_link_libraries(_benchmark-v${t_name} PUBLIC ${METAL_LIBS})
+    endif()
   endif()
 
   if (NOT SKIP_GSUITE)

@@ -1,6 +1,10 @@
 {
   "folders": [
     {
+      "name": "_deps",
+      "path": "../_deps"
+    },
+    {
       "name": "_common",
       "path": "../_common"
     },
@@ -27,10 +31,10 @@
     "cmake.debugConfig": {
       "args": [
         "-r", "2000",
-        "-g", "C:\\Users\\Administrator\\Projects\\Profiling\\4800-20.g",
+        "-g", "${workspaceFolder:_test}/graphs/7-7.source.g",
         "-G", "weightlist",
         "-O", "weightlist",
-        "-o", "C:\\Users\\Administrator\\Projects\\Profiling\\basic.output"
+        "-o", "${workspaceFolder:program}/build/7-7.result.g"
       ]
     },
     "files.associations": {
