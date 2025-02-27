@@ -13,6 +13,10 @@ __hack_noinline void
 run(
   ::utilz::matrices::square_matrix<T, A>& m)
 {
+
+  NS::Error *error = nullptr;
+  auto library = NS::String::string("_application-v06-metal.metallib", NS::ASCIIStringEncoding);
+
   MTL::Device *device = MTL::CreateSystemDefaultDevice();
-  MTL::Library *defaultLibrary = device->newDefaultLibrary();
+  MTL::Library *defaultLibrary = device->newLibrary(library, &error);
 };
