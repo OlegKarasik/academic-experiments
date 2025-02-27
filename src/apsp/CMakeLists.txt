@@ -389,8 +389,8 @@ foreach(index RANGE ${length})
 
     add_custom_command(
       OUTPUT _application-v${t_name}.metallib
-      COMMAND xcrun -sdk macosx metal -c src/variants/${t_alias}/algorithm.kernel -o ${CMAKE_BINARY_DIR}/_application-v${t_name}.air
-      COMMAND xcrun -sdk macosx metal -c ${CMAKE_BINARY_DIR}/_application-v${t_name}.air -o ${CMAKE_BINARY_DIR}/_application-v${t_name}.metallib
+      COMMAND xcrun -sdk macosx metal -c ${CMAKE_SOURCE_DIR}/src/variants/${t_alias}/algorithm.metal -o ${CMAKE_BINARY_DIR}/_application-v${t_name}.air
+      COMMAND xcrun -sdk macosx metallib ${CMAKE_BINARY_DIR}/_application-v${t_name}.air -o ${CMAKE_BINARY_DIR}/_application-v${t_name}.metallib
       VERBATIM)
 
     add_custom_target(_application-v${t_name}-metallib ALL DEPENDS _application-v${t_name}.metallib)
