@@ -387,6 +387,15 @@ foreach(index RANGE ${length})
     target_link_libraries(
       _application-v${t_name} PUBLIC ${METAL_LIBS})
 
+    add_custom_command(
+      OUTPUT _application-v${t_name}.metallib
+      COMMAND xcrun -sdk macosx metal -c src/variants/${t_alias}/algorithm.kernel -o ${CMAKE_BINARY_DIR}/_application-v${t_name}.air
+      COMMAND xcrun -sdk macosx metal -c ${CMAKE_BINARY_DIR}/_application-v${t_name}.air -o ${CMAKE_BINARY_DIR}/_application-v${t_name}.metallib
+      VERBATIM)
+
+    add_custom_target(_application-v${t_name}-metallib ALL DEPENDS _application-v${t_name}.metallib)
+    add_dependencies(_application-v${t_name} _application-v${t_name}-metallib)
+
     if (NOT SKIP_GSUITE)
       target_link_libraries(_test-v${t_name} PUBLIC ${METAL_LIBS})
       target_link_libraries(_benchmark-v${t_name} PUBLIC ${METAL_LIBS})
