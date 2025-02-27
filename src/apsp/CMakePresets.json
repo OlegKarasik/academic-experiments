@@ -140,12 +140,14 @@
     {
       "hidden": true,
       "name": "osx-llvm-clang",
+      "binaryDir": "${workspaceFolder}/build",
       "environment": {
         "CPLUS_INCLUDE_PATH": "/opt/homebrew/Cellar/llvm/19.1.7/include/c++/v1"
       },
       "cacheVariables": {
         "CMAKE_C_COMPILER": "/opt/homebrew/opt/llvm/bin/clang",
-        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++"
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
       },
       "condition": {
         "lhs": "${hostSystemName}",
