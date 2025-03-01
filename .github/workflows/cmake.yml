@@ -12,35 +12,10 @@ env:
   BUILD_DIR:       build
   
 jobs:
-  changes:
-    name: Detect Changes
-    
-    runs-on: ubuntu-latest
-    
-    outputs:
-      apsp: ${{ steps.filter.outputs.apsp }}
-      common: ${{ steps.filter.outputs.common }}
-      tools: ${{ steps.filter.outputs.tools }}
-    
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          apsp:
-            - 'src/apsp/**'
-          common:
-            - 'src/common/**'
-          tools:
-            - 'src/tools/**'
-            
   apsp:
     name: All-Pairs Shortest Paths
       
     runs-on: windows-2022
-    needs: changes
-    if: ${{ needs.changes.outputs.apsp == 'true' || needs.changes.outputs.common == 'true' }}
     
     env:
       PROJT_DIR: ${{github.workspace}}/src/apsp
@@ -67,8 +42,6 @@ jobs:
     name: Tools
       
     runs-on: windows-2022
-    needs: changes
-    if: ${{ needs.changes.outputs.tools == 'true' || needs.changes.outputs.common == 'true' }}
     
     env:
       PROJT_DIR: ${{github.workspace}}/src/tools
