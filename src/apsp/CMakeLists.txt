@@ -150,19 +150,28 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Fix some of the compilation options, especially default Windows version.
+# In the recent version of MinGW the NTDDI_VERSION version detection mechanism
+# has changed and now dependencies are build for default version
+# of Windows 0x6.
+#
+if (WIN32)
+  add_compile_definitions("NTDDI_VERSION=0x0A000010")
+endif()
+
 if (NOT SKIP_GSUITE)
   # Declare Google Tests and Google Benchmark content
   #
   FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        release-1.11.0
+    GIT_TAG        v1.16.0
   )
 
   FetchContent_Declare(
     googlebenchmark
     GIT_REPOSITORY https://github.com/google/benchmark.git
-    GIT_TAG        v1.6.1
+    GIT_TAG        v1.9.1
   )
 
   # Initialise Google Tests library entry point
