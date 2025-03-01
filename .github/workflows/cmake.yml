@@ -26,6 +26,8 @@ jobs:
         
     - name: Setup
       uses: msys2/setup-msys2@v2
+      with:
+        update: true
 
     - name: Configure
       working-directory: ${{env.PROJT_DIR}}
@@ -52,6 +54,8 @@ jobs:
         
     - name: Setup
       uses: msys2/setup-msys2@v2
+      with:
+        update: true
 
     - name: Configure
       working-directory: ${{env.PROJT_DIR}}
