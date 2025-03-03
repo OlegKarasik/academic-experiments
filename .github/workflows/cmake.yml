@@ -12,35 +12,10 @@ env:
   BUILD_DIR:       build
   
 jobs:
-  changes:
-    name: Detect Changes
-    
-    runs-on: ubuntu-latest
-    
-    outputs:
-      apsp: ${{ steps.filter.outputs.apsp }}
-      common: ${{ steps.filter.outputs.common }}
-      tools: ${{ steps.filter.outputs.tools }}
-    
-    steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          apsp:
-            - 'src/apsp/**'
-          common:
-            - 'src/common/**'
-          tools:
-            - 'src/tools/**'
-            
   apsp:
     name: All-Pairs Shortest Paths
       
-    runs-on: windows-latest
-    needs: changes
-    if: ${{ needs.changes.outputs.apsp == 'true' || needs.changes.outputs.common == 'true' }}
+    runs-on: windows-2022
     
     env:
       PROJT_DIR: ${{github.workspace}}/src/apsp
@@ -48,15 +23,17 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-              
-    - name: Setup MINGW (ENVIRONMENT & COMPILER)
-      uses: msys2/setup-msys2@v2
-      with:
-        update:  true
-        install: mingw-w64-x86_64-gcc
         
-    - name: Setup MINGW (SYSTEM PATH)
-      run:  echo "D:/a/_temp/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Setup MSYS (INSTALL)
+      uses: msys2/setup-msys2@v2
+      id: msys2
+      with:
+        update: true
+        install: mingw-w64-x86_64-gcc
+    - name: Setup MSYS (PATH)
+      env:
+        MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+      run: echo "$env:MSYS2_LOCATION/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Configure
       working-directory: ${{env.PROJT_DIR}}
@@ -72,9 +49,7 @@ jobs:
   tools:
     name: Tools
       
-    runs-on: windows-latest
-    needs: changes
-    if: ${{ needs.changes.outputs.tools == 'true' || needs.changes.outputs.common == 'true' }}
+    runs-on: windows-2022
     
     env:
       PROJT_DIR: ${{github.workspace}}/src/tools
@@ -82,15 +57,17 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-            
-    - name: Setup MINGW (ENVIRONMENT & COMPILER)
-      uses: msys2/setup-msys2@v2
-      with:
-        update:  true
-        install: mingw-w64-x86_64-gcc
         
-    - name: Setup MINGW (SYSTEM PATH)
-      run:  echo "D:/a/_temp/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    - name: Setup MSYS (INSTALL)
+      uses: msys2/setup-msys2@v2
+      id: msys2
+      with:
+        update: true
+        install: mingw-w64-x86_64-gcc
+    - name: Setup MSYS (PATH)
+      env:
+        MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+      run: echo "$env:MSYS2_LOCATION/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Configure
       working-directory: ${{env.PROJT_DIR}}
