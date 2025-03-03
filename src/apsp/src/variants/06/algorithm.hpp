@@ -22,7 +22,7 @@ run(
   MTL::Device *device = MTL::CreateSystemDefaultDevice();
   MTL::Library *library = device->newLibrary(library_name, &error);
 
-  auto function_name = NS::String::string("add_arrays", NS::ASCIIStringEncoding);
+  auto function_name = NS::String::string("calculate", NS::ASCIIStringEncoding);
   MTL::Function *function = library->newFunction(function_name);
 
   //
@@ -34,23 +34,7 @@ run(
   //
   function->release();
   //
-
-
-
-  MTL::Buffer *bufferA = device->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
-  MTL::Buffer *bufferB = device->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
-  MTL::Buffer *bufferR = device->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
-
-  auto contentA = (float*)bufferA->contents();
-  auto contentB = (float*)bufferB->contents();
-  auto contentR = (float*)bufferR->contents();
-
-  for (auto i = 0; i < arrayLength; ++i)
-  {
-    contentA[i] = (float)rand() / (float)(RAND_MAX);
-    contentB[i] = (float)rand() / (float)(RAND_MAX);
-    contentR[i] = (float)0;
-  }
+  MTL::Buffer *bufferA = device->newBuffer(m.at(0), m.size() * m.size() * sizeof(T), MTL::ResourceStorageModeShared);
 
   ///
   MTL::CommandQueue *command_queue = device->newCommandQueue();
@@ -58,11 +42,8 @@ run(
   MTL::ComputeCommandEncoder *command_encoder = command_buffer->computeCommandEncoder();
 
   command_encoder->setComputePipelineState(pipeline_state);
-  command_encoder->setBuffer(bufferA, 0, 0);
-  command_encoder->setBuffer(bufferB, 0, 1);
-  command_encoder->setBuffer(bufferR, 0, 2);
 
-  MTL::Size size = MTL::Size::Make(arrayLength, 1, 1);
+  MTL::Size size = MTL::Size::Make(m.size(), 1, 1);
   NS::UInteger group_size = pipeline_state->maxTotalThreadsPerThreadgroup();
   if (group_size > arrayLength)
   {
@@ -70,22 +51,20 @@ run(
   }
   MTL::Size group_final_size = MTL::Size::Make(group_size, 1, 1);
 
-  command_encoder->dispatchThreadgroups(size, group_final_size);
-
-  command_encoder->endEncoding();
-  command_buffer->commit();
-  command_buffer->waitUntilCompleted();
-  ///
-
-  for (auto i = 0; i < arrayLength; ++i)
-  {
-    if (contentR[i] != (contentA[i] + contentB[i]))
-    {
-      throw std::runtime_error("qew");
+  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
+  const auto x = m.size();
+  for (auto k = size_type(0); k < x; ++k) {
+    for (auto i = size_type(0); i < x; ++i) {
+      command_encoder->setBuffer(bufferA, i * x * sizeof(T), 0);
+      command_encoder->setBuffer(bufferA, k * x * sizeof(T), 1);
+      command_encoder->setBytes(&k, sizeof(size_type), 2);
+      command_encoder->dispatchThreadgroups(size, group_final_size);
     }
+
+    command_encoder->endEncoding();
+    command_buffer->commit();
+    command_buffer->waitUntilCompleted();
   }
 
   bufferA->release();
-  bufferB->release();
-  bufferR->release();
 };
