@@ -50,9 +50,9 @@ run(
 
   MTL::Size size = MTL::Size::Make(1, 1, 1);
   NS::UInteger group_size = pipeline_state->maxTotalThreadsPerThreadgroup();
-  if (group_size > (m.size()+1))
+  if (group_size > m.size())
   {
-    group_size = m.size()+1;
+    group_size = m.size();
   }
   MTL::Size group_final_size = MTL::Size::Make(group_size, 1, 1);
 
