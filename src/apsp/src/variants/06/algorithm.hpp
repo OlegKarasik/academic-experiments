@@ -17,7 +17,7 @@ run(
   const unsigned long long bufferSize = arrayLength * sizeof(float);
 
   NS::Error *error = nullptr;
-  auto library_name = NS::String::string("_application-v06-metal.metallib", NS::ASCIIStringEncoding);
+  auto library_name = NS::String::string("_algorithm-v06-metal.metallib", NS::ASCIIStringEncoding);
 
   MTL::Device *device = MTL::CreateSystemDefaultDevice();
   MTL::Library *library = device->newLibrary(library_name, &error);
@@ -34,26 +34,36 @@ run(
   //
   function->release();
   //
-  MTL::Buffer *bufferA = device->newBuffer(m.at(0), m.size() * m.size() * sizeof(T), MTL::ResourceStorageModeShared);
+
+  MTL::Buffer *bufferA = device->newBuffer(m.size() * m.size() * sizeof(T), MTL::ResourceStorageModeShared);
+  int* content = (int*)bufferA->contents();
+  for (auto i = 0; i < m.size(); ++i)
+  {
+    for (auto j = 0; j < m.size(); ++j)
+    {
+      content[i * m.size() + j] = m.at(i, j);
+    }
+  }
 
   ///
   MTL::CommandQueue *command_queue = device->newCommandQueue();
-  MTL::CommandBuffer *command_buffer = command_queue->commandBuffer();
-  MTL::ComputeCommandEncoder *command_encoder = command_buffer->computeCommandEncoder();
 
-  command_encoder->setComputePipelineState(pipeline_state);
-
-  MTL::Size size = MTL::Size::Make(m.size(), 1, 1);
+  MTL::Size size = MTL::Size::Make(1, 1, 1);
   NS::UInteger group_size = pipeline_state->maxTotalThreadsPerThreadgroup();
-  if (group_size > arrayLength)
+  if (group_size > (m.size()+1))
   {
-    group_size = arrayLength;
+    group_size = m.size()+1;
   }
   MTL::Size group_final_size = MTL::Size::Make(group_size, 1, 1);
 
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
   const auto x = m.size();
   for (auto k = size_type(0); k < x; ++k) {
+    MTL::CommandBuffer *command_buffer = command_queue->commandBuffer();
+    MTL::ComputeCommandEncoder *command_encoder = command_buffer->computeCommandEncoder();
+
+    command_encoder->setComputePipelineState(pipeline_state);
+
     for (auto i = size_type(0); i < x; ++i) {
       command_encoder->setBuffer(bufferA, i * x * sizeof(T), 0);
       command_encoder->setBuffer(bufferA, k * x * sizeof(T), 1);
@@ -64,6 +74,15 @@ run(
     command_encoder->endEncoding();
     command_buffer->commit();
     command_buffer->waitUntilCompleted();
+    command_buffer->release();
+  }
+
+  for (auto i = 0; i < m.size(); ++i)
+  {
+    for (auto j = 0; j < m.size(); ++j)
+    {
+      m.at(i, j) = content[i * m.size() + j];
+    }
   }
 
   bufferA->release();
