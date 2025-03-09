@@ -352,6 +352,11 @@ foreach(index RANGE ${length})
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       target_compile_options(_benchmark-v${t_name} PRIVATE "-fopt-info-vec-optimized" "-fopt-info-loop-optimized" "-save-temps" "-fverbose-asm")
     endif()
+
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      target_compile_options(_benchmark-v${t_name} PRIVATE "-Rpass=loop-vectorize")
+    endif()
   endif()
 
   # If Kernel is found and target requires OpenMP,
