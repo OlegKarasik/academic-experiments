@@ -58,22 +58,23 @@ run(
 
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
   const auto x = m.size();
+
+  MTL::CommandBuffer *command_buffer = command_queue->commandBuffer();
+  MTL::ComputeCommandEncoder *command_encoder = command_buffer->computeCommandEncoder();
+
+  command_encoder->setComputePipelineState(pipeline_state);
+
   for (auto k = size_type(0); k < x; ++k) {
-    MTL::CommandBuffer *command_buffer = command_queue->commandBuffer();
-    MTL::ComputeCommandEncoder *command_encoder = command_buffer->computeCommandEncoder();
-
-    command_encoder->setComputePipelineState(pipeline_state);
-
     command_encoder->setBuffer(bufferA, 0, 0);
     command_encoder->setBytes(&x, sizeof(size_type), 1);
     command_encoder->setBytes(&k, sizeof(size_type), 2);
     command_encoder->dispatchThreads(size, group_final_size);
-
-    command_encoder->endEncoding();
-    command_buffer->commit();
-    command_buffer->waitUntilCompleted();
-    command_buffer->release();
   }
+
+  command_encoder->endEncoding();
+  command_buffer->commit();
+  command_buffer->waitUntilCompleted();
+  command_buffer->release();
 
   for (auto i = 0; i < m.size(); ++i)
   {
