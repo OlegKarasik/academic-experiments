@@ -4,10 +4,10 @@
 using namespace metal;
 
 kernel void calculate(
-  device int* i_row [[buffer(0)]],
-  device int* k_row [[buffer(1)]],
-  device int& k     [[buffer(2)]],
-  uint j [[thread_position_in_grid]])
+  device int* memory [[buffer(0)]],
+  device int& x      [[buffer(1)]],
+  device int& k      [[buffer(2)]],
+  uint2  position    [[thread_position_in_grid]])
 {
-  i_row[j] = min(i_row[j], i_row[k] + k_row[j]);
+  memory[position.y * x + position.x] = min(memory[position.y * x + position.x], memory[position.y * x + k] + memory[k * x + position.x]);
 }

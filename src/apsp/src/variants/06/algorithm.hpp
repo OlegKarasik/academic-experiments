@@ -48,7 +48,7 @@ run(
   ///
   MTL::CommandQueue *command_queue = device->newCommandQueue();
 
-  MTL::Size size = MTL::Size::Make(m.size(), 1, 1);
+  MTL::Size size = MTL::Size::Make(m.size(), m.size(), 1);
   NS::UInteger group_size = pipeline_state->maxTotalThreadsPerThreadgroup();
   if (group_size > m.size())
   {
@@ -64,12 +64,10 @@ run(
 
     command_encoder->setComputePipelineState(pipeline_state);
 
-    for (auto i = size_type(0); i < x; ++i) {
-      command_encoder->setBuffer(bufferA, i * x * sizeof(T), 0);
-      command_encoder->setBuffer(bufferA, k * x * sizeof(T), 1);
-      command_encoder->setBytes(&k, sizeof(size_type), 2);
-      command_encoder->dispatchThreads(size, group_final_size);
-    }
+    command_encoder->setBuffer(bufferA, 0, 0);
+    command_encoder->setBytes(&x, sizeof(size_type), 1);
+    command_encoder->setBytes(&k, sizeof(size_type), 2);
+    command_encoder->dispatchThreads(size, group_final_size);
 
     command_encoder->endEncoding();
     command_buffer->commit();
