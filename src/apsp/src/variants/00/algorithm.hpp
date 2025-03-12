@@ -9,7 +9,8 @@
 template<typename T, typename A>
 
 __hack_noinline void
-run(::utilz::matrices::square_matrix<T, A>& m)
+run(
+  ::utilz::matrices::square_matrix<T, A>& m)
 {
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
 

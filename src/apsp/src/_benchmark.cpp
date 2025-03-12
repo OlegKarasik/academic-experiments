@@ -49,7 +49,7 @@ class Fixture : public benchmark::Fixture
 public:
 // aliasing
 //
-#ifdef APSP_ALG_EXTRA_OPTIONS
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
   using buffer = utilz::memory::buffer_dyn;
 #endif
 
@@ -68,8 +68,9 @@ public:
 #endif
 
 public:
-#ifdef APSP_ALG_EXTRA_OPTIONS
-  buffer m_buf;
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  buffer               m_buf;
+  run_configuration<T> m_run_config;
 #endif
 
   std::vector<matrix> m_src;
@@ -150,14 +151,14 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
   #endif
 #endif
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-    auto options = up(this->m_src[src_index], this->m_buf);
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+    up(this->m_src[src_index], this->m_buf, this->m_run_config);
 #endif
 
     auto start = std::chrono::high_resolution_clock::now();
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-    run(this->m_src[src_index], options);
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+    run(this->m_src[src_index], this->m_run_config);
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
     run(this->m_src[src_index], this->m_src_clusters[src_index]);
@@ -174,8 +175,8 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
     state.SetIterationTime(elapsed_seconds.count());
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-    down(this->m_src[src_index], this->m_buf, options);
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+    down(this->m_src[src_index], this->m_buf, this->m_run_config);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS

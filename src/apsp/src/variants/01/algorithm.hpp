@@ -8,7 +8,10 @@
 
 template<typename T, typename A>
 void
-calculate_block(utilz::matrices::square_matrix<T, A>& ij, utilz::matrices::square_matrix<T, A>& ik, utilz::matrices::square_matrix<T, A>& kj)
+calculate_block(
+  utilz::matrices::square_matrix<T, A>& ij,
+  utilz::matrices::square_matrix<T, A>& ik,
+  utilz::matrices::square_matrix<T, A>& kj)
 {
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::size_type;
 
@@ -22,7 +25,8 @@ calculate_block(utilz::matrices::square_matrix<T, A>& ij, utilz::matrices::squar
 
 template<typename T, typename A, typename U>
 __hack_noinline void
-run(utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks)
+run(
+  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks)
 {
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 

@@ -29,7 +29,7 @@ class Fixture : public ::testing::Test
 public:
 // aliasing
 //
-#ifdef APSP_ALG_EXTRA_OPTIONS
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
   using buffer = utilz::memory::buffer_dyn;
 #endif
 
@@ -60,7 +60,7 @@ public:
   using result_matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<result_matrix>;
 
 public:
-#ifdef APSP_ALG_EXTRA_OPTIONS
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
   buffer m_buf;
 #endif
 
@@ -152,12 +152,13 @@ public:
   #endif
 #endif
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-    auto options = up(this->m_src, this->m_buf);
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+    run_configuration<T> run_config;
+    up(this->m_src, this->m_buf, run_config);
 
-    run(this->m_src, options);
+    run(this->m_src, run_config);
 
-    down(this->m_src, this->m_buf, options);
+    down(this->m_src, this->m_buf, run_config);
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
     run(this->m_src, this->m_src_clusters);

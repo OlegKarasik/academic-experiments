@@ -67,7 +67,7 @@ using matrix       = utilz::matrices::square_matrix<matrix_block, g_allocator_ty
 #ifdef APSP_ALG_MATRIX_CLUSTERS
 using matrix_block    = utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 using matrix          = utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-using clusters = utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<matrix>::size_type>;
+using clusters        = utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<matrix>::size_type>;
 #endif
 
 #ifdef APSP_ALG_MATRIX
@@ -347,20 +347,23 @@ main(int argc, char* argv[]) __hack_noexcept
   #endif
 #endif
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
   // In cases when algorithm requires additional setup (ex. pre-allocated arrays)
   // it can be done in up procedure (and undone in down).
   //
   // It is important to keep in mind that up acts on memory buffer after the
   // matrix has been allocated.
   //
-  auto o = up(m, buffer_fx);
+  run_configuration<g_calculation_type> run_config;
+  auto up_ms = utilz::measure_milliseconds([&run_config, &m, &buffer_fx]() -> void { up(m, buffer_fx, run_config); });
+
+  std::cerr << ">>>>: " << up_ms << "ms" << std::endl;
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-    [&m, &o]() -> void {
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+    [&m, &run_config]() -> void {
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
     [&m, &c]() -> void {
@@ -375,8 +378,8 @@ main(int argc, char* argv[]) __hack_noexcept
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-      run(m, o);
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+      run(m, run_config);
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
       run(m, c);
@@ -392,8 +395,10 @@ main(int argc, char* argv[]) __hack_noexcept
 
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_EXTRA_OPTIONS
-  down(m, buffer_fx, o);
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  auto down_ms = utilz::measure_milliseconds([&m, &buffer_fx, &run_config]() -> void { down(m, buffer_fx, run_config); });
+
+  std::cerr << "<<<<: " << down_ms << "ms" << std::endl;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS

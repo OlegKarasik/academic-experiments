@@ -30,7 +30,10 @@ calculate_block(
 
 template<typename T, typename A>
 void
-calculate_block(utilz::matrices::rect_matrix<T, A>& ij, utilz::matrices::rect_matrix<T, A>& ik, utilz::matrices::rect_matrix<T, A>& kj)
+calculate_block(
+  utilz::matrices::rect_matrix<T, A>& ij,
+  utilz::matrices::rect_matrix<T, A>& ik,
+  utilz::matrices::rect_matrix<T, A>& kj)
 {
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
 
