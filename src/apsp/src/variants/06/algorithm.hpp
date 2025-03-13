@@ -74,37 +74,32 @@ run(
   ::utilz::matrices::square_matrix<T, A>& m,
   run_configuration<T>& run_config)
 {
-  MTL::Buffer *bufferA = run_config.device->newBuffer(m.at(0), m.size() * m.size() * sizeof(T), MTL::ResourceStorageModeShared);
-  int* content = (int*)bufferA->contents();
-  for (auto i = 0; i < m.size(); ++i)
-  {
-    for (auto j = 0; j < m.size(); ++j)
-    {
-      content[i * m.size() + j] = m.at(i, j);
-    }
-  }
-
-  MTL::Size size = MTL::Size::Make(m.size(), m.size(), 1);
-  NS::UInteger group_size = run_config.pipeline_state->maxTotalThreadsPerThreadgroup();
-  if (group_size > m.size())
-  {
-    group_size = m.size();
-  }
-  MTL::Size group_final_size = MTL::Size::Make(group_size, 1, 1);
-
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
   const auto x = m.size();
 
-  MTL::CommandBuffer *command_buffer = run_config.command_queue->commandBuffer();
-  MTL::ComputeCommandEncoder *command_encoder = command_buffer->computeCommandEncoder();
+  MTL::Buffer* memory = run_config.device->newBuffer(m.at(0), x * x * sizeof(T), MTL::ResourceStorageModeShared);
+
+  // Copy matrix into dedicate buffer (shared across devices)
+  //
+  memcpy(memory->contents(), m.at(0), x * x * sizeof(T));
+
+  MTL::Size grid_size  = MTL::Size::Make(x, x, 1);
+  MTL::Size group_size = MTL::Size::Make(
+    run_config.pipeline_state->maxTotalThreadsPerThreadgroup() > x
+      ? run_config.pipeline_state->maxTotalThreadsPerThreadgroup()
+      : x, 1, 1);
+
+
+  MTL::CommandBuffer*         command_buffer  = run_config.command_queue->commandBuffer();
+  MTL::ComputeCommandEncoder* command_encoder = command_buffer->computeCommandEncoder();
 
   command_encoder->setComputePipelineState(run_config.pipeline_state);
 
   for (auto k = size_type(0); k < x; ++k) {
-    command_encoder->setBuffer(bufferA, 0, 0);
+    command_encoder->setBuffer(memory, 0, 0);
     command_encoder->setBytes(&x, sizeof(size_type), 1);
     command_encoder->setBytes(&k, sizeof(size_type), 2);
-    command_encoder->dispatchThreads(size, group_final_size);
+    command_encoder->dispatchThreads(grid_size, group_size);
   }
 
   command_encoder->endEncoding();
@@ -114,13 +109,9 @@ run(
   command_encoder->release();
   command_buffer->release();
 
-  for (auto i = 0; i < m.size(); ++i)
-  {
-    for (auto j = 0; j < m.size(); ++j)
-    {
-      m.at(i, j) = content[i * m.size() + j];
-    }
-  }
+  // Copy memory back from the shared buffer into the matrix
+  //
+  memcpy(m.at(0), memory->contents(), x * x * sizeof(T));
 
-  bufferA->release();
+  memory->release();
 };
