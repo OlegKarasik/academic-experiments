@@ -86,8 +86,8 @@ run(
   MTL::Size grid_size  = MTL::Size::Make(x, x, 1);
   MTL::Size group_size = MTL::Size::Make(
     run_config.pipeline_state->maxTotalThreadsPerThreadgroup() > x
-      ? run_config.pipeline_state->maxTotalThreadsPerThreadgroup()
-      : x, 1, 1);
+      ? x
+      : run_config.pipeline_state->maxTotalThreadsPerThreadgroup(), 1, 1);
 
 
   MTL::CommandBuffer*         command_buffer  = run_config.command_queue->commandBuffer();
