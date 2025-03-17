@@ -75,29 +75,29 @@ run(
   run_configuration<T>& run_config)
 {
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
-  const auto x = m.size();
 
-  MTL::Buffer* memory = run_config.device->newBuffer(m.at(0), x * x * sizeof(T), MTL::ResourceStorageModeShared);
+  const auto sz = m.size();
+
+  MTL::Buffer* memory = run_config.device->newBuffer(m.at(0), sz * sz * sizeof(T), MTL::ResourceStorageModeShared);
 
   // Copy matrix into dedicate buffer (shared across devices)
   //
-  memcpy(memory->contents(), m.at(0), x * x * sizeof(T));
+  memcpy(memory->contents(), m.at(0), sz * sz * sizeof(T));
 
-  MTL::Size grid_size  = MTL::Size::Make(x, x, 1);
+  MTL::Size grid_size  = MTL::Size::Make(sz, sz, 1);
   MTL::Size group_size = MTL::Size::Make(
-    run_config.pipeline_state->maxTotalThreadsPerThreadgroup() > x
-      ? x
+    run_config.pipeline_state->maxTotalThreadsPerThreadgroup() > sz
+      ? sz
       : run_config.pipeline_state->maxTotalThreadsPerThreadgroup(), 1, 1);
-
 
   MTL::CommandBuffer*         command_buffer  = run_config.command_queue->commandBuffer();
   MTL::ComputeCommandEncoder* command_encoder = command_buffer->computeCommandEncoder();
 
   command_encoder->setComputePipelineState(run_config.pipeline_state);
 
-  for (auto k = size_type(0); k < x; ++k) {
+  for (auto k = size_type(0); k < sz; ++k) {
     command_encoder->setBuffer(memory, 0, 0);
-    command_encoder->setBytes(&x, sizeof(size_type), 1);
+    command_encoder->setBytes(&sz, sizeof(size_type), 1);
     command_encoder->setBytes(&k, sizeof(size_type), 2);
     command_encoder->dispatchThreads(grid_size, group_size);
   }
@@ -111,7 +111,7 @@ run(
 
   // Copy memory back from the shared buffer into the matrix
   //
-  memcpy(m.at(0), memory->contents(), x * x * sizeof(T));
+  memcpy(m.at(0), memory->contents(), sz * sz * sizeof(T));
 
   memory->release();
 };
