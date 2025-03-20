@@ -15,6 +15,10 @@ param(
 # $SourceDirectory = 'D:\Projects\Profiling';
 # $ApplicationDirectory = 'D:\Projects\GitHub\academic-experiments\src\apsp\build';
 
+# Core Paths
+#
+$ComposeGroupResultsScript = Join-Path -Path $PSScriptRoot -ChildPath 'ComposeGroupsResults.ps1';
+
 $VTuneRoot = $null
 if (Test-Path -Path 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest' -PathType Container -ErrorAction Stop) {
     $VTuneRoot = $(Get-Item 'C:\Program Files (x86)\Intel\oneAPI\vtune\latest').Target;
@@ -27,6 +31,12 @@ if (($true -eq $RunProf) -and ($null -eq $VTuneRoot)) {
 
 $vtune = "$VTuneRoot\bin64\vtune";
 $socwatch = "$VTuneRoot\socwatch\64\socwatch";
+
+$ext = '';
+if ($IsWindows -eq $true) {
+  $ext = '.exe';
+}
+
 
 Write-Verbose -Message "LAUNCH CONFIG PATH : $LaunchConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "RUN CONFIG PATH    : $RunConfigPath" -ErrorAction Stop;
@@ -105,7 +115,7 @@ $RunConfig | ForEach-Object {
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
             Write-Verbose -Message "Running application" -ErrorAction Stop;
-            Write-Verbose -Message "Executable : _application-$Version.exe" -ErrorAction Stop;
+            Write-Verbose -Message "Executable : _application-$Version$ext" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
             Write-Verbose -Message "Arguments  :" -ErrorAction Stop;
@@ -113,20 +123,26 @@ $RunConfig | ForEach-Object {
               Write-Verbose -Message "  : $_" -ErrorAction Stop;
             };
 
+            $ExperimentProgramExecutable = Join-Path -Path $ApplicationDirectory -ChildPath "_application-$Version$ext";
+
+            Push-Location -Path $ApplicationDirectory
+
             if ($MeasureEnergy) {
               $ExperimentEnergyResultsFile = Join-Path -Path $ExperimentResultsDirectory -ChildPath 'energy' -ErrorAction Stop;
               & $socwatch -f power -f hw-cpu-pstate `
                 -o $ExperimentEnergyResultsFile `
-                --program "$ApplicationDirectory\_application-$Version.exe" `
+                --program $ExperimentProgramExecutable `
                 -o $ExperimentOutputFile `
                 -O 'weightlist' $Arguments `
                 2> $ExperimentResultsFile 1> $null;
             } else {
-              & "$ApplicationDirectory\_application-$Version.exe" `
+              & $ExperimentProgramExecutable `
                 -o $ExperimentOutputFile `
                 -O 'weightlist' $Arguments `
                 2> $ExperimentResultsFile 1> $null;
             }
+
+            Pop-Location
 
             if ($LastExitCode -ne 0) {
               throw "Algorithm execution has failed with exit code: '$LastExitCode'. Please investigate.";
@@ -134,7 +150,7 @@ $RunConfig | ForEach-Object {
 
             $ExperimentHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
           }
-          & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+          & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "cout\.txt" `
             -Groups 'Exec:cout-exec' `
             -PrettyGroupMatchPatterns 'Exec' `
@@ -144,7 +160,7 @@ $RunConfig | ForEach-Object {
             -Default "0"
 
           if ($MeasureEnergy) {
-            & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+            & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
               -Groups 'CPU/Package_0,\s+Power:cout-power-mW' `
               -PrettyGroupMatchPatterns 'CPU/Package_0, Power' `
@@ -153,7 +169,7 @@ $RunConfig | ForEach-Object {
               -Output "cout-combined.txt" `
               -Default "0"
 
-            & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+            & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
               -Groups 'CPU/Package_0,\s+Power:cout-power-mJ' `
               -PrettyGroupMatchPatterns 'CPU/Package_0, Power' `
@@ -171,7 +187,7 @@ $RunConfig | ForEach-Object {
 
             $p += , $patterns;
 
-            & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+            & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
               -NamePattern "energy\.csv" `
               -Headline "P-States" `
               -Groups 'P\d+\s+,\s+\d+\s--\s\d+:cout-hw-cpu-pstate' `
@@ -200,13 +216,17 @@ $RunConfig | ForEach-Object {
             New-Item -Path $ExperimentResultsDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 
             Write-Verbose -Message "Running application (vTune)" -ErrorAction Stop;
-            Write-Verbose -Message "Executable : _application-$Version-itt.exe" -ErrorAction Stop;
+            Write-Verbose -Message "Executable : _application-$Version-itt$ext" -ErrorAction Stop;
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
             Write-Verbose -Message "Arguments  :" -ErrorAction Stop;
             $Arguments | % {
               Write-Verbose -Message "  : $_" -ErrorAction Stop;
             };
+
+            $ExperimentProgramExecutable = Join-Path -Path $ApplicationDirectory -ChildPath "_application-$Version-itt$ext";
+
+            Push-Location -Path $ApplicationDirectory
 
             & $vtune -collect-with runsa `
               -no-summary -result-dir $ExperimentResultsDirectory `
@@ -215,12 +235,14 @@ $RunConfig | ForEach-Object {
               -allow-multiple-runs `
               -data-limit=10000 `
               --app-working-dir=$ApplicationDirectory `
-              -- "$ApplicationDirectory\_application-$Version-itt.exe" -o $ExperimentOutputFile -O 'weightlist' $Arguments `
+              -- $ExperimentProgramExecutable -o $ExperimentOutputFile -O 'weightlist' $Arguments `
               2> $ExperimentResultsFile 1> $null;
 
             if ($LastExitCode -ne 0) {
               throw "Algorithm execution (profiled) has failed with exit code: '$LastExitCode'. Please investigate.";
             }
+
+            Pop-Location
 
             $ExperimentHash += Get-FileHash -Path $ExperimentOutputFile -Algorithm SHA512;
 
@@ -235,7 +257,7 @@ $RunConfig | ForEach-Object {
               throw "Profiling report generation has failed with exit code: '$LastExitCode'. Please investigate.";
             }
           }
-          & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+          & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune-cout\.txt" `
             -Groups 'Exec:vtune-exec' `
             -PrettyGroupMatchPatterns 'Exec' `
@@ -245,7 +267,7 @@ $RunConfig | ForEach-Object {
             -Multiple `
             -Default "0"
 
-          & "$PSScriptRoot/ComposeGroupsResults.ps1" -TargetDirectory $ExperimentOutputDirectory `
+          & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
             -NamePattern "vtune\.txt" `
             -Headline "Hardware Events" `
             -Groups $CollectionGroups `
