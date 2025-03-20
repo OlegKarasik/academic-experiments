@@ -363,7 +363,11 @@ main(int argc, char* argv[]) __hack_noexcept
   auto exec_ms = utilz::measure_milliseconds(
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+    [&m, &run_config, &c]() -> void {
+  #else
     [&m, &run_config]() -> void {
+  #endif
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
     [&m, &c]() -> void {
@@ -379,7 +383,11 @@ main(int argc, char* argv[]) __hack_noexcept
 #endif
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+      run(m, run_config, c);
+  #else
       run(m, run_config);
+  #endif
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
       run(m, c);

@@ -155,16 +155,24 @@ public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
     run_configuration<T> run_config;
     up(this->m_src, this->m_buf, run_config);
+#endif
 
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+    run(this->m_src, run_config, this->m_src_clusters);
+  #else
     run(this->m_src, run_config);
-
-    down(this->m_src, this->m_buf, run_config);
+  #endif
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
     run(this->m_src, this->m_src_clusters);
   #else
     run(this->m_src);
   #endif
+#endif
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+    down(this->m_src, this->m_buf, run_config);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS

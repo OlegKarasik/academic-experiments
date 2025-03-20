@@ -158,7 +158,11 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
     auto start = std::chrono::high_resolution_clock::now();
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
+  #ifdef APSP_ALG_MATRIX_CLUSTERS
+    run(this->m_src[src_index], this->m_run_config, this->m_src_clusters[src_index]);
+  #else
     run(this->m_src[src_index], this->m_run_config);
+  #endif
 #else
   #ifdef APSP_ALG_MATRIX_CLUSTERS
     run(this->m_src[src_index], this->m_src_clusters[src_index]);
@@ -181,7 +185,10 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+    src_rearrange(
+      this->m_src[src_index],
+      this->m_src_clusters[src_index],
+      utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
   }

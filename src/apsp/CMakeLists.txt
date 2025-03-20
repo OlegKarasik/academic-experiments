@@ -215,6 +215,7 @@ list(APPEND targets_names "01")
 list(APPEND targets_names "02")
 list(APPEND targets_names "03")
 list(APPEND targets_names "04")
+list(APPEND targets_names "07")
 
 # Initialise Metal specific targets (MacOS)
 #
@@ -236,6 +237,7 @@ if (OpenMP_CXX_FOUND)
   list(APPEND omp_targets "02-omp")
   list(APPEND omp_targets "03-omp")
   list(APPEND omp_targets "04-omp")
+  list(APPEND omp_targets "07-omp")
 endif()
 
 # Initialise ITT targets if ITT is enabled
@@ -250,18 +252,26 @@ if (ITT_FOUND)
   endif()
 
   if (OpenMP_CXX_FOUND)
-    list(APPEND itt_omp_targets "00-omp-itt")
-    list(APPEND itt_omp_targets "01-omp-itt")
-    list(APPEND itt_omp_targets "02-omp-itt")
-    list(APPEND itt_omp_targets "03-omp-itt")
-    list(APPEND itt_omp_targets "04-omp-itt")
+    # Include all OpenMP targets from targets_names into -itt targets
+    #
+    list(LENGTH omp_targets _init_omp_itt_targets_length)
+    math(EXPR init_omp_itt_targets_length "${_init_omp_itt_targets_length}-1")
+    foreach(index RANGE ${init_omp_itt_targets_length})
+      list(GET omp_targets ${index} t_name)
+
+      list(APPEND itt_omp_targets "${t_name}-omp-itt")
+    endforeach()
   endif()
 
-  list(APPEND itt_targets "00-itt")
-  list(APPEND itt_targets "01-itt")
-  list(APPEND itt_targets "02-itt")
-  list(APPEND itt_targets "03-itt")
-  list(APPEND itt_targets "04-itt")
+  # Include all targets from targets_names into -itt targets
+  #
+  list(LENGTH targets_names _init_itt_targets_length)
+  math(EXPR init_itt_targets_length "${_init_itt_targets_length}-1")
+  foreach(index RANGE ${init_itt_targets_length})
+    list(GET targets_names ${index} t_name)
+
+    list(APPEND itt_targets "${t_name}-itt")
+  endforeach()
 
   if (itt_omp_targets)
     list(APPEND itt_targets "${itt_omp_targets}")
