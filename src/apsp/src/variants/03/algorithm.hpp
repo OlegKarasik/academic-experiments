@@ -280,8 +280,8 @@ calculate_peripheral(
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::size_type;
 
   const auto x = ij.size();
-  for (auto k = size_type(0); k < x; ++k)
-    for (auto i = size_type(0); i < x; ++i)
+  for (auto i = size_type(0); i < x; ++i)
+    for (auto k = size_type(0); k < x; ++k)
       __hack_ivdep
       for (auto j = size_type(0); j < x; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));

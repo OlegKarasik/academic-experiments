@@ -158,7 +158,7 @@ calculate_diagonal(
 
 template<typename T, typename A>
 void
-calculate_peripheral(
+calculate_cross(
   utilz::matrices::rect_matrix<T, A>& ij,
   utilz::matrices::rect_matrix<T, A>& ik,
   utilz::matrices::rect_matrix<T, A>& kj,
@@ -171,6 +171,26 @@ calculate_peripheral(
 
   for (auto k : bridges)
     for (auto i = size_type(0); i < ij_h; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < ij_w; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
+template<typename T, typename A>
+void
+calculate_peripheral(
+  utilz::matrices::rect_matrix<T, A>& ij,
+  utilz::matrices::rect_matrix<T, A>& ik,
+  utilz::matrices::rect_matrix<T, A>& kj,
+  auto bridges)
+{
+  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
+
+  const auto ij_w = ij.width();
+  const auto ij_h = ij.height();
+
+  for (auto i = size_type(0); i < ij_h; ++i)
+    for (auto k : bridges)
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
@@ -208,12 +228,12 @@ run(
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, indeces)
 #endif
-            calculate_peripheral(im, im, mm, indeces);
+            calculate_cross(im, im, mm, indeces);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, indeces)
 #endif
-            calculate_peripheral(mi, mm, mi, indeces);
+            calculate_cross(mi, mm, mi, indeces);
           }
         }
 #ifdef _OPENMP
