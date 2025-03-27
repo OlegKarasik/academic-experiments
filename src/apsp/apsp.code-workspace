@@ -21,7 +21,6 @@
     "recommendations": [
       "ms-vscode.cpptools",
       "ms-vscode.cmake-tools",
-      "twxs.cmake",
       "editorconfig.editorconfig",
       "github.vscode-pull-request-github"
     ]
@@ -130,7 +129,20 @@
       "xloctime": "cpp",
       "xtr1common": "cpp",
       "xtree": "cpp",
-      "xutility": "cpp"
+      "xutility": "cpp",
+      "__assertion_handler": "cpp",
+      "__config": "cpp",
+      "__hash_table": "cpp",
+      "__locale": "cpp",
+      "__threading_support": "cpp",
+      "__tree": "cpp",
+      "__split_buffer": "cpp",
+      "__bit_reference": "cpp",
+      "__node_handle": "cpp",
+      "__verbose_abort": "cpp",
+      "complex": "cpp",
+      "execution": "cpp",
+      "print": "cpp"
     },
     "cmake.ctest.allowParallelJobs": true
   }
