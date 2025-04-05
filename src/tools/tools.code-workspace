@@ -102,7 +102,6 @@
     "recommendations": [
       "ms-vscode.cpptools",
       "ms-vscode.cmake-tools",
-      "twxs.cmake",
       "editorconfig.editorconfig",
       "github.vscode-pull-request-github"
     ]

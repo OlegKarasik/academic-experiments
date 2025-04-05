@@ -19,7 +19,10 @@ include_directories(${INC_LIST})
 add_executable(graphg   src/graphg.cpp)
 add_executable(graphc   src/graphc.cpp)
 add_executable(grapha   src/grapha.cpp)
-add_executable(mempagei src/mempagei.cpp)
+
+if (WIN32)
+  add_executable(mempagei src/mempagei.cpp)
+endif()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
