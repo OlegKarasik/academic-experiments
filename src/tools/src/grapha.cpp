@@ -136,13 +136,13 @@ main(int argc, char* argv[])
   }
 
   if (!opt_input_graph.empty() && opt_graph_format == utilz::graphs::io::graph_fmt_none ||
-      opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
+       opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
     std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
   if (!opt_input_communities.empty() && opt_communities_format == utilz::communities::io::communities_fmt_none ||
-      opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
-    std::cerr << "erro: the -g and -G parameters must be both set";
+       opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
+    std::cerr << "erro: the -c and -C parameters must be both set";
     return 1;
   }
   if (opt_output.empty()) {
@@ -399,7 +399,7 @@ analyse_communities_intersections(
   }
 
   os << "\n"
-     << "Connections between clusters\n"
+     << "Connections between clusters (paths)\n"
      << "\n";
 
   for (auto community : communities_map) {
