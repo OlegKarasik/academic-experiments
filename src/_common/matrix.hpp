@@ -37,6 +37,10 @@ private:
   std::map<T, std::vector<T>>           m_clusters;
   std::unordered_map<T, std::vector<T>> m_bridges;
   std::unordered_map<T, std::vector<T>> m_indeces;
+  std::unordered_map<T, std::vector<T>> m_bridges_in;
+  std::unordered_map<T, std::vector<T>> m_indeces_in;
+  std::unordered_map<T, std::vector<T>> m_bridges_out;
+  std::unordered_map<T, std::vector<T>> m_indeces_out;
   std::unordered_map<T, T>              m_reverse;
 
 public:
@@ -49,7 +53,11 @@ public:
     if (it == this->m_clusters.end()) {
       this->m_clusters.emplace(cindex, std::vector<T>({ vindex }));
       this->m_bridges.emplace(cindex, std::vector<T>());
+      this->m_bridges_in.emplace(cindex, std::vector<T>());
+      this->m_bridges_out.emplace(cindex, std::vector<T>());
       this->m_indeces.emplace(cindex, std::vector<T>());
+      this->m_indeces_in.emplace(cindex, std::vector<T>());
+      this->m_indeces_out.emplace(cindex, std::vector<T>());
     } else {
       it->second.push_back(vindex);
     }
@@ -66,24 +74,48 @@ public:
     auto z = this->m_reverse.at(to);
 
     if (x != z) {
-      auto& vx = this->m_bridges.at(x);
-      auto& vz = this->m_bridges.at(z);
+      auto& vx     = this->m_bridges.at(x);
+      auto& vz     = this->m_bridges.at(z);
+      auto& vz_in  = this->m_bridges_in.at(z);
+      auto& vx_out = this->m_bridges_out.at(x);
 
-      if (std::find(vx.begin(), vx.end(), from) == vx.end()) {
+      bool vx_found     = std::find(vx.begin(), vx.end(), from) == vx.end();
+      bool vz_found     = std::find(vz.begin(), vz.end(), to) == vz.end();
+      bool vz_in_found  = std::find(vz_in.begin(), vz_in.end(), to) == vz_in.end();
+      bool vx_out_found = std::find(vx_out.begin(), vx_out.end(), from) == vx_out.end();
+
+      if (vx_found)
         this->m_bridges.at(x).push_back(from);
 
+      if (vx_out_found)
+        this->m_bridges_out.at(x).push_back(from);
+
+      if (vx_found || vx_out_found) {
         auto c = this->m_clusters.at(x);
         auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), from));
 
-        this->m_indeces.at(x).push_back(v);
+        if (vx_found)
+          this->m_indeces.at(x).push_back(v);
+
+        if (vx_out_found)
+          this->m_indeces_out.at(x).push_back(v);
       }
-      if (std::find(vz.begin(), vz.end(), to) == vz.end()) {
+
+      if (vz_found)
         this->m_bridges.at(z).push_back(to);
 
+      if (vz_in_found)
+        this->m_bridges_in.at(z).push_back(to);
+
+      if (vz_found || vz_in_found) {
         auto c = this->m_clusters.at(z);
         auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), to));
 
-        this->m_indeces.at(z).push_back(v);
+        if (vz_found)
+          this->m_indeces.at(z).push_back(v);
+
+        if (vz_in_found)
+          this->m_indeces_in.at(z).push_back(v);
       }
     }
   }
@@ -107,9 +139,33 @@ public:
   }
 
   auto
+  get_bridges_in(const T& cindex) const
+  {
+    return std::views::all(this->m_bridges_in.at(cindex));
+  }
+
+  auto
+  get_bridges_out(const T& cindex) const
+  {
+    return std::views::all(this->m_bridges_out.at(cindex));
+  }
+
+  auto
   get_indeces(const T& cindex) const
   {
     return std::views::all(this->m_indeces.at(cindex));
+  }
+
+  auto
+  get_indeces_in(const T& cindex) const
+  {
+    return std::views::all(this->m_indeces_in.at(cindex));
+  }
+
+  auto
+  get_indeces_out(const T& cindex) const
+  {
+    return std::views::all(this->m_indeces_out.at(cindex));
   }
 
   auto
