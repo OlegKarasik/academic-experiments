@@ -176,6 +176,47 @@ calculate_cross(
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
 
+
+template<typename T, typename A>
+void
+calculate_vertical(
+  utilz::matrices::rect_matrix<T, A>& ij,
+  utilz::matrices::rect_matrix<T, A>& ik,
+  utilz::matrices::rect_matrix<T, A>& kj,
+  auto bridges)
+{
+  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
+
+  const auto ij_w = ij.width();
+  const auto ij_h = ij.height();
+
+  for (auto k : bridges)
+    for (auto i = size_type(0); i < ij_h; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < ij_w; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
+template<typename T, typename A>
+void
+calculate_horizontal(
+  utilz::matrices::rect_matrix<T, A>& ij,
+  utilz::matrices::rect_matrix<T, A>& ik,
+  utilz::matrices::rect_matrix<T, A>& kj,
+  auto bridges)
+{
+  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
+
+  const auto ij_w = ij.width();
+  const auto ij_h = ij.height();
+
+  for (auto k : bridges)
+    for (auto i = size_type(0); i < ij_h; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < ij_w; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
 template<typename T, typename A>
 void
 calculate_peripheral(
@@ -218,7 +259,9 @@ run(
 
         calculate_diagonal(mm, run_config);
 
-        auto indeces = clusters.get_indeces(m);
+        auto indeces     = clusters.get_indeces(m);
+        auto indeces_in  = clusters.get_indeces_in(m);
+        auto indeces_out = clusters.get_indeces_out(m);
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
@@ -226,14 +269,14 @@ run(
             auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, indeces)
+  #pragma omp task untied default(none) shared(im, mm, indeces_in)
 #endif
-            calculate_cross(im, im, mm, indeces);
+            calculate_vertical(im, im, mm, indeces_in);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, indeces)
+  #pragma omp task untied default(none) shared(mi, mm, indeces_out)
 #endif
-            calculate_cross(mi, mm, mi, indeces);
+            calculate_horizontal(mi, mm, mi, indeces_out);
           }
         }
 #ifdef _OPENMP
