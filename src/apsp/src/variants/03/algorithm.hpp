@@ -158,7 +158,7 @@ calculate_diagonal(
 
 template<typename T, typename A>
 void
-calculate_horizontal(
+calculate_vertical(
   utilz::matrices::square_matrix<T, A>& im,
   utilz::matrices::square_matrix<T, A>& mm,
   run_configuration<T>& run_config)
@@ -223,7 +223,7 @@ calculate_horizontal(
 
 template<typename T, typename A>
 void
-calculate_vertical(
+calculate_horizontal(
   utilz::matrices::square_matrix<T, A>& mi,
   utilz::matrices::square_matrix<T, A>& mm,
   run_configuration<T>& run_config)
@@ -314,12 +314,12 @@ run(
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, run_config)
 #endif
-            calculate_horizontal(im, mm, run_config);
+            calculate_vertical(im, mm, run_config);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, run_config)
 #endif
-            calculate_vertical(mi, mm, run_config);
+            calculate_horizontal(mi, mm, run_config);
           }
         }
 #ifdef _OPENMP
