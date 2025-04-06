@@ -217,43 +217,48 @@ analyse_communities_intersections(
 
   std::map<Index, std::set<Index>>                      communities_path;
   std::map<Index, std::vector<std::pair<Index, Index>>> communities_ranges;
-  std::map<Index, std::vector<std::pair<Index, Index>>> communities_cn;
+  std::map<Index, std::vector<std::pair<Index, Index>>> communities_connections;
 
   std::map<Index, double> communities_pvt;
   std::map<Index, double> communities_pet;
 
-  std::map<Index, size_t> communities_bv;
-  std::map<Index, size_t> communities_be;
-  std::map<Index, size_t> communities_ec;
+  std::map<Index, std::set<Index>> communities_bv;
+  std::map<Index, std::set<Index>> communities_bvi;
+  std::map<Index, std::set<Index>> communities_bvo;
+  std::map<Index, size_t>          communities_be;
+  std::map<Index, size_t>          communities_ec;
 
   for (auto community : communities_map) {
     communities_path.emplace(community.first, std::set<Index>());
     communities_ranges.emplace(community.first, std::vector<std::pair<Index, Index>>());
-    communities_cn.emplace(community.first, std::vector<std::pair<Index, Index>>());
+    communities_connections.emplace(community.first, std::vector<std::pair<Index, Index>>());
 
     communities_pvt.emplace(community.first, double(0));
     communities_pet.emplace(community.first, double(0));
 
-    communities_bv.emplace(community.first, size_t(0));
+    communities_bv.emplace(community.first, std::set<Index>());
+    communities_bvi.emplace(community.first, std::set<Index>());
+    communities_bvo.emplace(community.first, std::set<Index>());
     communities_be.emplace(community.first, size_t(0));
     communities_ec.emplace(community.first, size_t(0));
   }
 
   for (auto community : communities_map) {
     auto paths       = communities_path.find(community.first);
-    auto connections = communities_cn.find(community.first);
+    auto connections = communities_connections.find(community.first);
 
     auto pvt = communities_pvt.find(community.first);
     auto pet = communities_pet.find(community.first);
 
-    auto bv = communities_bv.find(community.first);
-    auto be = communities_be.find(community.first);
-    auto ec = communities_ec.find(community.first);
+    auto bv  = communities_bv.find(community.first);
+    auto bvi = communities_bvi.find(community.first);
+    auto bvo = communities_bvo.find(community.first);
+    auto be  = communities_be.find(community.first);
+    auto ec  = communities_ec.find(community.first);
 
     for (auto i : community.second) {
       auto edges = graph_matrix.at(i);
 
-      auto f = false;
       for (auto j = utilz::matrices::square_matrix<Index>::size_type(0); j < graph_matrix.size(); ++j) {
         // If there is an edge between vertices (because we load adjucency matrix we treat all infities as none)
         //
@@ -270,21 +275,8 @@ analyse_communities_intersections(
           auto sanity_edges = false;
           for (auto c : communities_map) {
             if (community.first != c.first && c.second.find(j) != c.second.end()) {
-              if (!f) {
-                // Increment bridge vertices count
-                //
-                bv->second++;
-                f = true;
-
-                // Here we check if there is a path from community A -> B but not from
-                // B -> A. In this case, we also have to increment bridge vertices count
-                // of B community
-                //
-                if (graph_matrix.at(j, i) == utilz::constants::infinity<Index>()) {
-                  auto reverse_bv = communities_bv.find(c.first);
-                  reverse_bv->second++;
-                }
-              }
+              auto reverse_bv  = communities_bv.find(c.first);
+              auto reverse_bvi = communities_bvi.find(c.first);
               // Increment bridge edges count
               //
               be->second++;
@@ -296,6 +288,16 @@ analyse_communities_intersections(
               // Save the connecting edge (from `community` to `c`)
               //
               connections->second.push_back(std::make_pair(i, j));
+
+              // Save the output bridge vertex (for `community`)
+              //
+              bv->second.insert(i);
+              bvo->second.insert(i);
+
+              // Save the input bridge vertex (for `c`)
+              //
+              reverse_bv->second.insert(j);
+              reverse_bvi->second.insert(j);
 
               sanity_edges = true;
               break;
@@ -339,7 +341,7 @@ analyse_communities_intersections(
     communities_bv.end(),
     size_t(0),
     [](auto acc, auto it) -> size_t {
-      return acc + it.second;
+      return acc + it.second.size();
     });
 
   total_be = std::accumulate(
@@ -390,7 +392,7 @@ analyse_communities_intersections(
        << " "
        << std::setw(8) << std::setprecision(2) << std::fixed << communities_pet[community.first]
        << " "
-       << std::setw(8) << communities_bv[community.first]
+       << std::setw(8) << communities_bv[community.first].size()
        << " "
        << std::setw(8) << communities_be[community.first]
        << " "
@@ -408,7 +410,7 @@ analyse_communities_intersections(
     os << "[" << std::setw(4) << paths->first << "]: ";
 
     if (paths->second.empty())
-      os << "No outbound connections";
+      os << "No outbound paths";
     else {
       for (auto c : paths->second)
         os << c << " ";
@@ -418,11 +420,11 @@ analyse_communities_intersections(
   }
 
   os << "\n"
-     << "Connections between clusters (connection edges)\n"
+     << "Connections between clusters (edges)\n"
      << "\n";
 
   for (auto community : communities_map) {
-    auto connections = communities_cn.find(community.first);
+    auto connections = communities_connections.find(community.first);
 
     os << "[" << std::setw(4) << connections->first << "]: ";
 
@@ -437,7 +439,7 @@ analyse_communities_intersections(
   }
 
   os << "\n"
-     << "Clusters content\n"
+     << "Clusters vertices\n"
      << "\n";
 
   for (auto community : communities_map) {
@@ -455,6 +457,46 @@ analyse_communities_intersections(
         //
         os << range.first << "-" << range.second << " ";
       }
+    }
+
+    os << "\n";
+  }
+
+  os << "\n"
+     << "Clusters bridge vertices\n"
+     << "\n";
+
+  for (auto community : communities_map) {
+    auto bv  = communities_bv.find(community.first);
+    auto bvi = communities_bvi.find(community.first);
+    auto bvo = communities_bvo.find(community.first);
+
+    os << "[" << std::setw(4) << community.first << "]" << "\n";
+
+    os << "  All    : ";
+    if (bv->second.empty())
+      os << "No bridge vertices" << "\n";
+    else {
+      for (auto c : bv->second)
+        os << c << " ";
+    }
+    os << "\n";
+
+    os << "  Input  : ";
+    if (bvi->second.empty())
+      os << "No input bridge vertices" << "\n";
+    else {
+      for (auto c : bvi->second)
+        os << c << " ";
+    }
+    os << "\n";
+
+    os << "  Output : ";
+    if (bvo->second.empty())
+      os << "No output bridge vertices" << "\n";
+    else {
+      for (auto c : bvo->second)
+        os << c << " ";
     }
 
     os << "\n";
