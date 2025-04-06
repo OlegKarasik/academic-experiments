@@ -262,6 +262,8 @@ run(
   #pragma omp taskwait
 #endif
         auto indeces_min = indeces_in.size() < indeces_out.size() ? indeces_in : indeces_out;
+        if (indeces_min.size() == 0)
+          continue;
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
@@ -272,7 +274,7 @@ run(
                 auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, im, mj, indeces)
+  #pragma omp task untied default(none) shared(ij, im, mj, indeces_min)
 #endif
                 calculate_peripheral(ij, im, mj, indeces_min);
               }
