@@ -401,7 +401,7 @@ analyse_communities_intersections(
   }
 
   os << "\n"
-     << "Connections between clusters (paths)\n"
+     << "Connections between clusters (connections)\n"
      << "\n";
 
   for (auto community : communities_map) {
