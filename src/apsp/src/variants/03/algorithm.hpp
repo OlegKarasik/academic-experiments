@@ -60,7 +60,7 @@ up(
   run_config.mm_array_prv_col = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.mm_array_cur_col = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.mm_array_nxt_row = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb1 = reinterpret_cast<T*>(b.allocate(allocation_size));
+  run_config.ckb1  = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.ck1b1 = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.ckb1w = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.ckb3w = reinterpret_cast<T*>(b.allocate(allocation_size));

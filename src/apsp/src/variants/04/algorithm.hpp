@@ -38,8 +38,8 @@ calculate_block(
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto kj_size = kj.height();
-  const auto ij_w = ij.width();
-  const auto ij_h = ij.height();
+  const auto ij_w    = ij.width();
+  const auto ij_h    = ij.height();
 
   for (auto k = size_type(0); k < kj_size; ++k)
     for (auto i = size_type(0); i < ij_h; ++i)
