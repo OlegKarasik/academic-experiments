@@ -12,7 +12,7 @@
 
 #include "metal-cpp/Metal.hpp"
 
-template<typename T>
+template<typename T, typename A>
 struct run_configuration
 {
   MTL::Device*               device;
@@ -21,7 +21,8 @@ struct run_configuration
 };
 
 template<typename T, typename A>
-__hack_noinline void
+__hack_noinline
+void
 up(
   utilz::matrices::square_matrix<T, A>& m,
   utilz::memory::buffer& b,
@@ -57,7 +58,8 @@ up(
 };
 
 template<typename T, typename A>
-__hack_noinline void
+__hack_noinline
+void
 down(
   utilz::matrices::square_matrix<T, A>& m,
   utilz::memory::buffer& b,
@@ -69,7 +71,8 @@ down(
 }
 
 template<typename T, typename A>
-__hack_noinline void
+__hack_noinline
+void
 run(
   ::utilz::matrices::square_matrix<T, A>& m,
   run_configuration<T>& run_config)

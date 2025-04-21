@@ -49,10 +49,11 @@ calculate_block(
 };
 
 template<typename T, typename A, typename U>
-__hack_noinline void
+__hack_noinline
+void
 run(
-  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& blocks,
-  utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type>& clusters)
+  ::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>& blocks,
+  ::utilz::matrices::clusters<typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type>& clusters)
 {
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 

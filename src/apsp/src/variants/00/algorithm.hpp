@@ -7,8 +7,8 @@
 #include "matrix.hpp"
 
 template<typename T, typename A>
-
-__hack_noinline void
+__hack_noinline
+void
 run(
   ::utilz::matrices::square_matrix<T, A>& m)
 {
