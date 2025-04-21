@@ -19,19 +19,21 @@
 #include <thread>
 #include <cassert>
 
-template<typename T>
+template<typename T, typename A, typename U>
 struct stream_node
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::size_type;
+  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
 
   size_type rank;
   size_type processors_count;
+
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* blocks;
 };
 
-template<typename T>
+template<typename T, typename A, typename U>
 struct run_configuration
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::size_type;
+  using size_type = typename ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type;
 
   size_type tasks_count;
   size_type threads_count;
@@ -43,16 +45,64 @@ struct run_configuration
   PPKRCORE_SYNCBLOCK syncblocks;
   PKRCORE_SYNCBLOCK  delay;
 
-  stream_node<T>* nodes;
+  stream_node<T, A, U>* nodes;
 };
 
-template<typename T, typename A>
+template<typename T, typename A, typename U>
+void
+calculate_block(
+  ::utilz::matrices::square_matrix<T, A>& ij,
+  ::utilz::matrices::square_matrix<T, A>& ik,
+  ::utilz::matrices::square_matrix<T, A>& kj)
+{
+  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
+
+  const auto x = ij.size();
+  for (auto k = size_type(0); k < x; ++k)
+    for (auto i = size_type(0); i < x; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < x; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
+template<typename T, typename A, typename U>
+void
+calculate_block_auto(
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* matrix,
+  size_t                                                                   block_index,
+  size_t                                                                   i,
+  size_t                                                                   j)
+{
+  auto& ij = matrix->at(i, j);
+  if (block_index != i) {
+    if (block_index == j) {
+      auto& current = matrix->at(block_index, block_index);
+
+      calculate_block<T, A, U>(ij, ij, current);
+    } else {
+      auto& horizontal = matrix->at(i, block_index);
+      auto& vertical   = matrix->at(block_index, j);
+
+      calculate_block<T, A, U>(ij, horizontal, vertical);
+    };
+  } else if (block_index != j) {
+    auto& current = matrix->at(block_index, block_index);
+
+    calculate_block<T, A, U>(ij, current, ij);
+  } else {
+    calculate_block<T, A, U>(ij, ij, ij);
+  };
+};
+
+template<typename T, typename A, typename U>
 unsigned long
 calculation_routine(
   void* routine_state
 )
 {
-//   auto* p_kr_task_state = reinterpret_cast<kr_task_state*>(routine_state);
+  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
+
+  auto* node = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
 
 //   auto& kr_task_index        = *std::get<0>(*p_kr_task_state);
 //   auto& kr_stream_node_index = *std::get<1>(*p_kr_task_state);
@@ -65,59 +115,60 @@ calculation_routine(
 //   const size_t block_size  = kr_stream.m_block_size;
 //   const size_t block_count = kr_stream.m_block_count;
 
-//   const size_t processor_count = kr_stream_node.m_processors_count;
-//   const size_t processor       = kr_stream_node.m_processor;
-//   const size_t rank            = kr_stream_node.m_rank;
+  const size_t processor_count = node->processors_count;
+  const size_t rank            = node->rank;
 
-//   const size_t kr_top_task      = rank % processor_count;
-//   const size_t kr_bottom_task   = block_count - (processor_count - kr_top_task);
-//   const size_t kr_previous_task = rank - processor_count;
-//   const size_t kr_next_task     = rank + processor_count;
+  auto* blocks = node->blocks;
 
-//   const bool move_top    = rank != kr_top_task;
-//   const bool move_bottom = rank != kr_bottom_task;
+  const size_t kr_top_task      = rank % processor_count;
+  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
+  const size_t kr_previous_task = rank - processor_count;
+  const size_t kr_next_task     = rank + processor_count;
 
-//   size_t kr_src_task = kr_top_task;
+  // const bool move_top    = rank != kr_top_task;
+  // const bool move_bottom = rank != kr_bottom_task;
 
-//   bool is_leader     = false;
-//   bool is_follower   = rank < processor_count;
-//   bool is_normalized = false;
+  // size_t kr_src_task = kr_top_task;
 
-//   for (size_t j = 0ULL; j < block_count; ++j) {
-//     if (rank <= j) {
-//       for (size_t block_index = 0ULL; block_index < rank; ++block_index) {
+  bool is_leader     = false;
+  bool is_follower   = rank < processor_count;
+  bool is_normalized = false;
+
+  for (auto j = size_type(0); j < blocks->size(); ++j) {
+    if (rank <= j) {
+      for (auto block_index = size_type(0); block_index < rank; ++block_index) {
 //         __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, j);
 
-//         calculate_block_auto(block_matrix, block_index, rank, j);
-//       };
-//       calculate_block_auto(block_matrix, rank, rank, j);
+        calculate_block_auto(blocks, block_index, rank, j);
+      };
+      calculate_block_auto(blocks, rank, rank, j);
 
 //       __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, j);
-//     } else {
-//       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
+    } else {
+      for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
 //         __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, j);
 
-//         calculate_block_auto(block_matrix, block_index, rank, j);
-//       };
-//     };
-//     if (!is_leader) {
-//       if (rank == j) {
-//         for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-//           calculate_block_auto(block_matrix, rank, rank, reverse_j);
+        calculate_block_auto(blocks, block_index, rank, j);
+      };
+    };
+    if (!is_leader) {
+      if (rank == j) {
+        for (auto reverse_j = size_type(0); reverse_j < j; ++reverse_j) {
+          calculate_block_auto(blocks, rank, rank, reverse_j);
 
 //           __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, reverse_j);
-//         };
+        };
 
-//         for (size_t forward_j = j + 1ULL; forward_j < block_count; ++forward_j) {
-//           for (size_t block_index = 0ULL; block_index < rank; ++block_index) {
+        for (auto forward_j = j + size_type(1); forward_j < blocks->size(); ++forward_j) {
+          for (auto block_index = size_type(0); block_index < rank; ++block_index) {
 //             __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, forward_j);
 
-//             calculate_block_auto(block_matrix, block_index, rank, forward_j);
-//           };
-//           calculate_block_auto(block_matrix, rank, rank, forward_j);
+            calculate_block_auto(blocks, block_index, rank, forward_j);
+          };
+          calculate_block_auto(blocks, rank, rank, forward_j);
 
 //           __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, forward_j);
-//         };
+        };
 
 //         if (move_top)
 //           __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
@@ -127,8 +178,8 @@ calculation_routine(
 
 //         is_leader = true;
 //         break;
-//       } else {
-//         if (!is_follower) {
+      } else {
+        if (!is_follower) {
 //           if (move_bottom) {
 //             __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
 //           } else {
@@ -137,7 +188,7 @@ calculation_routine(
 //             if (j == kr_src_task)
 //               kr_src_task += processor_count;
 //           };
-//           is_follower = is_follower || (j == kr_previous_task);
+          is_follower = is_follower || (j == kr_previous_task);
 //           if (is_follower && !is_normalized) {
 //             for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
 //               for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
@@ -146,7 +197,7 @@ calculation_routine(
 //             };
 //             is_normalized = true;
 //           };
-//         } else {
+        } else {
 //           if (move_top)
 //             __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
 
@@ -159,9 +210,9 @@ calculation_routine(
 //             calculate_block_auto(block_matrix, j, rank, reverse_j);
 //           };
 //         };
-//       };
-//     };
-//   };
+      };
+    };
+  };
 
 //   is_leader   = false;
 //   is_follower = false;
@@ -236,18 +287,20 @@ calculation_routine(
 //   if (rank == kr_bottom_task) {
 //     for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
 //       KRASSERT(::KrCoreTaskContinue(kr_task_index[i]));
-//   };
+  };
+
   return 0UL;
 };
 
 template<typename T, typename A, typename U>
-__hack_noinline void
+__hack_noinline
+void
 up(
-  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks,
-  utilz::memory::buffer& b,
-  run_configuration<T>& run_config)
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  ::utilz::memory::buffer& b,
+  run_configuration<T, A, U>& run_config)
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 
   // Set parameters
   //
@@ -260,15 +313,14 @@ up(
   run_config.tasks      = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
   run_config.threads    = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * run_config.threads_count));
   run_config.syncblocks = reinterpret_cast<PPKRCORE_SYNCBLOCK>(b.allocate(sizeof(PKRCORE_SYNCBLOCK) * run_config.syncblock_count));
-  run_config.nodes      = reinterpret_cast<stream_node<T>*>(b.allocate(sizeof(stream_node<T>) * run_config.tasks_count));
+  run_config.nodes      = reinterpret_cast<stream_node<T, A, U>*>(b.allocate(sizeof(stream_node<T, A, U>) * run_config.tasks_count));
 
   // Prepare runtime configuration
   //
   for (auto i = size_type(0); i < blocks.size(); ++i) {
-    run_config.nodes[i] = {
-      .rank = i,
-      .processors_count = std::thread::hardware_concurrency()
-    };
+    run_config.nodes[i].rank = i;
+    run_config.nodes[i].processors_count = std::thread::hardware_concurrency();
+    run_config.nodes[i].blocks = &blocks;
   }
 
   // Initialise Core
@@ -331,7 +383,7 @@ up(
     TaskInitData.Binding.LogicalProcessors.Group = 0;
     TaskInitData.Binding.LogicalProcessors.Mask  = 1ULL << (i % run_config.threads_count);
     TaskInitData.TaskRoutineState = &run_config.nodes[i];
-    TaskInitData.TaskRoutine = calculation_routine<T, A>;
+    TaskInitData.TaskRoutine = calculation_routine<T, A, U>;
 
     run_config.tasks[i] = ::KrCoreInitializeTask(run_config.core, &TaskInitData);
 
@@ -340,13 +392,14 @@ up(
 };
 
 template<typename T, typename A, typename U>
-__hack_noinline void
+__hack_noinline
+void
 down(
-  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks,
-  utilz::memory::buffer& b,
-  run_configuration<T>& run_config)
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  ::utilz::memory::buffer& b,
+  run_configuration<T, A, U>& run_config)
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 
   for (auto i = size_type(0); i < run_config.tasks_count; ++i)
     assert(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]) == TRUE);
@@ -400,59 +453,12 @@ down(
 //   KRASSERT(::KrCoreTaskCurrentSwitchToTask(task));
 // };
 
-template<typename T, typename A>
-void
-calculate_block(
-  utilz::matrices::square_matrix<T, A>& ij,
-  utilz::matrices::square_matrix<T, A>& ik,
-  utilz::matrices::square_matrix<T, A>& kj)
-{
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::size_type;
-
-  const auto x = ij.size();
-  for (auto k = size_type(0); k < x; ++k)
-    for (auto i = size_type(0); i < x; ++i)
-      __hack_ivdep
-      for (auto j = size_type(0); j < x; ++j)
-        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
-};
-
-template<typename T, typename A>
-void
-calculate_block_auto(
-  ::utilz::matrices::square_matrix<T, A>& matrix,
-  size_t                                  block_index,
-  size_t                                  i,
-  size_t                                  j)
-{
-  auto& ij = matrix.at(i, j);
-  if (block_index != i) {
-    if (block_index == j) {
-      auto& current = matrix.at(block_index, block_index);
-
-      calculate_block(ij, ij, current);
-    } else {
-      auto& horizontal = matrix.at(i, block_index);
-      auto& vertical   = matrix.at(block_index, j);
-
-      calculate_block(ij, horizontal, vertical);
-    };
-  } else if (block_index != j) {
-    auto& current = matrix.at(block_index, block_index);
-
-    calculate_block(ij, current, ij);
-  } else {
-    calculate_block(ij, ij, ij);
-  };
-};
-
-
-
 template<typename T, typename A, typename U>
-__hack_noinline void
+__hack_noinline
+void
 run(
-  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks,
-  run_configuration<T>& run_config)
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  run_configuration<T, A, U>& run_config)
 {
   // Unblock all previously initialised Tasks
   //
@@ -461,47 +467,5 @@ run(
   // Wait them run to completion
   //
   for (auto i = 0; i < run_config.tasks_count; ++i)
-    ::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE);
-
-  // using kr_task_state = std::tuple<std::vector<PKRCORE_TASK>*, std::vector<fw_stream_node>*, fw_stream_node*>;
-
-  // std::vector<std::string> error_messages;
-
-  // std::vector<PKRCORE_TASK>  kr_task_index(stream_nodes.size());
-  // std::vector<kr_task_state> kr_task_state_object(stream_nodes.size());
-  // for (size_t i = 0ULL; i < kr_task_state_object.size(); ++i)
-  //   kr_task_state_object[i] = std::make_tuple(&kr_task_index, &stream_nodes, &stream_nodes[i]);
-
-  /// This is an execution of the item
-  ///
-  // if (error_messages.empty()) {
-  //   std::for_each(kr_task_index.rbegin(), kr_task_index.rend(), [&error_messages](PKRCORE_TASK p_kr_task) -> void {
-  //     if (!::KrCoreTaskSubmit(p_kr_task))
-  //       error_messages.push_back("cannot submit kernel task -> " + std::to_string(::GetLastError()));
-  //   });
-
-  //   if (error_messages.empty()) {
-  //     std::for_each(kr_task_index.rbegin(), kr_task_index.rend(), [](PKRCORE_TASK p_kr_task) -> void {
-  //       ::WaitForSingleObject(p_kr_task->SYSTEM.hHandle, INFINITE);
-  //     });
-
-  //     std::for_each(kr_task_index.rbegin(), kr_task_index.rend(), [&error_messages](PKRCORE_TASK p_kr_task) -> void {
-  //       if (!::KrManagerTaskDeinitialize(p_kr_task))
-  //         error_messages.push_back("cannot deinitialize kernel task -> " + std::to_string(::GetLastError()));
-  //     });
-  //   };
-  // };
-
-  // This is a deinitialization
-  //
-  // if (!::KrManagerDeinitialize())
-  //   throw std::runtime_error("cannot shutdown kernel -> " + std::to_string(::GetLastError()));
-
-  // if (!error_messages.empty()) {
-  //   std::stringstream errors;
-  //   std::for_each(error_messages.begin(), error_messages.end(), [&errors](std::string& error_message) -> void {
-  //     errors << error_message << std::endl;
-  //   });
-  //   throw std::runtime_error(errors.str());
-  // };
+    assert(::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE) == WAIT_OBJECT_0);
 };

@@ -18,6 +18,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
+#include "memory.hpp"
 
 // local includes
 //
@@ -29,35 +30,51 @@ class Fixture : public ::testing::Test
 public:
 // aliasing
 //
+using g_calculation_type = T;
+
+template<typename K>
+using g_allocator_type = typename ::utilz::memory::buffer_allocator<K>;
+
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-  using buffer = utilz::memory::buffer_dyn;
+  using buffer = ::utilz::memory::buffer_dyn;
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-  using source_matrix = utilz::matrices::square_matrix<utilz::matrices::square_matrix<T>>;
+  using source_matrix_block = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+  using source_matrix       = ::utilz::matrices::square_matrix<source_matrix_block, g_allocator_type<source_matrix_block>>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<source_matrix_block>>;
+#endif
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  using source_matrix = utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T>>;
+  using source_matrix_block    = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+  using source_matrix          = ::utilz::matrices::square_matrix<source_matrix_block, g_allocator_type<source_matrix_block>>;
+  using source_clusters        = ::utilz::matrices::clusters<typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<source_matrix_block>>;
+#endif
 #endif
 
 #ifdef APSP_ALG_MATRIX
-  using source_matrix = utilz::matrices::square_matrix<T>;
+  using source_matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
+#endif
 #endif
 
-  using size_type = typename utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
+  using size_type = typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
 
-#ifdef APSP_ALG_MATRIX_CLUSTERS
-  using source_clusters = utilz::matrices::clusters<size_type>;
-#endif
+  using source_matrix_get_at         = ::utilz::matrices::procedures::matrix_at<source_matrix>;
+  using source_matrix_get_dimensions = ::utilz::matrices::procedures::matrix_get_dimensions<source_matrix>;
+  using source_matrix_rearrange      = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
 
-  using source_matrix_get_at         = utilz::matrices::procedures::matrix_at<source_matrix>;
-  using source_matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<source_matrix>;
-  using source_matrix_rearrange      = utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
-
-  using result_matrix                = utilz::matrices::square_matrix<T>;
-  using result_matrix_get_at         = utilz::matrices::procedures::matrix_at<result_matrix>;
-  using result_matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<result_matrix>;
+  using result_matrix                = ::utilz::matrices::square_matrix<T>;
+  using result_matrix_get_at         = ::utilz::matrices::procedures::matrix_at<result_matrix>;
+  using result_matrix_get_dimensions = ::utilz::matrices::procedures::matrix_get_dimensions<result_matrix>;
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -88,10 +105,10 @@ public:
 #endif
 
   {
-    utilz::graphs::io::graph_format graph_format = utilz::graphs::io::graph_format::graph_fmt_weightlist;
+    ::utilz::graphs::io::graph_format graph_format = ::utilz::graphs::io::graph_format::graph_fmt_weightlist;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-    utilz::communities::io::communities_format communities_format = utilz::communities::io::communities_format::communities_fmt_rlang;
+    ::utilz::communities::io::communities_format communities_format = ::utilz::communities::io::communities_format::communities_fmt_rlang;
 #endif
 
     std::filesystem::path root_path = workspace::root();
@@ -128,10 +145,10 @@ public:
 #endif
 
 #ifdef APSP_ALG_MATRIX
-    utilz::matrices::io::scan_matrix(graph_format, src_fs, this->m_src);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, this->m_src);
 #endif
 
-    utilz::matrices::io::scan_matrix(graph_format, res_fs, this->m_res);
+    ::utilz::matrices::io::scan_matrix(graph_format, res_fs, this->m_res);
   };
   ~Fixture(){};
 
@@ -148,12 +165,12 @@ public:
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     source_matrix_rearrange src_rearrange;
 
-    src_rearrange(this->m_src, this->m_src_clusters, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-    run_configuration<T> run_config;
+    extra_configuration run_config;
     up(this->m_src, this->m_buf, run_config);
 #endif
 
@@ -177,7 +194,7 @@ public:
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    src_rearrange(this->m_src, this->m_src_clusters, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+    src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 

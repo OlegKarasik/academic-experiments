@@ -55,30 +55,42 @@
 using g_calculation_type = int;
 
 template<typename T>
-using g_allocator_type = typename utilz::memory::buffer_allocator<T>;
+using g_allocator_type = typename ::utilz::memory::buffer_allocator<T>;
 
 // aliasing
 //
 #ifdef APSP_ALG_MATRIX_BLOCKS
-using matrix_block = utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+using matrix_block = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix       = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
+#endif
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-using matrix_block    = utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix          = utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-using clusters        = utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<matrix>::size_type>;
+using matrix_block    = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix          = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+using clusters        = ::utilz::matrices::clusters<typename ::utilz::matrices::traits::matrix_traits<matrix>::size_type>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
+#endif
 #endif
 
 #ifdef APSP_ALG_MATRIX
-using matrix = utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+using matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
+#endif
 #endif
 
 int
 main(int argc, char* argv[]) __hack_noexcept
 {
-  utilz::graphs::io::graph_format opt_input_graph_format = utilz::graphs::io::graph_format::graph_fmt_none;
-  utilz::graphs::io::graph_format opt_output_format      = utilz::graphs::io::graph_format::graph_fmt_none;
+  ::utilz::graphs::io::graph_format opt_input_graph_format = ::utilz::graphs::io::graph_format::graph_fmt_none;
+  ::utilz::graphs::io::graph_format opt_output_format      = ::utilz::graphs::io::graph_format::graph_fmt_none;
 
   bool   opt_pages     = false;
   size_t opt_reserve   = size_t(0);
@@ -120,10 +132,10 @@ main(int argc, char* argv[]) __hack_noexcept
         std::cerr << "erro: unexpected '-g' option detected" << '\n';
         return 1;
       case 'G':
-        if (opt_input_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_input_graph_format == ::utilz::graphs::io::graph_format::graph_fmt_none) {
           std::cerr << "-G: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
+          if (!::utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
             return 1;
           }
@@ -142,10 +154,10 @@ main(int argc, char* argv[]) __hack_noexcept
         std::cerr << "erro: unexpected '-c' option detected" << '\n';
         return 1;
       case 'C':
-        if (opt_input_clusters_format == utilz::communities::io::communities_format::communities_fmt_none) {
+        if (opt_input_clusters_format == ::utilz::communities::io::communities_format::communities_fmt_none) {
           std::cerr << "-C: " << optarg << "\n";
 
-          if (!utilz::communities::io::parse_communities_format(optarg, opt_input_clusters_format)) {
+          if (!::utilz::communities::io::parse_communities_format(optarg, opt_input_clusters_format)) {
             std::cerr << "erro: invalid communities format has been detected in '-C' option" << '\n';
             return 1;
           }
@@ -164,10 +176,10 @@ main(int argc, char* argv[]) __hack_noexcept
         std::cerr << "erro: unexpected '-o' option detected" << '\n';
         return 1;
       case 'O':
-        if (opt_output_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_output_format == ::utilz::graphs::io::graph_format::graph_fmt_none) {
           std::cerr << "-O: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_output_format)) {
+          if (!::utilz::graphs::io::parse_graph_format(optarg, opt_output_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-O' option" << '\n';
             return 1;
           }
@@ -232,11 +244,11 @@ main(int argc, char* argv[]) __hack_noexcept
         return 1;
     }
   }
-  if (opt_input_graph_format == utilz::graphs::io::graph_fmt_none) {
+  if (opt_input_graph_format == ::utilz::graphs::io::graph_fmt_none) {
     std::cerr << "erro: the -G parameter is required";
     return 1;
   }
-  if (opt_output_format == utilz::graphs::io::graph_fmt_none) {
+  if (opt_output_format == ::utilz::graphs::io::graph_fmt_none) {
     std::cerr << "erro: the -O parameter is required";
     return 1;
   }
@@ -286,16 +298,13 @@ main(int argc, char* argv[]) __hack_noexcept
     // Initialize large pages support from application side
     // this might require different actions in different operating systems
     //
-    utilz::memory::__largepages_init();
+    ::utilz::memory::__largepages_init();
 
     memory = std::shared_ptr<char>(
-      reinterpret_cast<char*>(utilz::memory::__largepages_malloc(opt_reserve)),
-      utilz::memory::__largepages_free);
-
+      reinterpret_cast<char*>(::utilz::memory::__largepages_malloc(opt_reserve)), ::utilz::memory::__largepages_free);
   } else {
     memory = std::shared_ptr<char>(
-      reinterpret_cast<char*>(::malloc(opt_reserve)),
-      free);
+      reinterpret_cast<char*>(::malloc(opt_reserve)), free);
   }
 
   if (memory == nullptr) {
@@ -305,17 +314,17 @@ main(int argc, char* argv[]) __hack_noexcept
 
   ::memset(memory.get(), 0, opt_reserve);
 
-  utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
-  utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
+  ::utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
+  ::utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
 
   // Define matrix and execute algorithm specific overloads of methods
   //
   matrix m(buffer_allocator);
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-  auto scan_ms = utilz::measure_milliseconds(
+  auto scan_ms = ::utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
-      utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m, opt_block_size);
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m, opt_block_size);
     });
 #endif
 
@@ -324,16 +333,16 @@ main(int argc, char* argv[]) __hack_noexcept
   //
   clusters c;
 
-  auto scan_ms = utilz::measure_milliseconds(
+  auto scan_ms = ::utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
-      utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, m, c);
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, m, c);
     });
 #endif
 
 #ifdef APSP_ALG_MATRIX
-  auto scan_ms = utilz::measure_milliseconds(
+  auto scan_ms = ::utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format]() -> void {
-      utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m);
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m);
     });
 #endif
 
@@ -341,9 +350,9 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  utilz::matrices::procedures::matrix_arrange_clusters<matrix> arrange_matrix;
+  ::utilz::matrices::procedures::matrix_arrange_clusters<matrix> arrange_matrix;
 
-  arrange_matrix(m, c, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+  arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -354,8 +363,8 @@ main(int argc, char* argv[]) __hack_noexcept
   // It is important to keep in mind that up acts on memory buffer after the
   // matrix has been allocated.
   //
-  run_configuration<g_calculation_type> run_config;
-  auto up_ms = utilz::measure_milliseconds([&run_config, &m, &buffer_fx]() -> void { up(m, buffer_fx, run_config); });
+  extra_configuration run_config;
+  auto up_ms = ::utilz::measure_milliseconds([&run_config, &m, &buffer_fx]() -> void { up(m, buffer_fx, run_config); });
 
   std::cerr << ">>>>: " << up_ms << "ms" << std::endl;
 #endif
@@ -411,12 +420,12 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  arrange_matrix(m, c, utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+  arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 
-  auto prnt_ms = utilz::measure_milliseconds([&m, &output_stream, opt_output_format]() -> void {
-    utilz::matrices::io::print_matrix(opt_output_format, output_stream, m);
+  auto prnt_ms = ::utilz::measure_milliseconds([&m, &output_stream, opt_output_format]() -> void {
+    ::utilz::matrices::io::print_matrix(opt_output_format, output_stream, m);
   });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 }
