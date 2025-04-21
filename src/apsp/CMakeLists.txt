@@ -67,7 +67,7 @@ endif()
 if (WIN32)
   cmake_host_system_information(
     RESULT CMAKE_KERNEL_ROOT_PATH
-    QUERY WINDOWS_REGISTRY "HKLM\\SOFTWARE\\Oleg Karasik\\AK-Kernel\\1.30.0"
+    QUERY WINDOWS_REGISTRY "HKLM\\SOFTWARE\\Oleg Karasik\\AK-Kernel\\1.31.0"
     VALUE "InstallPath")
 
   find_path(KERNEL_INCLUDE_DIRS Kernel{Core}.h
@@ -248,18 +248,26 @@ if (ITT_FOUND)
   endif()
 
   if (WIN32 AND KERNEL_FOUND AND VS_FOUND)
-    list(APPEND itt_kernel_targets "05-kernel-itt")
+    # Include all Kernel targets from kernel_targets into -itt targets
+    #
+    list(LENGTH kernel_targets _init_kernel_itt_targets_length)
+    math(EXPR init_kernel_itt_targets_length "${_init_kernel_itt_targets_length}-1")
+    foreach(index RANGE ${init_kernel_itt_targets_length})
+      list(GET kernel_targets ${index} t_name)
+
+      list(APPEND itt_kernel_targets "${t_name}-itt")
+    endforeach()
   endif()
 
   if (OpenMP_CXX_FOUND)
-    # Include all OpenMP targets from targets_names into -itt targets
+    # Include all OpenMP targets from omp_targets into -itt targets
     #
     list(LENGTH omp_targets _init_omp_itt_targets_length)
     math(EXPR init_omp_itt_targets_length "${_init_omp_itt_targets_length}-1")
     foreach(index RANGE ${init_omp_itt_targets_length})
       list(GET omp_targets ${index} t_name)
 
-      list(APPEND itt_omp_targets "${t_name}-omp-itt")
+      list(APPEND itt_omp_targets "${t_name}-itt")
     endforeach()
   endif()
 
@@ -275,12 +283,15 @@ if (ITT_FOUND)
 
   if (itt_omp_targets)
     list(APPEND itt_targets "${itt_omp_targets}")
+    list(APPEND omp_targets "${itt_omp_targets}")
   endif()
   if (itt_kernel_targets)
     list(APPEND itt_targets "${itt_kernel_targets}")
+    list(APPEND kernel_targets "${itt_kernel_targets}")
   endif()
   if (itt_metal_targets)
     list(APPEND itt_targets "${itt_metal_targets}")
+    list(APPEND targets_names "${itt_metal_targets}")
   endif()
 endif()
 
@@ -292,9 +303,6 @@ if (kernel_targets)
 endif()
 if (metal_targets)
   list(APPEND targets_names "${metal_targets}")
-endif()
-if (itt_targets)
-  list(APPEND targets_names "${itt_targets}")
 endif()
 
 add_custom_target(tests)
