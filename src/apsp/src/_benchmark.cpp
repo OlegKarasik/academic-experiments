@@ -59,7 +59,7 @@ public:
 using g_calculation_type = T;
 
 template<typename K>
-using g_allocator_type = typename ::utilz::memory::buffer_allocator<K>;
+using g_allocator_type = typename std::allocator<K>;
 
 // aliasing
 //

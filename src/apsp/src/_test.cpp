@@ -33,7 +33,7 @@ public:
 using g_calculation_type = T;
 
 template<typename K>
-using g_allocator_type = typename ::utilz::memory::buffer_allocator<K>;
+using g_allocator_type = typename std::allocator<K>;
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
   using buffer = ::utilz::memory::buffer_dyn;
@@ -54,12 +54,12 @@ using g_allocator_type = typename ::utilz::memory::buffer_allocator<K>;
   using source_clusters        = ::utilz::matrices::clusters<typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type>;
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<source_matrix_block>>;
+  using extra_configuration    = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<source_matrix_block>>;
 #endif
 #endif
 
 #ifdef APSP_ALG_MATRIX
-  using source_matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+  using source_matrix       = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
   using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
