@@ -28,12 +28,19 @@ struct stream_node
   size_type processors_count;
 
   ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* blocks;
+  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights;
+
+  PPKRCORE_TASK      tasks;
+  size_type syncblock_count;
+  PPKRCORE_SYNCBLOCK syncblocks;
 };
 
 template<typename T, typename A, typename U>
 struct run_configuration
 {
   using size_type = typename ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type;
+
+  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>> heights;
 
   size_type tasks_count;
   size_type threads_count;
@@ -46,6 +53,41 @@ struct run_configuration
   PKRCORE_SYNCBLOCK  delay;
 
   stream_node<T, A, U>* nodes;
+};
+
+
+void
+wait_block(
+  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
+  size_t syncblocks_count,
+  PPKRCORE_SYNCBLOCK syncblocks,
+  size_t rank,
+  size_t block_index,
+  size_t row,
+  size_t col)
+{
+  PKRCORE_SYNCBLOCK s = syncblocks[(row + col) % syncblocks_count];
+
+  short v = static_cast<short>(block_index + 1ULL);
+
+  while (heights->at(row, col) < v)
+    KRASSERT(::KrCoreTaskCurrentSynchronize(s));
+};
+
+void
+notify_block(
+  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
+  size_t syncblocks_count,
+  PPKRCORE_SYNCBLOCK syncblocks,
+  size_t progress_value,
+  size_t row,
+  size_t col)
+{
+  PKRCORE_SYNCBLOCK s = syncblocks[(row + col) % syncblocks_count];
+
+  heights->at(row, col) = static_cast<short>(progress_value + 1ULL);
+
+  KRASSERT(::KrCoreSyncblockSignal(s));
 };
 
 template<typename T, typename A, typename U>
@@ -69,9 +111,9 @@ template<typename T, typename A, typename U>
 void
 calculate_block_auto(
   ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* matrix,
-  size_t                                                                   block_index,
-  size_t                                                                   i,
-  size_t                                                                   j)
+  size_t                                                                       block_index,
+  size_t                                                                       i,
+  size_t                                                                       j)
 {
   auto& ij = matrix->at(i, j);
   if (block_index != i) {
@@ -102,7 +144,8 @@ calculation_routine(
 {
   using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
 
-  auto* node = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
+  auto* node   = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
+  auto* tasks = node->tasks;
 
 //   auto& kr_task_index        = *std::get<0>(*p_kr_task_state);
 //   auto& kr_stream_node_index = *std::get<1>(*p_kr_task_state);
@@ -119,16 +162,17 @@ calculation_routine(
   const size_t rank            = node->rank;
 
   auto* blocks = node->blocks;
+  auto* heights = node->heights;
 
   const size_t kr_top_task      = rank % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
   const size_t kr_previous_task = rank - processor_count;
   const size_t kr_next_task     = rank + processor_count;
 
-  // const bool move_top    = rank != kr_top_task;
-  // const bool move_bottom = rank != kr_bottom_task;
+  const bool move_top    = rank != kr_top_task;
+  const bool move_bottom = rank != kr_bottom_task;
 
-  // size_t kr_src_task = kr_top_task;
+  size_t kr_src_task = kr_top_task;
 
   bool is_leader     = false;
   bool is_follower   = rank < processor_count;
@@ -137,16 +181,16 @@ calculation_routine(
   for (auto j = size_type(0); j < blocks->size(); ++j) {
     if (rank <= j) {
       for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-//         __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, j);
+        wait_block(heights, node->syncblock_count, node->syncblocks, rank, block_index, block_index, j);
 
         calculate_block_auto(blocks, block_index, rank, j);
       };
       calculate_block_auto(blocks, rank, rank, j);
 
-//       __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, j);
+      notify_block(heights, node->syncblock_count, node->syncblocks, rank, rank, j);
     } else {
       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-//         __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, j);
+        wait_block(heights, node->syncblock_count, node->syncblocks, rank, block_index, block_index, j);
 
         calculate_block_auto(blocks, block_index, rank, j);
       };
@@ -156,137 +200,137 @@ calculation_routine(
         for (auto reverse_j = size_type(0); reverse_j < j; ++reverse_j) {
           calculate_block_auto(blocks, rank, rank, reverse_j);
 
-//           __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, reverse_j);
+          notify_block(heights, node->syncblock_count, node->syncblocks, rank, rank, reverse_j);
         };
 
         for (auto forward_j = j + size_type(1); forward_j < blocks->size(); ++forward_j) {
           for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-//             __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, forward_j);
+            wait_block(heights, node->syncblock_count, node->syncblocks, rank, block_index, block_index, forward_j);
 
             calculate_block_auto(blocks, block_index, rank, forward_j);
           };
           calculate_block_auto(blocks, rank, rank, forward_j);
 
-//           __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, forward_j);
+          notify_block(heights, node->syncblock_count, node->syncblocks, rank, rank, forward_j);
         };
 
-//         if (move_top)
-//           __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+        if (move_top)
+          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
-//         if (move_bottom)
-//           __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+        if (move_bottom)
+          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
-//         is_leader = true;
-//         break;
+        is_leader = true;
+        break;
       } else {
         if (!is_follower) {
-//           if (move_bottom) {
-//             __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
-//           } else {
-//             __fw_ak_kernel_switch(kr_task_index[kr_src_task]);
+          if (move_bottom) {
+            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+          } else {
+            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_src_task]));
 
-//             if (j == kr_src_task)
-//               kr_src_task += processor_count;
-//           };
+            if (j == kr_src_task)
+              kr_src_task += processor_count;
+          };
           is_follower = is_follower || (j == kr_previous_task);
-//           if (is_follower && !is_normalized) {
-//             for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-//               for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
-//                 calculate_block_auto(block_matrix, block_index, rank, reverse_j);
-//               };
-//             };
-//             is_normalized = true;
-//           };
+          if (is_follower && !is_normalized) {
+            for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
+              for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
+                calculate_block_auto(blocks, block_index, rank, reverse_j);
+              };
+            };
+            is_normalized = true;
+          };
         } else {
-//           if (move_top)
-//             __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+          if (move_top)
+            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
-//           if (move_bottom)
-//             __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+          if (move_bottom)
+            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
-//           for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-//             __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, j, j, reverse_j);
+          for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
+            wait_block(heights, node->syncblock_count, node->syncblocks, rank, j, j, reverse_j);
 
-//             calculate_block_auto(block_matrix, j, rank, reverse_j);
-//           };
-//         };
+            calculate_block_auto(blocks, j, rank, reverse_j);
+          };
+        };
       };
     };
   };
 
-//   is_leader   = false;
-//   is_follower = false;
-//   if (move_bottom) {
-//     __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+  is_leader   = false;
+  is_follower = false;
+  if (move_bottom) {
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
-//     for (size_t j = (rank + 1ULL); j <= kr_bottom_task; ++j) {
-//       for (size_t block_index = (rank + 1ULL); block_index <= j; ++block_index) {
-//         calculate_block_auto(block_matrix, block_index, rank, j);
-//       };
+    for (size_t j = (rank + 1ULL); j <= kr_bottom_task; ++j) {
+      for (size_t block_index = (rank + 1ULL); block_index <= j; ++block_index) {
+        calculate_block_auto(blocks, block_index, rank, j);
+      };
 
-//       __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
-//     };
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+    };
 
-//     for (size_t reverse_j = 0ULL; reverse_j <= rank; ++reverse_j) {
-//       for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-//         calculate_block_auto(block_matrix, block_index, rank, reverse_j);
-//       };
-//     };
-//     for (size_t reverse_j = (rank + 1ULL); reverse_j < kr_bottom_task; ++reverse_j) {
-//       for (size_t block_index = (reverse_j + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-//         calculate_block_auto(block_matrix, block_index, rank, reverse_j);
-//       };
-//     };
-//     for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < block_count; ++reverse_j) {
-//       for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-//         calculate_block_auto(block_matrix, block_index, rank, reverse_j);
-//       };
-//     };
+    for (size_t reverse_j = 0ULL; reverse_j <= rank; ++reverse_j) {
+      for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
+        calculate_block_auto(blocks, block_index, rank, reverse_j);
+      };
+    };
+    for (size_t reverse_j = (rank + 1ULL); reverse_j < kr_bottom_task; ++reverse_j) {
+      for (size_t block_index = (reverse_j + 1ULL); block_index <= kr_bottom_task; ++block_index) {
+        calculate_block_auto(blocks, block_index, rank, reverse_j);
+      };
+    };
+    for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
+      for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
+        calculate_block_auto(blocks, block_index, rank, reverse_j);
+      };
+    };
 
-//     __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
-//     for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < block_count; ++reverse_j) {
-//       calculate_block_auto(block_matrix, reverse_j, rank, reverse_j);
+    for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
+      calculate_block_auto(blocks, reverse_j, rank, reverse_j);
 
-//       __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
-//       for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-//         calculate_block_auto(block_matrix, reverse_j, rank, inner_j);
-//       };
-//       for (size_t inner_j = (reverse_j + 1ULL); inner_j < block_count; ++inner_j) {
-//         calculate_block_auto(block_matrix, reverse_j, rank, inner_j);
-//       };
+      for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
+        calculate_block_auto(blocks, reverse_j, rank, inner_j);
+      };
+      for (size_t inner_j = (reverse_j + 1ULL); inner_j < blocks->size(); ++inner_j) {
+        calculate_block_auto(blocks, reverse_j, rank, inner_j);
+      };
 
-//       __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
-//     };
-//   } else {
-//     __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+    };
+  } else {
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
-//     for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < block_count; ++reverse_j) {
-//       __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, reverse_j, reverse_j, reverse_j);
+    for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
+      wait_block(heights, node->syncblock_count, node->syncblocks, rank, reverse_j, reverse_j, reverse_j);
 
-//       calculate_block_auto(block_matrix, reverse_j, rank, reverse_j);
+      calculate_block_auto(blocks, reverse_j, rank, reverse_j);
 
-//       __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
-//       for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-//         __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, reverse_j, reverse_j, inner_j);
+      for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
+        wait_block(heights, node->syncblock_count, node->syncblocks, rank, reverse_j, reverse_j, inner_j);
 
-//         calculate_block_auto(block_matrix, reverse_j, rank, inner_j);
-//       };
-//       for (size_t inner_j = (reverse_j + 1ULL); inner_j < block_count; ++inner_j) {
-//         __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, reverse_j, reverse_j, inner_j);
+        calculate_block_auto(blocks, reverse_j, rank, inner_j);
+      };
+      for (size_t inner_j = (reverse_j + 1ULL); inner_j < blocks->size(); ++inner_j) {
+        wait_block(heights, node->syncblock_count, node->syncblocks, rank, reverse_j, reverse_j, inner_j);
 
-//         calculate_block_auto(block_matrix, reverse_j, rank, inner_j);
-//       };
+        calculate_block_auto(blocks, reverse_j, rank, inner_j);
+      };
 
-//       __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
-//     };
-//   };
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+    };
+  };
 
-//   if (rank == kr_bottom_task) {
-//     for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
-//       KRASSERT(::KrCoreTaskContinue(kr_task_index[i]));
+  if (rank == kr_bottom_task) {
+    for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
+      KRASSERT(::KrCoreTaskContinue(tasks[i]));
   };
 
   return 0UL;
@@ -308,6 +352,11 @@ up(
   run_config.threads_count   = size_type(std::thread::hardware_concurrency());
   run_config.syncblock_count = size_type(1000);
 
+  // Initialise "Heights" matrix
+  //
+  run_config.heights = ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>(
+    run_config.tasks_count, ::utilz::memory::buffer_allocator<short>(&b));
+
   // Allocate space
   //
   run_config.tasks      = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
@@ -320,7 +369,12 @@ up(
   for (auto i = size_type(0); i < blocks.size(); ++i) {
     run_config.nodes[i].rank = i;
     run_config.nodes[i].processors_count = std::thread::hardware_concurrency();
+    run_config.nodes[i].tasks = run_config.tasks;
+    run_config.nodes[i].syncblock_count = run_config.syncblock_count;
+    run_config.nodes[i].syncblocks = run_config.syncblocks;
+
     run_config.nodes[i].blocks = &blocks;
+    run_config.nodes[i].heights = &run_config.heights;
   }
 
   // Initialise Core
@@ -402,56 +456,16 @@ down(
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 
   for (auto i = size_type(0); i < run_config.tasks_count; ++i)
-    assert(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]) == TRUE);
+    KRASSERT(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]));
 
   for (auto i = size_type(0); i < run_config.threads_count; ++i)
-    assert(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]) == TRUE);
+    KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
 
   for (auto i = size_type(0); i < run_config.syncblock_count; ++i)
-    assert(::KrCoreDeinitializeSyncblock(run_config.core, run_config.syncblocks[i]) == TRUE);
+    KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.syncblocks[i]));
 
-  assert(::KrCoreDeinitialize(run_config.core) == TRUE);
+  KRASSERT(::KrCoreDeinitialize(run_config.core));
 }
-
-// void
-// __fw_ak_kernel_wait_block(
-//   size_t matrix_size,
-//   short* matrix_data,
-//   size_t rank,
-//   size_t block_index,
-//   size_t row,
-//   size_t col)
-// {
-//   PKRCORE_SYNCBLOCK s = GLOBAL_SYNCMATRIX[(row + col) % GLOBAL_SYNCMATRIX_COUNT];
-//   short*            v = &matrix_data[row * matrix_size + col];
-//   short             z = static_cast<short>(block_index + 1ULL);
-
-//   while (*v < z)
-//     KRASSERT(::KrCoreTaskCurrentSynchronize(s));
-// };
-
-// void
-// __fw_ak_kernel_notify_block(
-//   size_t matrix_size,
-//   short* matrix_data,
-//   size_t progress_value,
-//   size_t row,
-//   size_t col)
-// {
-//   PKRCORE_SYNCBLOCK s = GLOBAL_SYNCMATRIX[(row + col) % GLOBAL_SYNCMATRIX_COUNT];
-//   short*            v = &matrix_data[row * matrix_size + col];
-
-//   *v = static_cast<short>(progress_value + 1ULL);
-
-//   KRASSERT(::KrCoreSyncblockSignal(s));
-// };
-
-// void
-// __fw_ak_kernel_switch(
-//   PKRCORE_TASK task)
-// {
-//   KRASSERT(::KrCoreTaskCurrentSwitchToTask(task));
-// };
 
 template<typename T, typename A, typename U>
 __hack_noinline
@@ -462,10 +476,10 @@ run(
 {
   // Unblock all previously initialised Tasks
   //
-  assert(::KrCoreSyncblockSignal(run_config.delay) == TRUE);
+  KRASSERT(::KrCoreSyncblockSignal(run_config.delay));
 
   // Wait them run to completion
   //
   for (auto i = 0; i < run_config.tasks_count; ++i)
-    assert(::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE) == WAIT_OBJECT_0);
+    ::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE);
 };
