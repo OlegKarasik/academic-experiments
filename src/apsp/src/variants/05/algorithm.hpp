@@ -58,7 +58,6 @@ void
 wait_block(
   ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
   ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync,
-  size_t rank,
   size_t block_index,
   size_t row,
   size_t col)
@@ -167,7 +166,7 @@ calculation_routine(
   for (auto j = size_type(0); j < blocks->size(); ++j) {
     if (rank <= j) {
       for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-        wait_block(heights, heights_sync, rank, block_index, block_index, j);
+        wait_block(heights, heights_sync, block_index, block_index, j);
 
         calculate_block_auto(blocks, block_index, rank, j);
       };
@@ -176,7 +175,7 @@ calculation_routine(
       notify_block(heights, heights_sync, rank, rank, j);
     } else {
       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-        wait_block(heights, heights_sync, rank, block_index, block_index, j);
+        wait_block(heights, heights_sync, block_index, block_index, j);
 
         calculate_block_auto(blocks, block_index, rank, j);
       };
@@ -191,7 +190,7 @@ calculation_routine(
 
         for (auto forward_j = j + size_type(1); forward_j < blocks->size(); ++forward_j) {
           for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-            wait_block(heights, heights_sync, rank, block_index, block_index, forward_j);
+            wait_block(heights, heights_sync, block_index, block_index, forward_j);
 
             calculate_block_auto(blocks, block_index, rank, forward_j);
           };
@@ -235,7 +234,7 @@ calculation_routine(
             KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
           for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-            wait_block(heights, heights_sync, rank, j, j, reverse_j);
+            wait_block(heights, heights_sync, j, j, reverse_j);
 
             calculate_block_auto(blocks, j, rank, reverse_j);
           };
@@ -293,19 +292,19 @@ calculation_routine(
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
     for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
-      wait_block(heights, heights_sync, rank, reverse_j, reverse_j, reverse_j);
+      wait_block(heights, heights_sync, reverse_j, reverse_j, reverse_j);
 
       calculate_block_auto(blocks, reverse_j, rank, reverse_j);
 
       KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
       for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-        wait_block(heights, heights_sync, rank, reverse_j, reverse_j, inner_j);
+        wait_block(heights, heights_sync, reverse_j, reverse_j, inner_j);
 
         calculate_block_auto(blocks, reverse_j, rank, inner_j);
       };
       for (size_t inner_j = (reverse_j + 1ULL); inner_j < blocks->size(); ++inner_j) {
-        wait_block(heights, heights_sync, rank, reverse_j, reverse_j, inner_j);
+        wait_block(heights, heights_sync, reverse_j, reverse_j, inner_j);
 
         calculate_block_auto(blocks, reverse_j, rank, inner_j);
       };
