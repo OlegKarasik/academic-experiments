@@ -143,17 +143,6 @@ calculation_routine(
   auto* node   = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
   auto* tasks = node->tasks;
 
-//   auto& kr_task_index        = *std::get<0>(*p_kr_task_state);
-//   auto& kr_stream_node_index = *std::get<1>(*p_kr_task_state);
-//   auto& kr_stream_node       = *std::get<2>(*p_kr_task_state);
-//   auto& kr_stream            = *kr_stream_node.mp_stream;
-
-//   auto* block_matrix          = kr_stream.m_block_matrix.get_pointer();
-//   auto* block_progress_matrix = kr_stream.m_progress_matrix.get_pointer();
-
-//   const size_t block_size  = kr_stream.m_block_size;
-//   const size_t block_count = kr_stream.m_block_count;
-
   const size_t processor_count = node->processors_count;
   const size_t rank            = node->rank;
 
