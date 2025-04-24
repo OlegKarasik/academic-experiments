@@ -29,10 +29,9 @@ struct stream_node
 
   ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* blocks;
   ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights;
+  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync;
 
   PPKRCORE_TASK      tasks;
-  size_type syncblock_count;
-  PPKRCORE_SYNCBLOCK syncblocks;
 };
 
 template<typename T, typename A, typename U>
@@ -41,15 +40,14 @@ struct run_configuration
   using size_type = typename ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type;
 
   ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>> heights;
+  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>> heights_sync;
 
   size_type tasks_count;
   size_type threads_count;
-  size_type syncblock_count;
 
   PKRCORE            core;
   PPKRCORE_TASK      tasks;
   PPKRCORE_THREAD    threads;
-  PPKRCORE_SYNCBLOCK syncblocks;
   PKRCORE_SYNCBLOCK  delay;
 
   stream_node<T, A, U>* nodes;
@@ -59,14 +57,13 @@ struct run_configuration
 void
 wait_block(
   ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
-  size_t syncblocks_count,
-  PPKRCORE_SYNCBLOCK syncblocks,
+  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync,
   size_t rank,
   size_t block_index,
   size_t row,
   size_t col)
 {
-  PKRCORE_SYNCBLOCK s = syncblocks[(row + col) % syncblocks_count];
+  PKRCORE_SYNCBLOCK s = heights_sync->at(row, col);
 
   short v = static_cast<short>(block_index + 1ULL);
 
@@ -77,13 +74,12 @@ wait_block(
 void
 notify_block(
   ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
-  size_t syncblocks_count,
-  PPKRCORE_SYNCBLOCK syncblocks,
+  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync,
   size_t progress_value,
   size_t row,
   size_t col)
 {
-  PKRCORE_SYNCBLOCK s = syncblocks[(row + col) % syncblocks_count];
+  PKRCORE_SYNCBLOCK s = heights_sync->at(row, col);
 
   heights->at(row, col) = static_cast<short>(progress_value + 1ULL);
 
@@ -161,8 +157,9 @@ calculation_routine(
   const size_t processor_count = node->processors_count;
   const size_t rank            = node->rank;
 
-  auto* blocks = node->blocks;
-  auto* heights = node->heights;
+  auto* blocks       = node->blocks;
+  auto* heights      = node->heights;
+  auto* heights_sync = node->heights_sync;
 
   const size_t kr_top_task      = rank % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
@@ -181,16 +178,16 @@ calculation_routine(
   for (auto j = size_type(0); j < blocks->size(); ++j) {
     if (rank <= j) {
       for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-        wait_block(heights, node->syncblock_count, node->syncblocks, rank, block_index, block_index, j);
+        wait_block(heights, heights_sync, rank, block_index, block_index, j);
 
         calculate_block_auto(blocks, block_index, rank, j);
       };
       calculate_block_auto(blocks, rank, rank, j);
 
-      notify_block(heights, node->syncblock_count, node->syncblocks, rank, rank, j);
+      notify_block(heights, heights_sync, rank, rank, j);
     } else {
       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-        wait_block(heights, node->syncblock_count, node->syncblocks, rank, block_index, block_index, j);
+        wait_block(heights, heights_sync, rank, block_index, block_index, j);
 
         calculate_block_auto(blocks, block_index, rank, j);
       };
@@ -200,18 +197,18 @@ calculation_routine(
         for (auto reverse_j = size_type(0); reverse_j < j; ++reverse_j) {
           calculate_block_auto(blocks, rank, rank, reverse_j);
 
-          notify_block(heights, node->syncblock_count, node->syncblocks, rank, rank, reverse_j);
+          notify_block(heights, heights_sync, rank, rank, reverse_j);
         };
 
         for (auto forward_j = j + size_type(1); forward_j < blocks->size(); ++forward_j) {
           for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-            wait_block(heights, node->syncblock_count, node->syncblocks, rank, block_index, block_index, forward_j);
+            wait_block(heights, heights_sync, rank, block_index, block_index, forward_j);
 
             calculate_block_auto(blocks, block_index, rank, forward_j);
           };
           calculate_block_auto(blocks, rank, rank, forward_j);
 
-          notify_block(heights, node->syncblock_count, node->syncblocks, rank, rank, forward_j);
+          notify_block(heights, heights_sync, rank, rank, forward_j);
         };
 
         if (move_top)
@@ -249,7 +246,7 @@ calculation_routine(
             KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
           for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-            wait_block(heights, node->syncblock_count, node->syncblocks, rank, j, j, reverse_j);
+            wait_block(heights, heights_sync, rank, j, j, reverse_j);
 
             calculate_block_auto(blocks, j, rank, reverse_j);
           };
@@ -307,19 +304,19 @@ calculation_routine(
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
     for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
-      wait_block(heights, node->syncblock_count, node->syncblocks, rank, reverse_j, reverse_j, reverse_j);
+      wait_block(heights, heights_sync, rank, reverse_j, reverse_j, reverse_j);
 
       calculate_block_auto(blocks, reverse_j, rank, reverse_j);
 
       KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
       for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-        wait_block(heights, node->syncblock_count, node->syncblocks, rank, reverse_j, reverse_j, inner_j);
+        wait_block(heights, heights_sync, rank, reverse_j, reverse_j, inner_j);
 
         calculate_block_auto(blocks, reverse_j, rank, inner_j);
       };
       for (size_t inner_j = (reverse_j + 1ULL); inner_j < blocks->size(); ++inner_j) {
-        wait_block(heights, node->syncblock_count, node->syncblocks, rank, reverse_j, reverse_j, inner_j);
+        wait_block(heights, heights_sync, rank, reverse_j, reverse_j, inner_j);
 
         calculate_block_auto(blocks, reverse_j, rank, inner_j);
       };
@@ -350,19 +347,20 @@ up(
   //
   run_config.tasks_count     = blocks.size();
   run_config.threads_count   = size_type(std::thread::hardware_concurrency());
-  run_config.syncblock_count = size_type(1000);
 
   // Initialise "Heights" matrix
   //
   run_config.heights = ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>(
     run_config.tasks_count, ::utilz::memory::buffer_allocator<short>(&b));
 
+  run_config.heights_sync = ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>(
+    run_config.tasks_count, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>(&b));
+
   // Allocate space
   //
-  run_config.tasks      = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
-  run_config.threads    = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * run_config.threads_count));
-  run_config.syncblocks = reinterpret_cast<PPKRCORE_SYNCBLOCK>(b.allocate(sizeof(PKRCORE_SYNCBLOCK) * run_config.syncblock_count));
-  run_config.nodes      = reinterpret_cast<stream_node<T, A, U>*>(b.allocate(sizeof(stream_node<T, A, U>) * run_config.tasks_count));
+  run_config.tasks   = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
+  run_config.threads = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * run_config.threads_count));
+  run_config.nodes   = reinterpret_cast<stream_node<T, A, U>*>(b.allocate(sizeof(stream_node<T, A, U>) * run_config.tasks_count));
 
   // Prepare runtime configuration
   //
@@ -370,11 +368,10 @@ up(
     run_config.nodes[i].rank = i;
     run_config.nodes[i].processors_count = std::thread::hardware_concurrency();
     run_config.nodes[i].tasks = run_config.tasks;
-    run_config.nodes[i].syncblock_count = run_config.syncblock_count;
-    run_config.nodes[i].syncblocks = run_config.syncblocks;
 
     run_config.nodes[i].blocks = &blocks;
     run_config.nodes[i].heights = &run_config.heights;
+    run_config.nodes[i].heights_sync = &run_config.heights_sync;
   }
 
   // Initialise Core
@@ -383,7 +380,7 @@ up(
   CoreInitData.MaxResourceCount = 1 + /* delay syncblock */
     run_config.tasks_count +
     run_config.threads_count +
-    run_config.syncblock_count;
+    run_config.tasks_count * run_config.tasks_count;
 
   run_config.core = ::KrCoreInitialize(&CoreInitData);
   assert(run_config.core != nullptr);
@@ -396,16 +393,19 @@ up(
   run_config.delay = ::KrCoreInitializeSyncblock(run_config.core, &DelayInitData);
   assert(run_config.delay != nullptr);
 
-  // Initialise Syncblocks
+  // Initialise Heights
   //
-  for (auto i = size_type(0); i < run_config.syncblock_count; ++i) {
-    KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData = { 0 };
+  for (auto i = size_type(0); i < blocks.size(); ++i) {
+    for (auto j = size_type(0); j < blocks.size(); ++j) {
+      KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData = { 0 };
+      SyncblockInitData.ResetMode = CoreSyncblockResetModeAutoAll;
 
-    SyncblockInitData.ResetMode = CoreSyncblockResetModeAutoAll;
+      PKRCORE_SYNCBLOCK Syncblock = ::KrCoreInitializeSyncblock(run_config.core, &SyncblockInitData);
+      assert(Syncblock != nullptr);
 
-    run_config.syncblocks[i] = ::KrCoreInitializeSyncblock(run_config.core, &SyncblockInitData);
-
-    assert(run_config.syncblocks[i] != nullptr);
+      run_config.heights.at(i, j) = short(0);
+      run_config.heights_sync.at(i, j) = Syncblock;
+    }
   }
 
   // Initialise Threads
@@ -461,8 +461,11 @@ down(
   for (auto i = size_type(0); i < run_config.threads_count; ++i)
     KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
 
-  for (auto i = size_type(0); i < run_config.syncblock_count; ++i)
-    KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.syncblocks[i]));
+  for (auto i = size_type(0); i < blocks.size(); ++i) {
+    for (auto j = size_type(0); j < blocks.size(); ++j) {
+      KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.heights_sync.at(i, j)));
+    }
+  }
 
   KRASSERT(::KrCoreDeinitialize(run_config.core));
 }
