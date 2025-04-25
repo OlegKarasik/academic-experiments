@@ -122,13 +122,11 @@ calculate_block_auto(
 
       calculate_block(ij, horizontal, vertical);
     };
-  } else if (block_index != j) {
+  } else {
     auto& current = matrix->at(block_index, block_index);
 
     calculate_block(ij, current, ij);
-  } else {
-    calculate_block(ij, ij, ij);
-  };
+  }
 };
 
 template<typename T, typename A, typename U>
@@ -354,7 +352,9 @@ slave(
 
     calculate_block_auto(blocks, block_index, rank, rank);
   };
-  calculate_block_auto(blocks, rank, rank, rank);
+
+  auto& ij = blocks->at(rank, rank);
+  calculate_block(ij, ij, ij);
 
   notify_block(heights, heights_sync, rank, rank, rank);
 
