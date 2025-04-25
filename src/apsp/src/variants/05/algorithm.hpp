@@ -301,7 +301,11 @@ master_task(
   if (move_bottom)
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
 
-  // call to something
+  if (move_bottom) {
+    passive_task_B(node);
+  } else {
+    compliment_task(node);
+  };
 }
 
 template<typename T, typename A, typename U>
@@ -397,11 +401,6 @@ calculation_routine(
 
   is_leader   = false;
   is_follower = false;
-  if (move_bottom) {
-    passive_task_B(node);
-  } else {
-    compliment_task(node);
-  };
 
   return 0UL;
 };
