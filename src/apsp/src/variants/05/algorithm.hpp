@@ -170,6 +170,9 @@ compliment_task(
 
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
   };
+
+  for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
+    KRASSERT(::KrCoreTaskContinue(tasks[i]));
 }
 
 
@@ -398,11 +401,6 @@ calculation_routine(
     passive_task_B(node);
   } else {
     compliment_task(node);
-  };
-
-  if (rank == kr_bottom_task) {
-    for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
-      KRASSERT(::KrCoreTaskContinue(tasks[i]));
   };
 
   return 0UL;
