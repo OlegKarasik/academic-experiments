@@ -366,37 +366,39 @@ void
 passive_A(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
+  using size_type = typename stream_node<T, A, U>::size_type;
 
-  auto* tasks        = node->tasks;
-  auto* blocks       = node->blocks;
+  auto* tasks  = node->tasks;
+  auto* blocks = node->blocks;
 
-  const size_t processor_count  = node->processors_count;
-  const size_t c             = node->rank;
-  const size_t kr_top_task      = c % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = c - processor_count;
-  const size_t kr_next_task     = c + processor_count;
+  const size_type p = node->processors_count;
+  const size_type c = node->rank;
 
-  const bool move_bottom = c != kr_bottom_task;
+  const size_type fst_task = c % p;
+  const size_type lst_task = blocks->size() - (p - fst_task);
+  const size_type prv_task = c - p;
+  const size_type nxt_task = c + p;
 
-  size_t kr_src_task = kr_top_task;
+  const bool move_bottom = c != lst_task;
 
-  for (auto j = size_type(0); j <= kr_previous_task; ++j) {
-    for (size_t b = 0ULL; b <= j; ++b) {
-      calculate_block_auto(blocks, b, c, j);
-    };
+  for (auto j = size_type(0), s = fst_task; j <= prv_task; ++j) {
+    auto& ij = blocks->at(c, j);
+    auto& jj = blocks->at(j, j);
+
+    calculate_block(ij, ij, jj);
+
+    for (size_t b = 0ULL; b < j; ++b)
+      calculate_block(ij, blocks->at(c, b), blocks->at(b, j));
 
     if (move_bottom) {
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
     } else {
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_src_task]));
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[s]));
 
-      if (j == kr_src_task)
-        kr_src_task += processor_count;
+      if (j == s)
+        s += p;
     };
   };
-
 
   slave(node);
 }
