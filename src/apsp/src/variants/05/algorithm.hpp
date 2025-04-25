@@ -339,7 +339,10 @@ calculation_routine(
   bool is_follower   = rank < processor_count;
   bool is_normalized = false;
 
-  for (auto j = size_type(0); j <=rank; ++j) {
+  for (auto j = size_type(0); j < rank; ++j) {
+    if (rank == j) {
+      break;
+    }
     if (rank > j) {
       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
         wait_block(heights, heights_sync, block_index, block_index, j);
@@ -347,9 +350,6 @@ calculation_routine(
         calculate_block_auto(blocks, block_index, rank, j);
       };
     };
-    if (rank == j) {
-      break;
-    }
     if (!is_follower) {
       if (move_bottom) {
         KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
