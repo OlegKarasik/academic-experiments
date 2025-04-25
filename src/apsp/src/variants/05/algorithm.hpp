@@ -336,11 +336,10 @@ calculation_routine(
 
   size_t kr_src_task = kr_top_task;
 
-  bool is_leader     = false;
   bool is_follower   = rank < processor_count;
   bool is_normalized = false;
 
-  for (auto j = size_type(0); j < blocks->size(); ++j) {
+  for (auto j = size_type(0); j <=rank; ++j) {
     if (rank <= j) {
       for (auto block_index = size_type(0); block_index < rank; ++block_index) {
         wait_block(heights, heights_sync, block_index, block_index, j);
@@ -357,50 +356,44 @@ calculation_routine(
         calculate_block_auto(blocks, block_index, rank, j);
       };
     };
-    if (!is_leader) {
-      if (rank == j) {
-        master_task(node);
-
-        is_leader = true;
-        break;
-      } else {
-        if (!is_follower) {
-          if (move_bottom) {
-            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
-          } else {
-            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_src_task]));
-
-            if (j == kr_src_task)
-              kr_src_task += processor_count;
-          };
-          is_follower = is_follower || (j == kr_previous_task);
-          if (is_follower && !is_normalized) {
-            for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-              for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
-                calculate_block_auto(blocks, block_index, rank, reverse_j);
-              };
-            };
-            is_normalized = true;
-          };
+    if (rank == j) {
+      break;
+    } else {
+      if (!is_follower) {
+        if (move_bottom) {
+          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
         } else {
-          if (move_top)
-            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_src_task]));
 
-          if (move_bottom)
-            KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
-
+          if (j == kr_src_task)
+            kr_src_task += processor_count;
+        };
+        is_follower = is_follower || (j == kr_previous_task);
+        if (is_follower && !is_normalized) {
           for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-            wait_block(heights, heights_sync, j, j, reverse_j);
-
-            calculate_block_auto(blocks, j, rank, reverse_j);
+            for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
+              calculate_block_auto(blocks, block_index, rank, reverse_j);
+            };
           };
+          is_normalized = true;
+        };
+      } else {
+        if (move_top)
+          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+
+        if (move_bottom)
+          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+
+        for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
+          wait_block(heights, heights_sync, j, j, reverse_j);
+
+          calculate_block_auto(blocks, j, rank, reverse_j);
         };
       };
     };
   };
 
-  is_leader   = false;
-  is_follower = false;
+  master_task(node);
 
   return 0UL;
 };
