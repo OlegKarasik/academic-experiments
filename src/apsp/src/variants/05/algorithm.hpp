@@ -341,14 +341,6 @@ calculation_routine(
 
   for (auto j = size_type(0); j <=rank; ++j) {
     if (rank <= j) {
-      for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-        wait_block(heights, heights_sync, block_index, block_index, j);
-
-        calculate_block_auto(blocks, block_index, rank, j);
-      };
-      calculate_block_auto(blocks, rank, rank, j);
-
-      notify_block(heights, heights_sync, rank, rank, j);
     } else {
       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
         wait_block(heights, heights_sync, block_index, block_index, j);
@@ -392,6 +384,15 @@ calculation_routine(
       };
     };
   };
+
+  for (auto block_index = size_type(0); block_index < rank; ++block_index) {
+    wait_block(heights, heights_sync, block_index, block_index, rank);
+
+    calculate_block_auto(blocks, block_index, rank, rank);
+  };
+  calculate_block_auto(blocks, rank, rank, rank);
+
+  notify_block(heights, heights_sync, rank, rank, rank);
 
   master_task(node);
 
