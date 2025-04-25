@@ -340,8 +340,7 @@ calculation_routine(
   bool is_normalized = false;
 
   for (auto j = size_type(0); j <=rank; ++j) {
-    if (rank <= j) {
-    } else {
+    if (rank > j) {
       for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
         wait_block(heights, heights_sync, block_index, block_index, j);
 
@@ -350,37 +349,36 @@ calculation_routine(
     };
     if (rank == j) {
       break;
-    } else {
-      if (!is_follower) {
-        if (move_bottom) {
-          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
-        } else {
-          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_src_task]));
-
-          if (j == kr_src_task)
-            kr_src_task += processor_count;
-        };
-        is_follower = is_follower || (j == kr_previous_task);
-        if (is_follower && !is_normalized) {
-          for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-            for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
-              calculate_block_auto(blocks, block_index, rank, reverse_j);
-            };
-          };
-          is_normalized = true;
-        };
+    }
+    if (!is_follower) {
+      if (move_bottom) {
+        KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
       } else {
-        if (move_top)
-          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+        KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_src_task]));
 
-        if (move_bottom)
-          KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
-
+        if (j == kr_src_task)
+          kr_src_task += processor_count;
+      };
+      is_follower = is_follower || (j == kr_previous_task);
+      if (is_follower && !is_normalized) {
         for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-          wait_block(heights, heights_sync, j, j, reverse_j);
-
-          calculate_block_auto(blocks, j, rank, reverse_j);
+          for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
+            calculate_block_auto(blocks, block_index, rank, reverse_j);
+          };
         };
+        is_normalized = true;
+      };
+    } else {
+      if (move_top)
+        KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+
+      if (move_bottom)
+        KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+
+      for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
+        wait_block(heights, heights_sync, j, j, reverse_j);
+
+        calculate_block_auto(blocks, j, rank, reverse_j);
       };
     };
   };
