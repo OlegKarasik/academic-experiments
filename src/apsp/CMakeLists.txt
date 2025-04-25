@@ -353,6 +353,16 @@ foreach(index RANGE ${length})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
 
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(_application-v${t_name} PRIVATE "-Wall")
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(_application-v${t_name} PRIVATE "-Wall")
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(_application-v${t_name} PRIVATE "/W4")
+  endif()
+
   if (NOT SKIP_GSUITE)
     add_executable(_test-v${t_name}        ${t_tst_src_list})
     add_executable(_benchmark-v${t_name}   ${t_bnk_src_list})
@@ -370,8 +380,6 @@ foreach(index RANGE ${length})
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       target_compile_options(_benchmark-v${t_name} PRIVATE "-fopt-info-vec-optimized" "-fopt-info-loop-optimized" "-save-temps" "-fverbose-asm")
     endif()
-
-
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
       target_compile_options(_benchmark-v${t_name} PRIVATE "-Rpass=loop-vectorize")
     endif()

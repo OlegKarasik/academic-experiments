@@ -145,8 +145,6 @@ compliment_task(
   const size_t rank             = node->rank;
   const size_t kr_top_task      = rank % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
-  const size_t kr_next_task     = rank + processor_count;
 
   KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
@@ -183,14 +181,11 @@ passive_task_C(
 ) {
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
-  auto* heights      = node->heights;
-  auto* heights_sync = node->heights_sync;
 
   const size_t processor_count  = node->processors_count;
   const size_t rank             = node->rank;
   const size_t kr_top_task      = rank % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
   const size_t kr_next_task     = rank + processor_count;
 
   for (size_t reverse_j = 0ULL; reverse_j <= rank; ++reverse_j) {
@@ -234,14 +229,11 @@ passive_task_B(
 ) {
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
-  auto* heights      = node->heights;
-  auto* heights_sync = node->heights_sync;
 
   const size_t processor_count  = node->processors_count;
   const size_t rank             = node->rank;
   const size_t kr_top_task      = rank % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
   const size_t kr_next_task     = rank + processor_count;
 
   KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
@@ -272,7 +264,6 @@ master_task(
   const size_t rank             = node->rank;
   const size_t kr_top_task      = rank % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
   const size_t kr_next_task     = rank + processor_count;
 
   const bool move_top    = rank != kr_top_task;
@@ -379,30 +370,23 @@ passive_A(
 
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
-  auto* heights      = node->heights;
-  auto* heights_sync = node->heights_sync;
 
   const size_t processor_count  = node->processors_count;
-  const size_t rank             = node->rank;
-  const size_t kr_top_task      = rank % processor_count;
+  const size_t c             = node->rank;
+  const size_t kr_top_task      = c % processor_count;
   const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
-  const size_t kr_next_task     = rank + processor_count;
+  const size_t kr_previous_task = c - processor_count;
+  const size_t kr_next_task     = c + processor_count;
 
-  const bool move_top    = rank != kr_top_task;
-  const bool move_bottom = rank != kr_bottom_task;
+  const bool move_bottom = c != kr_bottom_task;
 
   size_t kr_src_task = kr_top_task;
 
-
   for (auto j = size_type(0); j <= kr_previous_task; ++j) {
-    for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-      wait_block(heights, heights_sync, block_index, block_index, j);
-
-      calculate_block_auto(blocks, block_index, rank, j);
+    for (size_t b = 0ULL; b <= j; ++b) {
+      calculate_block_auto(blocks, b, c, j);
     };
 
-    //A
     if (move_bottom) {
       KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
     } else {
@@ -423,29 +407,13 @@ calculation_routine(
   void* routine_state
 )
 {
-  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
-
   auto* node   = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
-  auto* tasks = node->tasks;
 
   const size_t processor_count = node->processors_count;
   const size_t rank            = node->rank;
 
-  auto* blocks       = node->blocks;
-  auto* heights      = node->heights;
-  auto* heights_sync = node->heights_sync;
-
-  const size_t kr_top_task      = rank % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
-  const size_t kr_next_task     = rank + processor_count;
-
-  const bool move_top    = rank != kr_top_task;
-  const bool move_bottom = rank != kr_bottom_task;
-
 
   bool is_follower   = rank < processor_count;
-  bool is_normalized = false;
 
   if (is_follower)
   {
@@ -604,12 +572,14 @@ run(
   ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
   run_configuration<T, A, U>& run_config)
 {
+  using size_type = typename ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type;
+
   // Unblock all previously initialised Tasks
   //
   KRASSERT(::KrCoreSyncblockSignal(run_config.delay));
 
   // Wait them run to completion
   //
-  for (auto i = 0; i < run_config.tasks_count; ++i)
+  for (auto i = size_type(0); i < run_config.tasks_count; ++i)
     ::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE);
 };

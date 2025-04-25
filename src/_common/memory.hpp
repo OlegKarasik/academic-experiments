@@ -165,17 +165,17 @@ private:
 
 public:
   buffer_fx()
-    : m_mem(nullptr)
-    , m_cmem(nullptr)
+    : m_alignment(size_type())
     , m_size(size_type())
-    , m_alignment(size_type())
+    , m_mem(nullptr)
+    , m_cmem(nullptr)
   {
   }
   buffer_fx(std::shared_ptr<value_type> memory, size_type size, size_type alignment)
-    : m_mem(memory)
-    , m_cmem(memory.get())
+    : m_alignment(alignment)
     , m_size(size)
-    , m_alignment(alignment)
+    , m_mem(memory)
+    , m_cmem(memory.get())
   {
     if (alignment % 2 != 0)
       throw std::invalid_argument("erro: the alignment value has to be a power of 2");
@@ -215,7 +215,7 @@ public:
   inline bool
   operator==(buffer_fx const& a)
   {
-    return this == &a || this->m_mem == a.m_mem && this->m_size == a.m_size;
+    return this == &a || (this->m_mem == a.m_mem && this->m_size == a.m_size);
   };
   inline bool
   operator!=(buffer_fx const& a)

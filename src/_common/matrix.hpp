@@ -485,7 +485,7 @@ private:
     pointer   t = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++);
   }
   void
@@ -493,7 +493,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++, *(f++));
   }
   void
@@ -501,7 +501,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       *(t++) = *(f++);
   }
   void
@@ -509,7 +509,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++, std::move(*(f++)));
   }
   void
@@ -517,7 +517,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       *(t++) = std::move(*(f++));
   }
   void
@@ -526,13 +526,13 @@ private:
     pointer   p = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<A>::destroy(this->m_a, p++);
   }
   void
   free_resources()
   {
-    if (this->m_msize > 0)
+    if (this->m_msize > size_type(0))
       std::allocator_traits<allocator_type>::deallocate(this->m_a, this->m_m, this->m_msize);
   }
 
@@ -542,10 +542,10 @@ public:
   {
   }
   square_matrix(const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(0)
+    : m_a(a)
     , m_size(0)
-    , m_a(a)
+    , m_msize(0)
+    , m_m(nullptr)
   {
   }
 
@@ -554,10 +554,10 @@ public:
   {
   }
   square_matrix(size_type s, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(s * s)
+    : m_a(a)
     , m_size(s)
-    , m_a(a)
+    , m_msize(s * s)
+    , m_m(nullptr)
   {
     if (s > 0) {
       this->allocate_resources();
@@ -566,26 +566,26 @@ public:
   }
 
   square_matrix(const square_matrix& o)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
     , m_size(o.m_size)
-    , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
   square_matrix(square_matrix&& o) noexcept
-    : m_m(std::move(o.m_m))
-    , m_msize(std::exchange(o.m_msize, 0))
+    : m_a(std::move(o.m_a))
     , m_size(std::exchange(o.m_size, 0))
-    , m_a(std::move(o.m_a))
+    , m_msize(std::exchange(o.m_msize, 0))
+    , m_m(std::move(o.m_m))
   {
   }
   square_matrix(square_matrix&& o, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(a)
     , m_size(o.m_size)
-    , m_a(a)
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     if (this->m_msize > 0) {
       if (this->m_a == o.m_a) {
