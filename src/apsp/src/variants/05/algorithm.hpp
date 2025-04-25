@@ -334,7 +334,7 @@ slave(
   size_t start_I = 0;
 
   if (!is_follower) {
-    start_I = kr_previous_task;
+    start_I = kr_previous_task + 1;
   }
 
   for (auto j = start_I; j < rank; ++j) {
@@ -412,11 +412,7 @@ passive_A(
         kr_src_task += processor_count;
     };
   };
-  for (size_t reverse_j = 0ULL; reverse_j < kr_previous_task; ++reverse_j) {
-    for (size_t block_index = (reverse_j + 1UL); block_index <= kr_previous_task; ++block_index) {
-      calculate_block_auto(blocks, block_index, rank, reverse_j);
-    };
-  };
+
 
   slave(node);
 }
