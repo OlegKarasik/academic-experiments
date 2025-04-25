@@ -339,13 +339,17 @@ calculation_routine(
   bool is_follower   = rank < processor_count;
   bool is_normalized = false;
 
-  for (auto j = size_type(0); j < rank; ++j) {
-    for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-      wait_block(heights, heights_sync, block_index, block_index, j);
+  size_t start_I = 0;
 
-      calculate_block_auto(blocks, block_index, rank, j);
-    };
-    if (!is_follower) {
+  if (!is_follower) {
+    for (auto j = size_type(0); j <= kr_previous_task; ++j) {
+      for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
+        wait_block(heights, heights_sync, block_index, block_index, j);
+
+        calculate_block_auto(blocks, block_index, rank, j);
+      };
+
+      //A
       if (move_bottom) {
         KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
       } else {
@@ -354,16 +358,24 @@ calculation_routine(
         if (j == kr_src_task)
           kr_src_task += processor_count;
       };
-      is_follower = is_follower || (j == kr_previous_task);
-      if (is_follower && !is_normalized) {
-        for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-          for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
-            calculate_block_auto(blocks, block_index, rank, reverse_j);
-          };
-        };
-        is_normalized = true;
+    };
+    for (size_t reverse_j = 0ULL; reverse_j < kr_previous_task; ++reverse_j) {
+      for (size_t block_index = (reverse_j + 1UL); block_index <= kr_previous_task; ++block_index) {
+        calculate_block_auto(blocks, block_index, rank, reverse_j);
       };
-    } else {
+    };
+
+    start_I = kr_previous_task;
+  }
+
+  if (is_follower) {
+    for (auto j = start_I; j < rank; ++j) {
+      for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
+        wait_block(heights, heights_sync, block_index, block_index, j);
+
+        calculate_block_auto(blocks, block_index, rank, j);
+      };
+      //F
       if (move_top)
         KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
@@ -375,19 +387,20 @@ calculation_routine(
 
         calculate_block_auto(blocks, j, rank, reverse_j);
       };
+      //
     };
-  };
 
-  for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-    wait_block(heights, heights_sync, block_index, block_index, rank);
+    for (auto block_index = size_type(0); block_index < rank; ++block_index) {
+      wait_block(heights, heights_sync, block_index, block_index, rank);
 
-    calculate_block_auto(blocks, block_index, rank, rank);
-  };
-  calculate_block_auto(blocks, rank, rank, rank);
+      calculate_block_auto(blocks, block_index, rank, rank);
+    };
+    calculate_block_auto(blocks, rank, rank, rank);
 
-  notify_block(heights, heights_sync, rank, rank, rank);
+    notify_block(heights, heights_sync, rank, rank, rank);
 
-  master_task(node);
+    master_task(node);
+  }
 
   return 0UL;
 };
