@@ -332,7 +332,6 @@ slave(
 
       calculate_block_auto(blocks, block_index, rank, j);
     };
-    //F
     if (move_top)
       KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
 
@@ -344,16 +343,16 @@ slave(
 
       calculate_block_auto(blocks, j, rank, reverse_j);
     };
-    //
   };
+
+  auto& ij = blocks->at(rank, rank);
 
   for (auto block_index = size_type(0); block_index < rank; ++block_index) {
     wait_block(heights, heights_sync, block_index, block_index, rank);
 
-    calculate_block_auto(blocks, block_index, rank, rank);
+    calculate_block(ij, blocks->at(rank, block_index), blocks->at(block_index, rank));
   };
 
-  auto& ij = blocks->at(rank, rank);
   calculate_block(ij, ij, ij);
 
   notify_block(heights, heights_sync, rank, rank, rank);
