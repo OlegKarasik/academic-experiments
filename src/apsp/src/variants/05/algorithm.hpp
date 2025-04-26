@@ -134,40 +134,43 @@ void
 compliment_task(
   stream_node<T, A, U>* node
 ) {
+  using size_type = typename stream_node<T, A, U>::size_type;
+
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_t processor_count  = node->processors_count;
-  const size_t rank             = node->rank;
-  const size_t kr_top_task      = rank % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
+  const size_type p = node->processors_count;
+  const size_type c = node->rank;
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+  const size_type fst_task = c % p;
+  const size_type lst_task = c;
 
-  for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
-    wait_block(heights, heights_sync, reverse_j, reverse_j, reverse_j);
+  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
-    calculate_block_auto(blocks, reverse_j, rank, reverse_j);
+  for (auto j = lst_task + size_type(1); j < blocks->size(); ++j) {
+    wait_block(heights, heights_sync, j, j, j);
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+    calculate_block_auto(blocks, j, c, j);
 
-    for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-      wait_block(heights, heights_sync, reverse_j, reverse_j, inner_j);
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
-      calculate_block_auto(blocks, reverse_j, rank, inner_j);
+    for (auto b = size_type(0); b < j; ++b) {
+      wait_block(heights, heights_sync, j, j, b);
+
+      calculate_block_auto(blocks, j, c, b);
     };
-    for (size_t inner_j = (reverse_j + 1ULL); inner_j < blocks->size(); ++inner_j) {
-      wait_block(heights, heights_sync, reverse_j, reverse_j, inner_j);
+    for (auto b = j + size_type(1); b < blocks->size(); ++b) {
+      wait_block(heights, heights_sync, j, j, b);
 
-      calculate_block_auto(blocks, reverse_j, rank, inner_j);
+      calculate_block_auto(blocks, j, c, b);
     };
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
   };
 
-  for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
+  for (size_t i = fst_task; i < lst_task; i += p)
     KRASSERT(::KrCoreTaskContinue(tasks[i]));
 }
 
