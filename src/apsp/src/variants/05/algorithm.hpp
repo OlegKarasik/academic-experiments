@@ -222,27 +222,45 @@ passive_task_C(
 
 template<typename T, typename A, typename U>
 void
-passive_task_B(
+calculate_passive_type_b(
   stream_node<T, A, U>* node
 ) {
-  auto* tasks        = node->tasks;
-  auto* blocks       = node->blocks;
+  using size_type = typename stream_node<T, A, U>::size_type;
 
-  const size_t processor_count  = node->processors_count;
-  const size_t rank             = node->rank;
-  const size_t kr_top_task      = rank % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_next_task     = rank + processor_count;
+  auto* tasks  = node->tasks;
+  auto* blocks = node->blocks;
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+  const size_type p = node->processors_count;
+  const size_type c = node->rank;
 
-  for (size_t j = (rank + 1ULL); j <= kr_bottom_task; ++j) {
-    for (size_t block_index = (rank + 1ULL); block_index <= j; ++block_index) {
-      calculate_block_auto(blocks, block_index, rank, j);
-    };
+  const size_type fst_task = c % p;
+  const size_type lst_task = blocks->size() - (p - fst_task);
+  const size_type nxt_task = c + p;
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+
+  for (size_t j = (c + size_type(1)); j < lst_task; ++j) {
+    auto& cj = blocks->at(c, j);
+    auto& jj = blocks->at(j, j);
+
+    for (auto b = (c + size_type(1)); b < j; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+
+    calculate_block(cj, cj, jj);
+
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
   };
+
+  auto& cl = blocks->at(c, lst_task);
+  auto& ll = blocks->at(lst_task, lst_task);
+
+  for (auto b = (c + size_type(1)); b < lst_task; ++b)
+    calculate_block(cl, blocks->at(c, b), blocks->at(b, lst_task));
+
+  calculate_block(cl, cl, ll);
+
+  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+
   passive_task_C(node);
 }
 
@@ -293,7 +311,7 @@ calculate_leading_type(
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[next_task]));
 
   if (move_bottom) {
-    passive_task_B(node);
+    calculate_passive_type_b(node);
   } else {
     compliment_task(node);
   };
