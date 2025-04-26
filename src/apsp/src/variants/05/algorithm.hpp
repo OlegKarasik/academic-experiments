@@ -174,49 +174,65 @@ compliment_task(
 
 template<typename T, typename A, typename U>
 void
-passive_task_C(
+calculate_passive_type_c(
   stream_node<T, A, U>* node
 ) {
-  auto* tasks        = node->tasks;
-  auto* blocks       = node->blocks;
+  using size_type = typename stream_node<T, A, U>::size_type;
 
-  const size_t processor_count  = node->processors_count;
-  const size_t rank             = node->rank;
-  const size_t kr_top_task      = rank % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_next_task     = rank + processor_count;
+  auto* tasks  = node->tasks;
+  auto* blocks = node->blocks;
 
-  for (size_t reverse_j = 0ULL; reverse_j <= rank; ++reverse_j) {
-    for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-      calculate_block_auto(blocks, block_index, rank, reverse_j);
+  const size_type p = node->processors_count;
+  const size_type c = node->rank;
+
+  const size_type fst_task = c % p;
+  const size_type lst_task = blocks->size() - (p - fst_task);
+  const size_type nxt_task = c + p;
+
+  for (size_t j = 0ULL; j < c; ++j) {
+    for (size_t b = (c + 1ULL); b < lst_task; ++b) {
+      calculate_block_auto(blocks, b, c, j);
     };
-  };
-  for (size_t reverse_j = (rank + 1ULL); reverse_j < kr_bottom_task; ++reverse_j) {
-    for (size_t block_index = (reverse_j + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-      calculate_block_auto(blocks, block_index, rank, reverse_j);
-    };
-  };
-  for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
-    for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-      calculate_block_auto(blocks, block_index, rank, reverse_j);
-    };
+    calculate_block_auto(blocks, lst_task, c, j);
   };
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+  for (size_t b = (c + 1ULL); b < lst_task; ++b) {
+    calculate_block_auto(blocks, b, c, c);
+  };
+  calculate_block_auto(blocks, lst_task, c, c);
 
-  for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < blocks->size(); ++reverse_j) {
-    calculate_block_auto(blocks, reverse_j, rank, reverse_j);
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
-
-    for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-      calculate_block_auto(blocks, reverse_j, rank, inner_j);
+  for (size_t j = (c + 1ULL); j < lst_task; ++j) {
+    for (size_t b = (j + 1ULL); b < lst_task; ++b) {
+      calculate_block_auto(blocks, b, c, j);
     };
-    for (size_t inner_j = (reverse_j + 1ULL); inner_j < blocks->size(); ++inner_j) {
-      calculate_block_auto(blocks, reverse_j, rank, inner_j);
-    };
+    calculate_block_auto(blocks, lst_task, c, j);
+  };
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+  for (size_t j = (lst_task + 1ULL); j < blocks->size(); ++j) {
+    for (size_t b = (c + 1ULL); b < lst_task; ++b) {
+      calculate_block_auto(blocks, b, c, j);
+    };
+    calculate_block_auto(blocks, lst_task, c, j);
+  };
+
+  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+
+  for (auto j = (lst_task + size_type(1)); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
+    auto& jj = blocks->at(j, j);
+
+    calculate_block(cj, cj, jj);
+
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+
+    for (auto b = size_type(0); b < j; ++b)
+      calculate_block(blocks->at(c, b), cj, jj);
+
+    for (auto b = (j + size_type(1)); b < blocks->size(); ++b)
+      calculate_block(blocks->at(c, b), cj, jj);
+
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
   };
 }
 
@@ -261,7 +277,7 @@ calculate_passive_type_b(
 
   KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
 
-  passive_task_C(node);
+  calculate_passive_type_c(node);
 }
 
 template<typename T, typename A, typename U>
