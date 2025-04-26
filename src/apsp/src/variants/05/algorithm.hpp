@@ -145,32 +145,30 @@ compliment_task(
   const size_type c = node->rank;
 
   const size_type fst_task = c % p;
-  const size_type lst_task = c;
 
   KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
-  for (auto j = lst_task + size_type(1); j < blocks->size(); ++j) {
-    wait_block(heights, heights_sync, j, j, j);
+  for (auto j = c + size_type(1); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
 
-    calculate_block_auto(blocks, j, c, j);
+    wait_block(heights, heights_sync, j, j, j);
+    calculate_block(cj, cj, blocks->at(j, j));
 
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
     for (auto b = size_type(0); b < j; ++b) {
       wait_block(heights, heights_sync, j, j, b);
-
-      calculate_block_auto(blocks, j, c, b);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
     for (auto b = j + size_type(1); b < blocks->size(); ++b) {
       wait_block(heights, heights_sync, j, j, b);
-
-      calculate_block_auto(blocks, j, c, b);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
 
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
   };
 
-  for (size_t i = fst_task; i < lst_task; i += p)
+  for (size_t i = fst_task; i < c; i += p)
     KRASSERT(::KrCoreTaskContinue(tasks[i]));
 }
 
