@@ -248,47 +248,49 @@ passive_task_B(
 
 template<typename T, typename A, typename U>
 void
-master_task(
+calculate_leading_type(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
+  using size_type = typename stream_node<T, A, U>::size_type;
 
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_t processor_count  = node->processors_count;
-  const size_t rank             = node->rank;
-  const size_t kr_top_task      = rank % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_next_task     = rank + processor_count;
+  const size_type p = node->processors_count;
+  const size_type c = node->rank;
 
-  const bool move_top    = rank != kr_top_task;
-  const bool move_bottom = rank != kr_bottom_task;
+  const size_type fst_task  = c % p;
+  const size_type lst_task  = blocks->size() - (p - fst_task);
+  const size_type next_task = c + p;
 
-  for (auto reverse_j = size_type(0); reverse_j < rank; ++reverse_j) {
-    calculate_block_auto(blocks, rank, rank, reverse_j);
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
 
-    notify_block(heights, heights_sync, rank, rank, reverse_j);
+  for (auto j = size_type(0); j < c; ++j) {
+    calculate_block_auto(blocks, c, c, j);
+
+    notify_block(heights, heights_sync, c, c, j);
   };
 
-  for (auto forward_j = rank + size_type(1); forward_j < blocks->size(); ++forward_j) {
-    for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-      wait_block(heights, heights_sync, block_index, block_index, forward_j);
-
-      calculate_block_auto(blocks, block_index, rank, forward_j);
+  auto& cc = blocks->at(c, c);
+  for (auto j = c + size_type(1); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
+    for (auto b = size_type(0); b < c; ++b) {
+      wait_block(heights, heights_sync, b, b, j);
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
     };
-    calculate_block_auto(blocks, rank, rank, forward_j);
 
-    notify_block(heights, heights_sync, rank, rank, forward_j);
+    calculate_block(cj, cc, cj);
+    notify_block(heights, heights_sync, c, c, j);
   };
 
   if (move_top)
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
   if (move_bottom)
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[next_task]));
 
   if (move_bottom) {
     passive_task_B(node);
@@ -299,7 +301,7 @@ master_task(
 
 template<typename T, typename A, typename U>
 void
-calculate_follow(
+calculate_following_type(
   stream_node<T, A, U>* node
 ) {
   using size_type = typename stream_node<T, A, U>::size_type;
@@ -309,13 +311,13 @@ calculate_follow(
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_t p  = node->processors_count;
-  const size_t c  = node->rank;
+  const size_type p  = node->processors_count;
+  const size_type c  = node->rank;
 
-  const size_t fst_task = c % p;
-  const size_t lst_task = blocks->size() - (p - fst_task);
-  const size_t prv_task = c - p;
-  const size_t nxt_task = c + p;
+  const size_type fst_task = c % p;
+  const size_type lst_task = blocks->size() - (p - fst_task);
+  const size_type prv_task = c - p;
+  const size_type nxt_task = c + p;
 
   const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
@@ -352,7 +354,7 @@ calculate_follow(
   calculate_block(cc, cc, cc);
   notify_block(heights, heights_sync, c, c, c);
 
-  master_task(node);
+  calculate_leading_type(node);
 }
 
 template<typename T, typename A, typename U>
@@ -394,7 +396,7 @@ calculate_passive_type_a(
     };
   };
 
-  calculate_follow(node);
+  calculate_following_type(node);
 }
 
 template<typename T, typename A, typename U>
@@ -413,7 +415,7 @@ calculation_routine(
 
   if (is_follower)
   {
-    calculate_follow(node);
+    calculate_following_type(node);
   }
   else
   {
