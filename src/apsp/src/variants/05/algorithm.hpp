@@ -104,33 +104,6 @@ calculate_block(
 
 template<typename T, typename A, typename U>
 void
-calculate_block_auto(
-  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* matrix,
-  size_t                                                                       block_index,
-  size_t                                                                       i,
-  size_t                                                                       j)
-{
-  auto& ij = matrix->at(i, j);
-  if (block_index != i) {
-    if (block_index == j) {
-      auto& current = matrix->at(block_index, block_index);
-
-      calculate_block(ij, ij, current);
-    } else {
-      auto& horizontal = matrix->at(i, block_index);
-      auto& vertical   = matrix->at(block_index, j);
-
-      calculate_block(ij, horizontal, vertical);
-    };
-  } else {
-    auto& current = matrix->at(block_index, block_index);
-
-    calculate_block(ij, current, ij);
-  }
-};
-
-template<typename T, typename A, typename U>
-void
 compliment_task(
   stream_node<T, A, U>* node
 ) {
@@ -312,13 +285,15 @@ calculate_leading_type(
   const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
 
-  for (auto j = size_type(0); j < c; ++j) {
-    calculate_block_auto(blocks, c, c, j);
+  auto& cc = blocks->at(c, c);
 
+  for (auto j = size_type(0); j < c; ++j) {
+    auto& cj = blocks->at(c, j);
+
+    calculate_block(cj, cc, cj);
     notify_block(heights, heights_sync, c, c, j);
   };
 
-  auto& cc = blocks->at(c, c);
   for (auto j = c + size_type(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
     for (auto b = size_type(0); b < c; ++b) {
