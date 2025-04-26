@@ -31,7 +31,7 @@ struct stream_node
   ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights;
   ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync;
 
-  PPKRCORE_TASK      tasks;
+  PPKRCORE_TASK tasks;
 };
 
 template<typename T, typename A, typename U>
@@ -299,70 +299,65 @@ master_task(
 
 template<typename T, typename A, typename U>
 void
-slave(
+calculate_follow(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
+  using size_type = typename stream_node<T, A, U>::size_type;
 
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_t processor_count  = node->processors_count;
-  const size_t rank             = node->rank;
-  const size_t kr_top_task      = rank % processor_count;
-  const size_t kr_bottom_task   = blocks->size() - (processor_count - kr_top_task);
-  const size_t kr_previous_task = rank - processor_count;
-  const size_t kr_next_task     = rank + processor_count;
+  const size_t p  = node->processors_count;
+  const size_t c  = node->rank;
 
-  const bool move_top    = rank != kr_top_task;
-  const bool move_bottom = rank != kr_bottom_task;
-  bool is_follower   = rank < processor_count;
+  const size_t fst_task = c % p;
+  const size_t lst_task = blocks->size() - (p - fst_task);
+  const size_t prv_task = c - p;
+  const size_t nxt_task = c + p;
 
-  size_t start_I = 0;
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
 
-  if (!is_follower) {
-    start_I = kr_previous_task + 1;
-  }
+  for (auto j = c >= p ? prv_task + size_type(1) : size_type(0); j < c; ++j) {
+    auto& cj = blocks->at(c, j);
+    auto& jj = blocks->at(j, j);
 
-  for (auto j = start_I; j < rank; ++j) {
-    for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-      wait_block(heights, heights_sync, block_index, block_index, j);
-
-      calculate_block_auto(blocks, block_index, rank, j);
+    for (auto b = size_type(0); b < j; ++b) {
+      wait_block(heights, heights_sync, b, b, j);
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
     };
+
+    wait_block(heights, heights_sync, j, j, j);
+    calculate_block(cj, cj, jj);
+
     if (move_top)
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_top_task]));
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
     if (move_bottom)
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[kr_next_task]));
+      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
 
-    for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-      wait_block(heights, heights_sync, j, j, reverse_j);
-
-      calculate_block_auto(blocks, j, rank, reverse_j);
+    for (auto b = size_type(0); b < j; ++b) {
+      wait_block(heights, heights_sync, j, j, b);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
   };
 
-  auto& ij = blocks->at(rank, rank);
-
-  for (auto block_index = size_type(0); block_index < rank; ++block_index) {
-    wait_block(heights, heights_sync, block_index, block_index, rank);
-
-    calculate_block(ij, blocks->at(rank, block_index), blocks->at(block_index, rank));
+  auto& cc = blocks->at(c, c);
+  for (auto b = size_type(0); b < c; ++b) {
+    wait_block(heights, heights_sync, b, b, c);
+    calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
   };
-
-  calculate_block(ij, ij, ij);
-
-  notify_block(heights, heights_sync, rank, rank, rank);
+  calculate_block(cc, cc, cc);
+  notify_block(heights, heights_sync, c, c, c);
 
   master_task(node);
 }
 
 template<typename T, typename A, typename U>
 void
-passive_A(
+calculate_passive_type_a(
   stream_node<T, A, U>* node
 ) {
   using size_type = typename stream_node<T, A, U>::size_type;
@@ -381,13 +376,13 @@ passive_A(
   const bool move_bottom = c != lst_task;
 
   for (auto j = size_type(0), s = fst_task; j <= prv_task; ++j) {
-    auto& ij = blocks->at(c, j);
+    auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
-    calculate_block(ij, ij, jj);
+    calculate_block(cj, cj, jj);
 
-    for (size_t b = 0ULL; b < j; ++b)
-      calculate_block(ij, blocks->at(c, b), blocks->at(b, j));
+    for (auto b = size_type(0); b < j; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
     if (move_bottom) {
       KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
@@ -399,7 +394,7 @@ passive_A(
     };
   };
 
-  slave(node);
+  calculate_follow(node);
 }
 
 template<typename T, typename A, typename U>
@@ -418,11 +413,11 @@ calculation_routine(
 
   if (is_follower)
   {
-    slave(node);
+    calculate_follow(node);
   }
   else
   {
-    passive_A(node);
+    calculate_passive_type_a(node);
   }
 
 
