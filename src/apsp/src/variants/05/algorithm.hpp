@@ -189,31 +189,40 @@ calculate_passive_type_c(
   const size_type lst_task = blocks->size() - (p - fst_task);
   const size_type nxt_task = c + p;
 
-  for (size_t j = 0ULL; j < c; ++j) {
-    for (size_t b = (c + 1ULL); b < lst_task; ++b) {
-      calculate_block_auto(blocks, b, c, j);
-    };
-    calculate_block_auto(blocks, lst_task, c, j);
+  auto& cc = blocks->at(c, c);
+  auto& cl = blocks->at(c, lst_task);
+  auto& lc = blocks->at(lst_task, c);
+
+  for (auto j = size_type(0); j < c; ++j) {
+    auto& cj = blocks->at(c, j);
+
+    for (auto b = c + size_type(1); b < lst_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+
+    calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
-  for (size_t b = (c + 1ULL); b < lst_task; ++b) {
-    calculate_block_auto(blocks, b, c, c);
+  for (auto b = c + size_type(1); b < lst_task; ++b)
+    calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
+
+  calculate_block(cc, cl, lc);
+
+  for (auto j = c + size_type(1); j < lst_task; ++j) {
+    auto& cj = blocks->at(c, j);
+
+    for (auto b = j + size_type(1); b < lst_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+
+    calculate_block(cj, cl, blocks->at(lst_task, j));
   };
-  calculate_block_auto(blocks, lst_task, c, c);
 
+  for (auto j = lst_task + size_type(1); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
 
-  for (size_t j = (c + 1ULL); j < lst_task; ++j) {
-    for (size_t b = (j + 1ULL); b < lst_task; ++b) {
-      calculate_block_auto(blocks, b, c, j);
-    };
-    calculate_block_auto(blocks, lst_task, c, j);
-  };
+    for (auto b = c + size_type(1); b < lst_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
-  for (size_t j = (lst_task + 1ULL); j < blocks->size(); ++j) {
-    for (size_t b = (c + 1ULL); b < lst_task; ++b) {
-      calculate_block_auto(blocks, b, c, j);
-    };
-    calculate_block_auto(blocks, lst_task, c, j);
+    calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
   KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
