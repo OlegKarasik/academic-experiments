@@ -104,7 +104,7 @@ calculate_block(
 
 template<typename T, typename A, typename U>
 void
-compliment_task(
+calculate_complimenting_type(
   stream_node<T, A, U>* node
 ) {
   using size_type = typename stream_node<T, A, U>::size_type;
@@ -236,9 +236,12 @@ calculate_passive_type_b(
   const size_type lst_task = blocks->size() - (p - fst_task);
   const size_type nxt_task = c + p;
 
+  auto& cl = blocks->at(c, lst_task);
+  auto& ll = blocks->at(lst_task, lst_task);
+
   KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
 
-  for (size_t j = (c + size_type(1)); j < lst_task; ++j) {
+  for (size_t j = c + size_type(1); j < lst_task; ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
@@ -250,10 +253,7 @@ calculate_passive_type_b(
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
   };
 
-  auto& cl = blocks->at(c, lst_task);
-  auto& ll = blocks->at(lst_task, lst_task);
-
-  for (auto b = (c + size_type(1)); b < lst_task; ++b)
+  for (auto b = c + size_type(1); b < lst_task; ++b)
     calculate_block(cl, blocks->at(c, b), blocks->at(b, lst_task));
 
   calculate_block(cl, cl, ll);
@@ -296,6 +296,7 @@ calculate_leading_type(
 
   for (auto j = c + size_type(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
+
     for (auto b = size_type(0); b < c; ++b) {
       wait_block(heights, heights_sync, b, b, j);
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
@@ -308,13 +309,12 @@ calculate_leading_type(
   if (move_top)
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
 
-  if (move_bottom)
+  if (move_bottom) {
     KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[next_task]));
 
-  if (move_bottom) {
     calculate_passive_type_b(node);
   } else {
-    compliment_task(node);
+    calculate_complimenting_type(node);
   };
 }
 
@@ -366,10 +366,12 @@ calculate_following_type(
   };
 
   auto& cc = blocks->at(c, c);
+
   for (auto b = size_type(0); b < c; ++b) {
     wait_block(heights, heights_sync, b, b, c);
     calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
   };
+
   calculate_block(cc, cc, cc);
   notify_block(heights, heights_sync, c, c, c);
 
@@ -424,15 +426,14 @@ calculation_routine(
   void* routine_state
 )
 {
-  auto* node   = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
+  using size_type = typename stream_node<T, A, U>::size_type;
 
-  const size_t processor_count = node->processors_count;
-  const size_t rank            = node->rank;
+  auto* node = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
 
+  const size_type p = node->processors_count;
+  const size_type c = node->rank;
 
-  bool is_follower   = rank < processor_count;
-
-  if (is_follower)
+  if (c < p)
   {
     calculate_following_type(node);
   }
@@ -440,7 +441,6 @@ calculation_routine(
   {
     calculate_passive_type_a(node);
   }
-
 
   return 0UL;
 };
