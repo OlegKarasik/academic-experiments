@@ -19,17 +19,25 @@
 #include <thread>
 #include <cassert>
 
+using heights_matrix      = ::utilz::matrices::square_matrix<size_t, ::utilz::memory::buffer_allocator<size_t>>;
+using heights_sync_matrix = ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>;
+
+struct stream_node_wait_condition
+{
+  size_t* c;
+  size_t  v;
+};
+
 template<typename T, typename A, typename U>
 struct stream_node
 {
-  using size_type = typename ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>::size_type;
-
-  size_type rank;
-  size_type processors_count;
-
   ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* blocks;
-  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights;
-  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync;
+
+  size_t rank;
+  size_t processors_count;
+
+  heights_matrix*      heights;
+  heights_sync_matrix* heights_sync;
 
   PPKRCORE_TASK tasks;
 };
@@ -37,52 +45,53 @@ struct stream_node
 template<typename T, typename A, typename U>
 struct run_configuration
 {
-  using size_type = typename ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type;
+  heights_matrix      heights;
+  heights_sync_matrix heights_sync;
 
-  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>> heights;
-  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>> heights_sync;
+  size_t tasks_count;
+  size_t threads_count;
 
-  size_type tasks_count;
-  size_type threads_count;
-
-  PKRCORE            core;
-  PPKRCORE_TASK      tasks;
-  PPKRCORE_THREAD    threads;
-  PKRCORE_SYNCBLOCK  delay;
+  PKRCORE           core;
+  PPKRCORE_TASK     tasks;
+  PPKRCORE_THREAD   threads;
+  PKRCORE_SYNCBLOCK delay;
 
   stream_node<T, A, U>* nodes;
 };
 
-
 void
 wait_block(
-  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
-  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync,
-  size_t block_index,
-  size_t row,
-  size_t col)
+  heights_matrix* heights,
+  heights_sync_matrix* heights_sync,
+  size_t height,
+  size_t i,
+  size_t j)
 {
-  PKRCORE_SYNCBLOCK s = heights_sync->at(row, col);
+  stream_node_wait_condition wait_condition;
+  wait_condition.c = &heights->at(i, j);
+  wait_condition.v = height + size_t(1);
 
-  short v = static_cast<short>(block_index + 1ULL);
-
-  while (heights->at(row, col) < v)
-    KRASSERT(::KrCoreTaskCurrentSynchronize(s));
+  std::ignore = ::KrCoreTaskCurrentSynchronizeUntil(
+    heights_sync->at(i, j),
+    [](void* state) -> BOOL
+    {
+      auto condition = (stream_node_wait_condition*)state;
+      return *condition->c >= condition->v;
+    },
+    &wait_condition);
 };
 
 void
 notify_block(
-  ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>* heights,
-  ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>* heights_sync,
-  size_t progress_value,
-  size_t row,
-  size_t col)
+  heights_matrix* heights,
+  heights_sync_matrix* heights_sync,
+  size_t height,
+  size_t i,
+  size_t j)
 {
-  PKRCORE_SYNCBLOCK s = heights_sync->at(row, col);
+  heights->at(i, j) = height + size_t(1);
 
-  heights->at(row, col) = static_cast<short>(progress_value + 1ULL);
-
-  KRASSERT(::KrCoreSyncblockSignal(s));
+  std::ignore = ::KrCoreSyncblockSignal(heights_sync->at(i, j));
 };
 
 template<typename T, typename A>
@@ -107,42 +116,40 @@ void
 calculate_complimenting_type(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_type p = node->processors_count;
-  const size_type c = node->rank;
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
-  const size_type fst_task = c % p;
+  const size_t fst_task = c % p;
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
+  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
-  for (auto j = c + size_type(1); j < blocks->size(); ++j) {
+  for (auto j = c + size_t(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
 
     wait_block(heights, heights_sync, j, j, j);
     calculate_block(cj, cj, blocks->at(j, j));
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
-    for (auto b = size_type(0); b < j; ++b) {
+    for (auto b = size_t(0); b < j; ++b) {
       wait_block(heights, heights_sync, j, j, b);
       calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
-    for (auto b = j + size_type(1); b < blocks->size(); ++b) {
+    for (auto b = j + size_t(1); b < blocks->size(); ++b) {
       wait_block(heights, heights_sync, j, j, b);
       calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
   };
 
   for (size_t i = fst_task; i < c; i += p)
-    KRASSERT(::KrCoreTaskContinue(tasks[i]));
+    std::ignore = ::KrCoreTaskContinue(tasks[i]);
 }
 
 
@@ -151,71 +158,69 @@ void
 calculate_passive_type_c(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
 
-  const size_type p = node->processors_count;
-  const size_type c = node->rank;
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
-  const size_type fst_task = c % p;
-  const size_type lst_task = blocks->size() - (p - fst_task);
-  const size_type nxt_task = c + p;
+  const size_t fst_task = c % p;
+  const size_t lst_task = blocks->size() - (p - fst_task);
+  const size_t nxt_task = c + p;
 
   auto& cc = blocks->at(c, c);
   auto& cl = blocks->at(c, lst_task);
   auto& lc = blocks->at(lst_task, c);
 
-  for (auto j = size_type(0); j < c; ++j) {
+  for (auto j = size_t(0); j < c; ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = c + size_type(1); b < lst_task; ++b)
+    for (auto b = c + size_t(1); b < lst_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
     calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
-  for (auto b = c + size_type(1); b < lst_task; ++b)
+  for (auto b = c + size_t(1); b < lst_task; ++b)
     calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
 
   calculate_block(cc, cl, lc);
 
-  for (auto j = c + size_type(1); j < lst_task; ++j) {
+  for (auto j = c + size_t(1); j < lst_task; ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = j + size_type(1); b < lst_task; ++b)
+    for (auto b = j + size_t(1); b < lst_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
     calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
-  for (auto j = lst_task + size_type(1); j < blocks->size(); ++j) {
+  for (auto j = lst_task + size_t(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = c + size_type(1); b < lst_task; ++b)
+    for (auto b = c + size_t(1); b < lst_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
     calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  for (auto j = (lst_task + size_type(1)); j < blocks->size(); ++j) {
+  for (auto j = (lst_task + size_t(1)); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
     calculate_block(cj, cj, jj);
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-    for (auto b = size_type(0); b < j; ++b)
+    for (auto b = size_t(0); b < j; ++b)
       calculate_block(blocks->at(c, b), cj, jj);
 
-    for (auto b = (j + size_type(1)); b < blocks->size(); ++b)
+    for (auto b = (j + size_t(1)); b < blocks->size(); ++b)
       calculate_block(blocks->at(c, b), cj, jj);
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
   };
 }
 
@@ -224,41 +229,39 @@ void
 calculate_passive_type_b(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
 
-  const size_type p = node->processors_count;
-  const size_type c = node->rank;
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
-  const size_type fst_task = c % p;
-  const size_type lst_task = blocks->size() - (p - fst_task);
-  const size_type nxt_task = c + p;
+  const size_t fst_task = c % p;
+  const size_t lst_task = blocks->size() - (p - fst_task);
+  const size_t nxt_task = c + p;
 
   auto& cl = blocks->at(c, lst_task);
   auto& ll = blocks->at(lst_task, lst_task);
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  for (size_t j = c + size_type(1); j < lst_task; ++j) {
+  for (size_t j = c + size_t(1); j < lst_task; ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
-    for (auto b = (c + size_type(1)); b < j; ++b)
+    for (auto b = (c + size_t(1)); b < j; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
     calculate_block(cj, cj, jj);
 
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
   };
 
-  for (auto b = c + size_type(1); b < lst_task; ++b)
+  for (auto b = c + size_t(1); b < lst_task; ++b)
     calculate_block(cl, blocks->at(c, b), blocks->at(b, lst_task));
 
   calculate_block(cl, cl, ll);
 
-  KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
   calculate_passive_type_c(node);
 }
@@ -268,36 +271,34 @@ void
 calculate_leading_type(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_type p = node->processors_count;
-  const size_type c = node->rank;
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
-  const size_type fst_task  = c % p;
-  const size_type lst_task  = blocks->size() - (p - fst_task);
-  const size_type next_task = c + p;
+  const size_t fst_task  = c % p;
+  const size_t lst_task  = blocks->size() - (p - fst_task);
+  const size_t next_task = c + p;
 
   const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
 
   auto& cc = blocks->at(c, c);
 
-  for (auto j = size_type(0); j < c; ++j) {
+  for (auto j = size_t(0); j < c; ++j) {
     auto& cj = blocks->at(c, j);
 
     calculate_block(cj, cc, cj);
     notify_block(heights, heights_sync, c, c, j);
   };
 
-  for (auto j = c + size_type(1); j < blocks->size(); ++j) {
+  for (auto j = c + size_t(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = size_type(0); b < c; ++b) {
+    for (auto b = size_t(0); b < c; ++b) {
       wait_block(heights, heights_sync, b, b, j);
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
     };
@@ -307,10 +308,10 @@ calculate_leading_type(
   };
 
   if (move_top)
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
   if (move_bottom) {
-    KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[next_task]));
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[next_task]);
 
     calculate_passive_type_b(node);
   } else {
@@ -323,29 +324,27 @@ void
 calculate_following_type(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_type p  = node->processors_count;
-  const size_type c  = node->rank;
+  const size_t p  = node->processors_count;
+  const size_t c  = node->rank;
 
-  const size_type fst_task = c % p;
-  const size_type lst_task = blocks->size() - (p - fst_task);
-  const size_type prv_task = c - p;
-  const size_type nxt_task = c + p;
+  const size_t fst_task = c % p;
+  const size_t lst_task = blocks->size() - (p - fst_task);
+  const size_t prv_task = c - p;
+  const size_t nxt_task = c + p;
 
   const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
 
-  for (auto j = c >= p ? prv_task + size_type(1) : size_type(0); j < c; ++j) {
+  for (auto j = c >= p ? prv_task + size_t(1) : size_t(0); j < c; ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
-    for (auto b = size_type(0); b < j; ++b) {
+    for (auto b = size_t(0); b < j; ++b) {
       wait_block(heights, heights_sync, b, b, j);
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
     };
@@ -354,12 +353,12 @@ calculate_following_type(
     calculate_block(cj, cj, jj);
 
     if (move_top)
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]));
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
     if (move_bottom)
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-    for (auto b = size_type(0); b < j; ++b) {
+    for (auto b = size_t(0); b < j; ++b) {
       wait_block(heights, heights_sync, j, j, b);
       calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
@@ -367,7 +366,7 @@ calculate_following_type(
 
   auto& cc = blocks->at(c, c);
 
-  for (auto b = size_type(0); b < c; ++b) {
+  for (auto b = size_t(0); b < c; ++b) {
     wait_block(heights, heights_sync, b, b, c);
     calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
   };
@@ -383,34 +382,32 @@ void
 calculate_passive_type_a(
   stream_node<T, A, U>* node
 ) {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
 
-  const size_type p = node->processors_count;
-  const size_type c = node->rank;
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
-  const size_type fst_task = c % p;
-  const size_type lst_task = blocks->size() - (p - fst_task);
-  const size_type prv_task = c - p;
-  const size_type nxt_task = c + p;
+  const size_t fst_task = c % p;
+  const size_t lst_task = blocks->size() - (p - fst_task);
+  const size_t prv_task = c - p;
+  const size_t nxt_task = c + p;
 
   const bool move_bottom = c != lst_task;
 
-  for (auto j = size_type(0), s = fst_task; j <= prv_task; ++j) {
+  for (auto j = size_t(0), s = fst_task; j <= prv_task; ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
     calculate_block(cj, cj, jj);
 
-    for (auto b = size_type(0); b < j; ++b)
+    for (auto b = size_t(0); b < j; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
     if (move_bottom) {
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]));
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
     } else {
-      KRASSERT(::KrCoreTaskCurrentSwitchToTask(tasks[s]));
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[s]);
 
       if (j == s)
         s += p;
@@ -426,12 +423,10 @@ calculation_routine(
   void* routine_state
 )
 {
-  using size_type = typename stream_node<T, A, U>::size_type;
-
   auto* node = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
 
-  const size_type p = node->processors_count;
-  const size_type c = node->rank;
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
   if (c < p)
   {
@@ -453,20 +448,15 @@ up(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
-
   // Set parameters
   //
-  run_config.tasks_count     = blocks.size();
-  run_config.threads_count   = size_type(std::thread::hardware_concurrency());
+  run_config.tasks_count   = blocks.size();
+  run_config.threads_count = blocks.size() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : blocks.size();
 
   // Initialise "Heights" matrix
   //
-  run_config.heights = ::utilz::matrices::square_matrix<short, ::utilz::memory::buffer_allocator<short>>(
-    run_config.tasks_count, ::utilz::memory::buffer_allocator<short>(&b));
-
-  run_config.heights_sync = ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>(
-    run_config.tasks_count, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>(&b));
+  run_config.heights      = heights_matrix(run_config.tasks_count, ::utilz::memory::buffer_allocator<size_t>(&b));
+  run_config.heights_sync = heights_sync_matrix(run_config.tasks_count, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>(&b));
 
   // Allocate space
   //
@@ -476,9 +466,9 @@ up(
 
   // Prepare runtime configuration
   //
-  for (auto i = size_type(0); i < blocks.size(); ++i) {
+  for (auto i = size_t(0); i < blocks.size(); ++i) {
     run_config.nodes[i].rank = i;
-    run_config.nodes[i].processors_count = std::thread::hardware_concurrency();
+    run_config.nodes[i].processors_count = run_config.threads_count;
     run_config.nodes[i].tasks = run_config.tasks;
 
     run_config.nodes[i].blocks = &blocks;
@@ -507,22 +497,22 @@ up(
 
   // Initialise Heights
   //
-  for (auto i = size_type(0); i < blocks.size(); ++i) {
-    for (auto j = size_type(0); j < blocks.size(); ++j) {
+  for (auto i = size_t(0); i < blocks.size(); ++i) {
+    for (auto j = size_t(0); j < blocks.size(); ++j) {
       KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData = { 0 };
       SyncblockInitData.ResetMode = CoreSyncblockResetModeAutoAll;
 
       PKRCORE_SYNCBLOCK Syncblock = ::KrCoreInitializeSyncblock(run_config.core, &SyncblockInitData);
       assert(Syncblock != nullptr);
 
-      run_config.heights.at(i, j) = short(0);
+      run_config.heights.at(i, j) = size_t(0);
       run_config.heights_sync.at(i, j) = Syncblock;
     }
   }
 
   // Initialise Threads
   //
-  for (auto i = size_type(0); i < run_config.threads_count; ++i) {
+  for (auto i = size_t(0); i < run_config.threads_count; ++i) {
     KRCORE_THREAD_INIT_DATA ThreadInitData = { 0 };
 
     ThreadInitData.Binding.Type = SystemBindingLogicalProcessors;
@@ -536,7 +526,7 @@ up(
 
   // Initialise Tasks
   //
-  for (auto i = size_type(0); i < run_config.tasks_count; ++i) {
+  for (auto i = size_t(0); i < run_config.tasks_count; ++i) {
     KRCORE_TASK_INIT_DATA TaskInitData = { 0 };
 
     KRCORE_TASK_ATTRIBUTE Attributes[1];
@@ -565,16 +555,14 @@ down(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
-
-  for (auto i = size_type(0); i < run_config.tasks_count; ++i)
+  for (auto i = size_t(0); i < run_config.tasks_count; ++i)
     KRASSERT(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]));
 
-  for (auto i = size_type(0); i < run_config.threads_count; ++i)
+  for (auto i = size_t(0); i < run_config.threads_count; ++i)
     KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
 
-  for (auto i = size_type(0); i < blocks.size(); ++i) {
-    for (auto j = size_type(0); j < blocks.size(); ++j) {
+  for (auto i = size_t(0); i < blocks.size(); ++i) {
+    for (auto j = size_t(0); j < blocks.size(); ++j) {
       KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.heights_sync.at(i, j)));
     }
   }
@@ -589,14 +577,12 @@ run(
   ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type = typename ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type;
-
   // Unblock all previously initialised Tasks
   //
   KRASSERT(::KrCoreSyncblockSignal(run_config.delay));
 
   // Wait them run to completion
   //
-  for (auto i = size_type(0); i < run_config.tasks_count; ++i)
+  for (auto i = size_t(0); i < run_config.tasks_count; ++i)
     ::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE);
 };
