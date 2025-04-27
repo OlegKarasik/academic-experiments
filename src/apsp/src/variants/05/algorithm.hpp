@@ -15,6 +15,7 @@
 #include "Kernel{System}.h"
 
 #include "matrix.hpp"
+#include "memory.hpp"
 
 #include <thread>
 #include <cassert>
