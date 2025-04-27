@@ -1,46 +1,47 @@
 {
-  "configurations": [
-    {
-      "name": "windows-gcc",
-      "includePath": [
-        "${workspaceFolder:program}/**",
-        "${workspaceFolder:_common}/**",
-        "${workspaceFolder:_deps}/**"
-      ],
-      "defines": [
-        "_DEBUG",
-        "UNICODE",
-        "_UNICODE"
-      ],
-      "windowsSdkVersion": "10.0.20348.0",
-      "compilerPath": "C:/msys64/mingw64/bin/gcc.exe",
-      "cStandard": "c17",
-      "cppStandard": "c++17",
-      "intelliSenseMode": "windows-gcc-x64",
-      "compileCommands": [
-        "${workspaceFolder}/build/compile_commands.json"
-      ],
-      "configurationProvider": "ms-vscode.cmake-tools"
-    },
-    {
-      "name": "apple-clang",
-      "includePath": [
-        "${workspaceFolder:program}/**",
-        "${workspaceFolder:_common}/**",
-        "${workspaceFolder:_deps}/**"
-      ],
-      "compilerPath": "/opt/homebrew/opt/llvm/bin/clang++",
-      "cStandard": "c17",
-      "cppStandard": "c++17",
-      "intelliSenseMode": "macos-clang-arm64",
-      "compileCommands": [
-        "${workspaceFolder}/build/compile_commands.json"
-      ],
-      "configurationProvider": "ms-vscode.cmake-tools",
-      "macFrameworkPath": [
-        "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk"
-      ]
-    }
-  ],
-  "version": 4
+    "configurations": [
+        {
+            "name": "windows-gcc",
+            "includePath": [
+                "${workspaceFolder:program}/**",
+                "${workspaceFolder:_common}/**",
+                "${workspaceFolder:_deps}/**",
+                "C:/Program Files/Oleg Karasik/AK-Kernel/1.31.0/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.20348.0",
+            "compilerPath": "C:/msys64/mingw64/bin/gcc.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64",
+            "compileCommands": [
+                "${workspaceFolder}/build/compile_commands.json"
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "apple-clang",
+            "includePath": [
+                "${workspaceFolder:program}/**",
+                "${workspaceFolder:_common}/**",
+                "${workspaceFolder:_deps}/**"
+            ],
+            "compilerPath": "/opt/homebrew/opt/llvm/bin/clang++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-arm64",
+            "compileCommands": [
+                "${workspaceFolder}/build/compile_commands.json"
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk"
+            ]
+        }
+    ],
+    "version": 4
 }
