@@ -200,7 +200,7 @@ main(int argc, char* argv[]) __hack_noexcept
         if (opt_reserve == size_t(0)) {
           std::cerr << "-r: " << optarg << "\n";
 
-          opt_reserve = atoi(optarg) * 1024 * 1024;
+          opt_reserve = size_t(atoi(optarg)) * 1024 * 1024;
 
           if (opt_reserve == size_t(0)) {
             std::cerr << "erro: missing value after '-r' option";
