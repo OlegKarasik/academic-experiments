@@ -77,6 +77,9 @@ wait_block(
   wait_condition.c = &heights->at(i, j);
   wait_condition.v = height + size_t(1);
 
+  if (*wait_condition.c >= wait_condition.v)
+    return;
+
   std::ignore = ::KrCoreTaskCurrentSynchronizeUntil(
     heights_sync->at(i, j),
     [](void* state) -> BOOL
@@ -118,6 +121,7 @@ calculate_block(
 };
 
 template<typename T, typename A, typename U>
+__hack_noinline
 void
 calculate_complimenting_type(
   stream_node<T, A, U>* node
@@ -131,12 +135,8 @@ calculate_complimenting_type(
   const size_t c = node->rank;
 
   const size_t fst_task = node->fst_rank;
-  const size_t prv_task = node->prv_rank;
-  const size_t lst_task = node->lst_rank;
-  const size_t nxt_task = node->nxt_rank;
 
-  const bool move_top    = c != fst_task;
-  const bool move_bottom = c != lst_task;
+  const bool move_top = c != fst_task;
 
   if (move_top)
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
@@ -168,6 +168,7 @@ calculate_complimenting_type(
 }
 
 template<typename T, typename A, typename U>
+__hack_noinline
 void
 calculate_passive_type_c(
   stream_node<T, A, U>* node
@@ -175,20 +176,12 @@ calculate_passive_type_c(
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
 
-  const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task = node->fst_rank;
-  const size_t prv_task = node->prv_rank;
   const size_t lst_task = node->lst_rank;
   const size_t nxt_task = node->nxt_rank;
 
-  const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
-
-  auto& cc = blocks->at(c, c);
-  auto& cl = blocks->at(c, lst_task);
-  auto& lc = blocks->at(lst_task, c);
 
   for (auto j = size_t(0); j <= c; ++j) {
     auto& cj = blocks->at(c, j);
@@ -214,7 +207,7 @@ calculate_passive_type_c(
   if (move_bottom)
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-    for (auto j = (lst_task + size_t(1)); j < blocks->size(); ++j) {
+  for (auto j = (lst_task + size_t(1)); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
@@ -235,6 +228,7 @@ calculate_passive_type_c(
 }
 
 template<typename T, typename A, typename U>
+__hack_noinline
 void
 calculate_passive_type_b(
   stream_node<T, A, U>* node
@@ -242,40 +236,30 @@ calculate_passive_type_b(
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
 
-  const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task = node->fst_rank;
-  const size_t prv_task = node->prv_rank;
   const size_t lst_task = node->lst_rank;
   const size_t nxt_task = node->nxt_rank;
 
-  const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
 
   auto& cl = blocks->at(c, lst_task);
-  auto& ll = blocks->at(lst_task, lst_task);
 
   if (move_bottom)
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
   for (size_t j = c + size_t(1); j < lst_task; ++j) {
     auto& cj = blocks->at(c, j);
-    auto& jj = blocks->at(j, j);
 
-    for (auto b = (c + size_t(1)); b < j; ++b)
+    for (auto b = c + size_t(1); b <= j; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
-
-    calculate_block(cj, cj, jj);
 
     if (move_bottom)
       std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
   };
 
-  for (auto b = c + size_t(1); b < lst_task; ++b)
+  for (auto b = c + size_t(1); b <= lst_task; ++b)
     calculate_block(cl, blocks->at(c, b), blocks->at(b, lst_task));
-
-  calculate_block(cl, cl, ll);
 
   if (move_bottom)
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
@@ -284,6 +268,7 @@ calculate_passive_type_b(
 }
 
 template<typename T, typename A, typename U>
+__hack_noinline
 void
 calculate_leading_type(
   stream_node<T, A, U>* node
@@ -293,11 +278,9 @@ calculate_leading_type(
   auto* heights      = node->heights;
   auto* heights_sync = node->heights_sync;
 
-  const size_t p = node->processors_count;
   const size_t c = node->rank;
 
   const size_t fst_task = node->fst_rank;
-  const size_t prv_task = node->prv_rank;
   const size_t lst_task = node->lst_rank;
   const size_t nxt_task = node->nxt_rank;
 
@@ -338,6 +321,7 @@ calculate_leading_type(
 }
 
 template<typename T, typename A, typename U>
+__hack_noinline
 void
 calculate_following_type(
   stream_node<T, A, U>* node
@@ -360,15 +344,11 @@ calculate_following_type(
 
   for (auto j = c >= p ? prv_task + size_t(1) : size_t(0); j < c; ++j) {
     auto& cj = blocks->at(c, j);
-    auto& jj = blocks->at(j, j);
 
-    for (auto b = size_t(0); b < j; ++b) {
+    for (auto b = size_t(0); b <= j; ++b) {
       wait_block(heights, heights_sync, b, b, j);
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
     };
-
-    wait_block(heights, heights_sync, j, j, j);
-    calculate_block(cj, cj, jj);
 
     if (move_top)
       std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
@@ -396,6 +376,7 @@ calculate_following_type(
 }
 
 template<typename T, typename A, typename U>
+__hack_noinline
 void
 calculate_passive_type_a(
   stream_node<T, A, U>* node
@@ -416,12 +397,9 @@ calculate_passive_type_a(
 
   for (auto j = size_t(0), s = fst_task; j <= prv_task; ++j) {
     auto& cj = blocks->at(c, j);
-    auto& jj = blocks->at(j, j);
 
-    for (auto b = size_t(0); b < j; ++b)
+    for (auto b = size_t(0); b <= j; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
-
-    calculate_block(cj, cj, jj);
 
     if (move_bottom) {
       std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
@@ -435,9 +413,9 @@ calculate_passive_type_a(
       }
     };
   };
-  for (size_t j = 0ULL; j < prv_task; ++j) {
+  for (size_t j = size_t(0); j < prv_task; ++j) {
     auto& cj = blocks->at(c, j);
-    for (size_t b = (j + 1UL); b <= prv_task; ++b)
+    for (size_t b = j + size_t(1); b <= prv_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
   };
 
@@ -445,6 +423,7 @@ calculate_passive_type_a(
 }
 
 template<typename T, typename A, typename U>
+__hack_noinline
 unsigned long
 calculation_routine(
   void* routine_state
