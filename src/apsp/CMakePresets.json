@@ -48,13 +48,13 @@
       "generator": "MinGW Makefiles",
       "binaryDir": "${workspaceFolder}/build",
       "environment": {
-        "VS_VER": "2019",
-        "MSVC_VER": "14.29.30133",
-        "SDK_VER": "10.0.20348.0",
+        "VS_VER": "2022",
+        "MSVC_VER": "14.43.34808",
+        "SDK_VER": "10.0.26100.0",
         "MINGW64_ROOT": "C:/msys64/mingw64",
         "ONEAPI_INC_ROOT": "$env{ONEAPI_ROOT}compiler/latest/windows/compiler/include",
         "ONEAPI_LIB_ROOT": "$env{ONEAPI_ROOT}compiler/latest/windows/compiler/lib",
-        "MSVC_ROOT": "C:/Program Files (x86)/Microsoft Visual Studio/$env{VS_VER}/Community/VC/Tools/MSVC/$env{MSVC_VER}",
+        "MSVC_ROOT": "C:/Program Files/Microsoft Visual Studio/$env{VS_VER}/Community/VC/Tools/MSVC/$env{MSVC_VER}",
         "MSVC_BIN_ROOT": "$env{MSVC_ROOT}/bin",
         "MSVC_LIB_ROOT": "$env{MSVC_ROOT}/lib",
         "SDK_ROOT": "C:/Program Files (x86)/Windows Kits/10",
@@ -186,6 +186,7 @@
     {
       "name": "mingw-gcc-release",
       "displayName": "GCC (Release)",
+      "configuration": "Release",
       "configurePreset": "mingw-gcc-release"
     },
     {
