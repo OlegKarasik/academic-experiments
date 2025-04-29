@@ -41,6 +41,11 @@ struct stream_node
   heights_sync_matrix* heights_sync;
 
   PPKRCORE_TASK tasks;
+
+  size_t fst_rank;
+  size_t lst_rank;
+  size_t nxt_rank;
+  size_t prv_rank;
 };
 
 template<typename T, typename A, typename U>
@@ -125,9 +130,16 @@ calculate_complimenting_type(
   const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task = c % p;
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
-  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
+
+  if (move_top)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
   for (auto j = c + size_t(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
@@ -135,7 +147,8 @@ calculate_complimenting_type(
     wait_block(heights, heights_sync, j, j, j);
     calculate_block(cj, cj, blocks->at(j, j));
 
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
+    if (move_top)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
     for (auto b = size_t(0); b < j; ++b) {
       wait_block(heights, heights_sync, j, j, b);
@@ -146,13 +159,13 @@ calculate_complimenting_type(
       calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
     };
 
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
+    if (move_top)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
   };
 
   for (size_t i = fst_task; i < c; i += p)
     std::ignore = ::KrCoreTaskContinue(tasks[i]);
 }
-
 
 template<typename T, typename A, typename U>
 void
@@ -165,63 +178,59 @@ calculate_passive_type_c(
   const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task = c % p;
-  const size_t lst_task = blocks->size() - (p - fst_task);
-  const size_t nxt_task = c + p;
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
+
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
 
   auto& cc = blocks->at(c, c);
   auto& cl = blocks->at(c, lst_task);
   auto& lc = blocks->at(lst_task, c);
 
-  for (auto j = size_t(0); j < c; ++j) {
+  for (auto j = size_t(0); j <= c; ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = c + size_t(1); b < lst_task; ++b)
+    for (auto b = c + size_t(1); b <= lst_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
-
-    calculate_block(cj, cl, blocks->at(lst_task, j));
   };
-
-  for (auto b = c + size_t(1); b < lst_task; ++b)
-    calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
-
-  calculate_block(cc, cl, lc);
 
   for (auto j = c + size_t(1); j < lst_task; ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = j + size_t(1); b < lst_task; ++b)
+    for (auto b = j + size_t(1); b <= lst_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
-
-    calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
   for (auto j = lst_task + size_t(1); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
 
-    for (auto b = c + size_t(1); b < lst_task; ++b)
+    for (auto b = c + size_t(1); b <= lst_task; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
-
-    calculate_block(cj, cl, blocks->at(lst_task, j));
   };
 
-  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+  if (move_bottom)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  for (auto j = (lst_task + size_t(1)); j < blocks->size(); ++j) {
+    for (auto j = (lst_task + size_t(1)); j < blocks->size(); ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
     calculate_block(cj, cj, jj);
 
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
     for (auto b = size_t(0); b < j; ++b)
-      calculate_block(blocks->at(c, b), cj, jj);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
 
     for (auto b = (j + size_t(1)); b < blocks->size(); ++b)
-      calculate_block(blocks->at(c, b), cj, jj);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
 
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
   };
 }
 
@@ -236,14 +245,19 @@ calculate_passive_type_b(
   const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task = c % p;
-  const size_t lst_task = blocks->size() - (p - fst_task);
-  const size_t nxt_task = c + p;
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
+
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
 
   auto& cl = blocks->at(c, lst_task);
   auto& ll = blocks->at(lst_task, lst_task);
 
-  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+  if (move_bottom)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
   for (size_t j = c + size_t(1); j < lst_task; ++j) {
     auto& cj = blocks->at(c, j);
@@ -254,7 +268,8 @@ calculate_passive_type_b(
 
     calculate_block(cj, cj, jj);
 
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
   };
 
   for (auto b = c + size_t(1); b < lst_task; ++b)
@@ -262,7 +277,8 @@ calculate_passive_type_b(
 
   calculate_block(cl, cl, ll);
 
-  std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+  if (move_bottom)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
   calculate_passive_type_c(node);
 }
@@ -280,9 +296,10 @@ calculate_leading_type(
   const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task  = c % p;
-  const size_t lst_task  = blocks->size() - (p - fst_task);
-  const size_t next_task = c + p;
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
   const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
@@ -312,7 +329,7 @@ calculate_leading_type(
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
   if (move_bottom) {
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[next_task]);
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
     calculate_passive_type_b(node);
   } else {
@@ -333,10 +350,10 @@ calculate_following_type(
   const size_t p  = node->processors_count;
   const size_t c  = node->rank;
 
-  const size_t fst_task = c % p;
-  const size_t lst_task = blocks->size() - (p - fst_task);
-  const size_t prv_task = c - p;
-  const size_t nxt_task = c + p;
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
   const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
@@ -389,30 +406,39 @@ calculate_passive_type_a(
   const size_t p = node->processors_count;
   const size_t c = node->rank;
 
-  const size_t fst_task = c % p;
-  const size_t lst_task = blocks->size() - (p - fst_task);
-  const size_t prv_task = c - p;
-  const size_t nxt_task = c + p;
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
+  const bool move_top    = c != fst_task;
   const bool move_bottom = c != lst_task;
 
   for (auto j = size_t(0), s = fst_task; j <= prv_task; ++j) {
     auto& cj = blocks->at(c, j);
     auto& jj = blocks->at(j, j);
 
-    calculate_block(cj, cj, jj);
-
     for (auto b = size_t(0); b < j; ++b)
       calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+
+    calculate_block(cj, cj, jj);
 
     if (move_bottom) {
       std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
     } else {
-      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[s]);
+      if (move_top) {
+        std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[s]);
 
-      if (j == s)
-        s += p;
+        if (j == s) {
+          s += p;
+        }
+      }
     };
+  };
+  for (size_t j = 0ULL; j < prv_task; ++j) {
+    auto& cj = blocks->at(c, j);
+    for (size_t b = (j + 1UL); b <= prv_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
   };
 
   calculate_following_type(node);
@@ -475,11 +501,30 @@ up(
     run_config.nodes[i].blocks = &blocks;
     run_config.nodes[i].heights = &run_config.heights;
     run_config.nodes[i].heights_sync = &run_config.heights_sync;
+
+    run_config.nodes[i].fst_rank = i % run_config.threads_count;
+    run_config.nodes[i].lst_rank = (run_config.tasks_count / run_config.threads_count) * run_config.threads_count + (i % run_config.threads_count);
+    run_config.nodes[i].prv_rank = i - run_config.threads_count;
+    run_config.nodes[i].nxt_rank = i + run_config.threads_count;
+
+    if (i < run_config.threads_count)
+      run_config.nodes[i].prv_rank = i;
+
+    if (run_config.nodes[i].nxt_rank >= run_config.tasks_count)
+      run_config.nodes[i].nxt_rank = i;
+
+    if (run_config.threads_count > run_config.tasks_count)
+      run_config.nodes[i].lst_rank = i;
+
+    if (run_config.nodes[i].lst_rank < run_config.nodes[i].nxt_rank || run_config.nodes[i].lst_rank >= run_config.tasks_count)
+      run_config.nodes[i].lst_rank = run_config.nodes[i].nxt_rank;
   }
 
   // Initialise Core
   //
-  KRCORE_INIT_DATA CoreInitData = { 0 };
+  KRCORE_INIT_DATA CoreInitData;
+  ::memset(&CoreInitData, 0, sizeof(KRCORE_INIT_DATA));
+
   CoreInitData.MaxResourceCount = 1 + /* delay syncblock */
     run_config.tasks_count +
     run_config.threads_count +
@@ -490,7 +535,9 @@ up(
 
   // Initialise delay Syncblock
   //
-  KRCORE_SYNCBLOCK_INIT_DATA DelayInitData = { 0 };
+  KRCORE_SYNCBLOCK_INIT_DATA DelayInitData;
+  ::memset(&DelayInitData, 0, sizeof(KRCORE_SYNCBLOCK_INIT_DATA));
+
   DelayInitData.ResetMode = CoreSyncblockResetModeManual;
 
   run_config.delay = ::KrCoreInitializeSyncblock(run_config.core, &DelayInitData);
@@ -500,7 +547,9 @@ up(
   //
   for (auto i = size_t(0); i < blocks.size(); ++i) {
     for (auto j = size_t(0); j < blocks.size(); ++j) {
-      KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData = { 0 };
+      KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData;
+      ::memset(&SyncblockInitData, 0, sizeof(KRCORE_SYNCBLOCK_INIT_DATA));
+
       SyncblockInitData.ResetMode = CoreSyncblockResetModeAutoAll;
 
       PKRCORE_SYNCBLOCK Syncblock = ::KrCoreInitializeSyncblock(run_config.core, &SyncblockInitData);
@@ -514,7 +563,8 @@ up(
   // Initialise Threads
   //
   for (auto i = size_t(0); i < run_config.threads_count; ++i) {
-    KRCORE_THREAD_INIT_DATA ThreadInitData = { 0 };
+    KRCORE_THREAD_INIT_DATA ThreadInitData;
+    ::memset(&ThreadInitData, 0, sizeof(KRCORE_THREAD_INIT_DATA));
 
     ThreadInitData.Binding.Type = SystemBindingLogicalProcessors;
     ThreadInitData.Binding.LogicalProcessors.Group = 0;
@@ -528,14 +578,19 @@ up(
   // Initialise Tasks
   //
   for (auto i = size_t(0); i < run_config.tasks_count; ++i) {
-    KRCORE_TASK_INIT_DATA TaskInitData = { 0 };
+    KRCORE_TASK_INIT_DATA TaskInitData;
+    ::memset(&TaskInitData, 0, sizeof(KRCORE_TASK_INIT_DATA));
 
-    KRCORE_TASK_ATTRIBUTE Attributes[1];
-    Attributes[0].Attribute          = CoreTaskAttributeStartupCreateDelayed;
-    Attributes[0].ON_DELAY.Syncblock = run_config.delay;
+    KRCORE_TASK_ATTRIBUTE Attribute;
+    ::memset(&Attribute, 0, sizeof(KRCORE_TASK_ATTRIBUTE));
+
+    Attribute.Attribute = CoreTaskAttributeStartupCreateDelayed;
+
+    if (i < run_config.threads_count)
+      Attribute.ON_DELAY.Syncblock = run_config.delay;
 
     TaskInitData.AttributesCount = 1;
-    TaskInitData.Attributes = Attributes;
+    TaskInitData.Attributes = &Attribute;
     TaskInitData.Binding.Type = SystemBindingLogicalProcessors;
     TaskInitData.Binding.LogicalProcessors.Group = 0;
     TaskInitData.Binding.LogicalProcessors.Mask  = 1ULL << (i % run_config.threads_count);
