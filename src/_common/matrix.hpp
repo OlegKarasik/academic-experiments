@@ -213,7 +213,7 @@ private:
     pointer   t = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++);
   }
   void
@@ -245,7 +245,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       *(t++) = std::move(*(f++));
   }
   void
@@ -254,7 +254,7 @@ private:
     pointer   p = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<A>::destroy(this->m_a, p++);
   }
   void
@@ -266,28 +266,28 @@ private:
 
 public:
   rect_matrix()
-    : m_m(nullptr)
-    , m_msize(0)
+    : m_a(allocator_type())
     , m_width(0)
     , m_height(0)
-    , m_a(allocator_type())
+    , m_msize(0)
+    , m_m(nullptr)
   {
   }
   rect_matrix(const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(0)
+    : m_a(a)
     , m_width(0)
     , m_height(0)
-    , m_a(a)
+    , m_msize(0)
+    , m_m(nullptr)
   {
   }
 
   rect_matrix(size_type w, size_type h, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(w * h)
+    : m_a(a)
     , m_width(w)
     , m_height(h)
-    , m_a(a)
+    , m_msize(w * h)
+    , m_m(nullptr)
   {
     if ((w * h) > 0) {
       this->allocate_resources();
@@ -296,29 +296,29 @@ public:
   }
 
   rect_matrix(const rect_matrix& o)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
     , m_width(o.m_width)
     , m_height(o.m_height)
-    , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
   rect_matrix(rect_matrix&& o) noexcept
-    : m_m(std::move(o.m_m))
-    , m_msize(std::exchange(o.m_msize, 0))
+    : m_a(std::move(o.m_a))
     , m_width(std::exchange(o.m_width, 0))
     , m_height(std::exchange(o.m_height, 0))
-    , m_a(std::move(o.m_a))
+    , m_msize(std::exchange(o.m_msize, 0))
+    , m_m(std::move(o.m_m))
   {
   }
   rect_matrix(rect_matrix&& o, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(a)
     , m_width(o.m_width)
     , m_height(o.m_height)
-    , m_a(a)
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     if (this->m_msize > 0) {
       if (this->m_a == o.m_a) {
