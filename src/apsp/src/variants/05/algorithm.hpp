@@ -248,7 +248,7 @@ calculate_passive_type_b(
   if (move_bottom)
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  for (size_t j = c + size_t(1); j < lst_task; ++j) {
+  for (size_t j = c + size_t(1); j <= lst_task; ++j) {
     auto& cj = blocks->at(c, j);
 
     for (auto b = c + size_t(1); b <= j; ++b)
@@ -257,12 +257,6 @@ calculate_passive_type_b(
     if (move_bottom)
       std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
   };
-
-  for (auto b = c + size_t(1); b <= lst_task; ++b)
-    calculate_block(cl, blocks->at(c, b), blocks->at(b, lst_task));
-
-  if (move_bottom)
-    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
   calculate_passive_type_c(node);
 }
