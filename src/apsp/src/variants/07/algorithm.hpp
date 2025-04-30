@@ -22,10 +22,6 @@ struct run_configuration
   pointer mm_array_prv_col;
   pointer mm_array_cur_col;
   pointer mm_array_nxt_row;
-  pointer ckb1;
-  pointer ck1b1;
-  pointer ckb1w;
-  pointer ckb3w;
 
   size_t allocation_line;
   size_t allocation_size;
@@ -153,12 +149,10 @@ up(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using pointer    = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::pointer;
   using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::size_type;
   using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::value_type;
 
   ::utilz::matrices::procedures::matrix_get_dimensions<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>> sz;
-  ::utilz::matrices::procedures::matrix_at<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>> at;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -175,20 +169,12 @@ up(
   run_config.mm_array_prv_col = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.mm_array_cur_col = reinterpret_cast<T*>(b.allocate(allocation_size));
   run_config.mm_array_nxt_row = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb1 = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ck1b1 = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb1w = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb3w = reinterpret_cast<T*>(b.allocate(allocation_size));
 
   for (size_type i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
     run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_nxt_row[i] = ::utilz::constants::infinity<value_type>();
-    run_config.ckb1[i]  = ::utilz::constants::infinity<value_type>();
-    run_config.ck1b1[i] = ::utilz::constants::infinity<value_type>();
-    run_config.ckb1w[i] = ::utilz::constants::infinity<value_type>();
-    run_config.ckb3w[i] = ::utilz::constants::infinity<value_type>();
   }
 };
 
@@ -200,19 +186,12 @@ down(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::value_type;
-
   using alptr_type = typename ::utilz::memory::buffer::pointer;
 
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_row), run_config.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_prv_col), run_config.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_col), run_config.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_nxt_row), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ckb1), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ck1b1), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ckb1w), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ckb3w), run_config.allocation_size);
 }
 
 template<typename T, typename A, typename U>
@@ -238,7 +217,6 @@ run(
 
         calculate_diagonal(mm, run_config);
 
-        auto indeces     = clusters.get_indeces(m);
         auto indeces_in  = clusters.get_indeces_in(m);
         auto indeces_out = clusters.get_indeces_out(m);
 
