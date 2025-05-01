@@ -78,17 +78,26 @@ if (WIN32)
     PATHS ${CMAKE_KERNEL_ROOT_PATH}
     PATH_SUFFIXES lib)
 
+  find_path(KERNEL_BINARY_DIRS Kernel.Core.dll
+    PATHS ${CMAKE_KERNEL_ROOT_PATH}
+    PATH_SUFFIXES bin)
+
   if(NOT KERNEL_INCLUDE_DIRS MATCHES NOTFOUND AND
-     NOT KERNEL_LIBRARY_DIRS MATCHES NOTFOUND)
+     NOT KERNEL_LIBRARY_DIRS MATCHES NOTFOUND AND
+     NOT KERNEL_BINARY_DIRS  MATCHES NOTFOUND)
 
     message(STATUS "Found AK-Kernel includes in ${KERNEL_INCLUDE_DIRS}")
     message(STATUS "Found AK-Kernel libraries in ${KERNEL_LIBRARY_DIRS}")
+    message(STATUS "Found AK-Kernel binaries in ${KERNEL_BINARY_DIRS}")
 
     include_directories(${KERNEL_INCLUDE_DIRS})
     link_directories(${KERNEL_LIBRARY_DIRS})
 
-    set(KERNEL_LIBRARY Kernel.Core.lib)
-    set(KERNEL_DLL "${CMAKE_KERNEL_ROOT_PATH}Kernel.Core.dll")
+    set(KERNEL_LIBRARY "Kernel.Core.lib")
+
+    set(KERNEL_DLL         "${KERNEL_BINARY_DIRS}/Kernel.Core.dll")
+    set(KERNEL_DLL_SYMBOLS "${KERNEL_BINARY_DIRS}/Kernel.Core.pdb")
+
     set(KERNEL_FOUND TRUE)
 
     message(STATUS "AK-Kernel - FOUND")
@@ -363,6 +372,12 @@ foreach(index RANGE ${length})
     target_compile_options(_application-v${t_name} PRIVATE "/W4")
   endif()
 
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      target_compile_options(_application-v${t_name} PRIVATE "-g" "-march=native" "-mtune=native")
+    endif()
+  endif()
+
   if (NOT SKIP_GSUITE)
     add_executable(_test-v${t_name}        ${t_tst_src_list})
     add_executable(_benchmark-v${t_name}   ${t_bnk_src_list})
@@ -397,6 +412,7 @@ foreach(index RANGE ${length})
     endif()
 
     file(COPY ${KERNEL_DLL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(COPY ${KERNEL_DLL_SYMBOLS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
   endif()
 
   # If compiler supports OpenMP and target requires OpenMP,
