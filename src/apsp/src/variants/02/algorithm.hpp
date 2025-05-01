@@ -56,7 +56,6 @@ down(
   ::utilz::memory::buffer& b,
   run_configuration<T, A>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
   using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
 
   using alptr_type = typename ::utilz::memory::buffer::pointer;

@@ -158,7 +158,6 @@ calculate_horizontal(
   run_configuration<T, A, U>& run_config)
 {
   using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
   using pointer    = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
@@ -225,12 +224,10 @@ up(
   utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using pointer    = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::pointer;
   using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
   using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::value_type;
 
   ::utilz::matrices::procedures::matrix_get_dimensions<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>> sz;
-  ::utilz::matrices::procedures::matrix_at<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>> at;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -272,13 +269,7 @@ down(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>>::value_type;
-
   using alptr_type = typename ::utilz::memory::buffer::pointer;
-
-  ::utilz::matrices::procedures::matrix_get_dimensions<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>> sz;
-  ::utilz::matrices::procedures::matrix_at<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>> at;
 
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_row), run_config.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_prv_col), run_config.allocation_size);

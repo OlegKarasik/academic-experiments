@@ -243,8 +243,6 @@ calculate_passive_type_b(
 
   const bool move_bottom = c != lst_task;
 
-  auto& cl = blocks->at(c, lst_task);
-
   if (move_bottom)
     std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
