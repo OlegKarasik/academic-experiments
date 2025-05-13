@@ -41,6 +41,7 @@ private:
   std::unordered_map<T, std::vector<T>> m_indeces_in;
   std::unordered_map<T, std::vector<T>> m_bridges_out;
   std::unordered_map<T, std::vector<T>> m_indeces_out;
+  std::unordered_map<T, std::vector<T>> m_indeces_flags;
   std::unordered_map<T, T>              m_reverse;
 
 public:
@@ -58,9 +59,15 @@ public:
       this->m_indeces.emplace(cindex, std::vector<T>());
       this->m_indeces_in.emplace(cindex, std::vector<T>());
       this->m_indeces_out.emplace(cindex, std::vector<T>());
+      this->m_indeces_flags.emplace(cindex, std::vector<T>());
     } else {
       it->second.push_back(vindex);
     }
+    // Here we insert a default '0' flag for a newly detected
+    // cluster vertex
+    //
+    this->m_indeces_flags.at(cindex).push_back(0);
+
     this->m_reverse.emplace(vindex, cindex);
   }
 
@@ -97,8 +104,10 @@ public:
         if (vx_found)
           this->m_indeces.at(x).push_back(v);
 
-        if (vx_out_found)
+        if (vx_out_found) {
           this->m_indeces_out.at(x).push_back(v);
+          this->m_indeces_flags.at(x)[v] = 1;
+        }
       }
 
       if (vz_found)
@@ -114,8 +123,10 @@ public:
         if (vz_found)
           this->m_indeces.at(z).push_back(v);
 
-        if (vz_in_found)
+        if (vz_in_found) {
           this->m_indeces_in.at(z).push_back(v);
+          this->m_indeces_flags.at(z)[v] = 2;
+        }
       }
     }
   }
