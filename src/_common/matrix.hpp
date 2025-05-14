@@ -14,13 +14,6 @@ namespace matrices {
 // Forward declarations
 //
 
-enum clusters_indeces_flags
-{
-  clusters_indeces_flags_none = 0,
-  clusters_indeces_flags_in_vertex   = 1,
-  clusters_indeces_flags_out_vertex  = 2
-};
-
 template<typename T>
 class clusters;
 
@@ -41,15 +34,16 @@ public:
   using size_type = size_t;
 
 private:
-  std::map<T, std::vector<T>>                                m_clusters;
-  std::unordered_map<T, std::vector<T>>                      m_bridges;
-  std::unordered_map<T, std::vector<T>>                      m_indeces;
-  std::unordered_map<T, std::vector<T>>                      m_bridges_in;
-  std::unordered_map<T, std::vector<T>>                      m_indeces_in;
-  std::unordered_map<T, std::vector<T>>                      m_bridges_out;
-  std::unordered_map<T, std::vector<T>>                      m_indeces_out;
-  std::unordered_map<T, std::vector<clusters_indeces_flags>> m_indeces_flags;
-  std::unordered_map<T, T>                                   m_reverse;
+  std::map<T, std::vector<T>>              m_clusters;
+  std::unordered_map<T, std::vector<T>>    m_bridges;
+  std::unordered_map<T, std::vector<T>>    m_indeces;
+  std::unordered_map<T, std::vector<T>>    m_bridges_in;
+  std::unordered_map<T, std::vector<T>>    m_indeces_in;
+  std::unordered_map<T, std::vector<T>>    m_bridges_out;
+  std::unordered_map<T, std::vector<T>>    m_indeces_out;
+  std::unordered_map<T, std::vector<bool>> m_indeces_in_flags;
+  std::unordered_map<T, std::vector<bool>> m_indeces_out_flags;
+  std::unordered_map<T, T>                 m_reverse;
 
 public:
   // Inserts a mapping between cluster and vertex
@@ -64,16 +58,18 @@ public:
       this->m_bridges_in.emplace(cindex, std::vector<T>());
       this->m_bridges_out.emplace(cindex, std::vector<T>());
       this->m_indeces.emplace(cindex, std::vector<T>());
+      this->m_indeces_in_flags.emplace(cindex, std::vector<bool>());
+      this->m_indeces_out_flags.emplace(cindex, std::vector<bool>());
       this->m_indeces_in.emplace(cindex, std::vector<T>());
       this->m_indeces_out.emplace(cindex, std::vector<T>());
-      this->m_indeces_flags.emplace(cindex, std::vector<clusters_indeces_flags>());
     } else {
       it->second.push_back(vindex);
     }
     // Here we insert a default '0' flag for a newly detected
     // cluster vertex
     //
-    this->m_indeces_flags.at(cindex).push_back(clusters_indeces_flags::clusters_indeces_flags_none);
+    this->m_indeces_in_flags.at(cindex).push_back(false);
+    this->m_indeces_out_flags.at(cindex).push_back(false);
 
     this->m_reverse.emplace(vindex, cindex);
   }
@@ -113,7 +109,7 @@ public:
 
         if (vx_out_found) {
           this->m_indeces_out.at(x).push_back(v);
-          this->m_indeces_flags.at(x)[v] = clusters_indeces_flags::clusters_indeces_flags_out_vertex;
+          this->m_indeces_out_flags.at(x)[v] = true;
         }
       }
 
@@ -132,7 +128,7 @@ public:
 
         if (vz_in_found) {
           this->m_indeces_in.at(z).push_back(v);
-          this->m_indeces_flags.at(z)[v] = clusters_indeces_flags::clusters_indeces_flags_in_vertex;
+          this->m_indeces_in_flags.at(z)[v] = true;
         }
       }
     }
@@ -181,9 +177,21 @@ public:
   }
 
   auto
+  get_indeces_in_flags(const T& cindex) const
+  {
+    return std::views::all(this->m_indeces_in_flags.at(cindex));
+  }
+
+  auto
   get_indeces_out(const T& cindex) const
   {
     return std::views::all(this->m_indeces_out.at(cindex));
+  }
+
+  auto
+  get_indeces_out_flags(const T& cindex) const
+  {
+    return std::views::all(this->m_indeces_out_flags.at(cindex));
   }
 
   auto
