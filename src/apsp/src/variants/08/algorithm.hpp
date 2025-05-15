@@ -96,10 +96,12 @@ calculate_vertical(
   for (auto k = size_type(1); k < w; ++k) {
     const auto z = k - size_type(1);
     for (auto i = size_type(0); i < h; ++i) {
+      const auto iz = im.at(i, z);
+
       __hack_ivdep
       for (auto j = size_type(0); j < k; ++j) {
         if (bridges[z])
-          im.at(i, j) = (std::min)(im.at(i, j), im.at(i, z) + mm.at(z, j));
+          im.at(i, j) = (std::min)(im.at(i, j), iz + mm.at(z, j));
 
         if (bridges[j])
           im.at(i, k) = (std::min)(im.at(i, k), im.at(i, j) + mm.at(j, k));
@@ -120,21 +122,42 @@ calculate_vertical(
 template<typename T, typename A>
 void
 calculate_horizontal(
-  ::utilz::matrices::rect_matrix<T, A>& ij,
-  ::utilz::matrices::rect_matrix<T, A>& ik,
-  ::utilz::matrices::rect_matrix<T, A>& kj,
+  ::utilz::matrices::rect_matrix<T, A>& mi,
+  ::utilz::matrices::rect_matrix<T, A>& mm,
   auto bridges)
 {
   using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
 
-  const auto ij_w = ij.width();
-  const auto ij_h = ij.height();
+  const auto w = mi.width();
+  const auto h = mm.height();
 
-  for (auto k : bridges)
-    for (auto i = size_type(0); i < ij_h; ++i)
+  for (auto k = size_type(1); k < h; ++k) {
+    auto const z = k - size_type(1);
+    for (auto i = size_type(0); i < k; ++i) {
+      const auto iz = mm.at(i, z);
+      const auto ki = mm.at(k, i);
+
       __hack_ivdep
-      for (auto j = size_type(0); j < ij_w; ++j)
-        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+      for (auto j = size_type(0); j < w; ++j) {
+        if (bridges[z])
+          mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+
+        if (bridges[i])
+          mi.at(k, j) = (std::min)(mi.at(k, j), ki + mi.at(i, j));
+      }
+    }
+  }
+
+  const auto z = h - size_type(1);
+  if (bridges[z]) {
+    for (auto i = size_type(0); i < z; ++i) {
+      const auto iz = mm.at(i, z);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < w; ++j)
+        mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+    }
+  }
 };
 
 template<typename T, typename A>
@@ -244,14 +267,14 @@ run(
             auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, indeces_in)
+  #pragma omp task untied default(none) shared(im, mm, indeces_in_flags)
 #endif
             calculate_vertical(im, mm, indeces_in_flags);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, indeces_out)
+  #pragma omp task untied default(none) shared(mi, mm, indeces_out_flags)
 #endif
-            calculate_horizontal(mi, mm, mi, indeces_out);
+            calculate_horizontal(mi, mm, indeces_out_flags);
           }
         }
 #ifdef _OPENMP
