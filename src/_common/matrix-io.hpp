@@ -180,6 +180,10 @@ scan_matrix(
   auto dimensions = get_dimensions(block_matrix);
   for (auto i = size_type(0); i < dimensions.s(); ++i)
     get_at(block_matrix, i, i) = value_type(0);
+
+  for (auto cindex : clusters.list()) {
+    clusters.calculate_indeces(cindex);
+  }
 };
 
 template<typename T, typename A>
