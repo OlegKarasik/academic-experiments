@@ -182,7 +182,7 @@ scan_matrix(
     get_at(block_matrix, i, i) = value_type(0);
 
   for (auto cindex : clusters.list()) {
-    clusters.calculate_indeces(cindex);
+    clusters.optimise(cindex);
   }
 };
 

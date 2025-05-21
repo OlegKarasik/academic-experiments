@@ -12,10 +12,15 @@ namespace matrices {
 
 enum clusters_vertex_flag
 {
-  clusters_arrangement_none   = 1,
-  clusters_arrangement_input  = 2,
-  clusters_arrangement_output = 3
+  clusters_vertex_flag_none         = 0,
+  clusters_vertex_flag_input        = 1,
+  clusters_vertex_flag_output       = 2,
+  clusters_vertex_flag_input_output = 3
 };
+inline clusters_vertex_flag operator | (clusters_vertex_flag a, clusters_vertex_flag b)
+{
+    return static_cast<clusters_vertex_flag>(static_cast<int>(a) | static_cast<int>(b));
+}
 
 // ---
 // Forward declarations
@@ -41,8 +46,11 @@ public:
   using size_type = size_t;
 
 private:
-  std::map<T, std::vector<T>>              m_clusters;
-  std::unordered_map<T, std::vector<T>>    m_bridges;
+  std::map<T, std::vector<T>> m_clusters;
+
+  std::unordered_map<T, std::vector<T>>                    m_bridges;
+  std::unordered_map<T, std::vector<clusters_vertex_flag>> m_bridges_flags;
+
   std::unordered_map<T, std::vector<T>>    m_indeces;
   std::unordered_map<T, std::vector<T>>    m_bridges_in;
   std::unordered_map<T, std::vector<T>>    m_indeces_in;
@@ -62,6 +70,8 @@ public:
     if (it == this->m_clusters.end()) {
       this->m_clusters.emplace(cindex, std::vector<T>({ vindex }));
       this->m_bridges.emplace(cindex, std::vector<T>());
+      this->m_bridges_flags.emplace(cindex, std::vector<clusters_vertex_flag>());
+
       this->m_bridges_in.emplace(cindex, std::vector<T>());
       this->m_bridges_out.emplace(cindex, std::vector<T>());
       this->m_indeces.emplace(cindex, std::vector<T>());
@@ -72,11 +82,6 @@ public:
     } else {
       it->second.push_back(vindex);
     }
-    // Here we insert a default '0' flag for a newly detected
-    // cluster vertex
-    //
-    this->m_indeces_in_flags.at(cindex).push_back(false);
-    this->m_indeces_out_flags.at(cindex).push_back(false);
 
     this->m_reverse.emplace(vindex, cindex);
   }
@@ -91,27 +96,19 @@ public:
     auto z = this->m_reverse.at(to);
 
     if (x != z) {
-      auto& vx     = this->m_bridges.at(x);
-      auto& vz     = this->m_bridges.at(z);
-      auto& vz_in  = this->m_bridges_in.at(z);
-      auto& vx_out = this->m_bridges_out.at(x);
+      auto process_edge = [](std::vector<T>& bridges, std::vector<clusters_vertex_flag>& bridges_flags, T vertex, clusters_vertex_flag flag) {
+        auto it = std::find(bridges.begin(), bridges.end(), vertex);
+        if (it == bridges.end()) {
+          bridges.push_back(vertex);
+          bridges_flags.push_back(flag);
+        } else {
+          auto distance = std::distance(bridges.begin(), it);
+          bridges_flags[distance] = bridges_flags[distance] | flag;
+        }
+      };
 
-      bool vx_found     = std::find(vx.begin(), vx.end(), from) == vx.end();
-      bool vz_found     = std::find(vz.begin(), vz.end(), to) == vz.end();
-      bool vz_in_found  = std::find(vz_in.begin(), vz_in.end(), to) == vz_in.end();
-      bool vx_out_found = std::find(vx_out.begin(), vx_out.end(), from) == vx_out.end();
-
-      if (vx_found)
-        this->m_bridges.at(x).push_back(from);
-
-      if (vz_found)
-        this->m_bridges.at(z).push_back(to);
-
-      if (vx_out_found)
-        this->m_bridges_out.at(x).push_back(from);
-
-      if (vz_in_found)
-        this->m_bridges_in.at(z).push_back(to);
+      process_edge(this->m_bridges.at(x), this->m_bridges_flags.at(x), from, clusters_vertex_flag_output);
+      process_edge(this->m_bridges.at(z), this->m_bridges_flags.at(z), to, clusters_vertex_flag_input);
     }
   }
 
@@ -119,47 +116,69 @@ public:
   //
   //
   void
-  arrange_vertices(T cindex, std::array<clusters_vertex_flag, 3>& arrangement) {
-    auto vertices    = this->m_clusters.at(cindex);
-    auto bridges     = this->m_bridges.at(cindex);
-    auto bridges_in  = this->m_bridges_in.at(cindex);
-    auto bridges_out = this->m_bridges_out.at(cindex);
-
-    std::vector<T> t(vertices.size(), T(0));
+  arrange_vertices(T cindex, std::array<clusters_vertex_flag, 3> arrangement) {
+    auto vertices      = this->m_clusters.at(cindex);
+    auto bridges       = this->m_bridges.at(cindex);
+    auto bridges_flags = this->m_bridges_flags.at(cindex);
 
     auto i = size_type(0);
+    std::vector<T> t(vertices.size(), T(0));
+
+    auto process_io = [&t, &i, &bridges, &bridges_flags](clusters_vertex_flag flag) {
+      for (auto x = size_type(0); x < bridges.size(); ++x) {
+        if (bridges_flags[x] == flag) {
+          t[i++] = bridges[x];
+        }
+      }
+    };
+
+    auto c = false;
     for (auto o : arrangement) {
       switch (o) {
-        case clusters_vertex_flag::clusters_arrangement_none:
+        case clusters_vertex_flag::clusters_vertex_flag_none:
           for (auto v : vertices) {
-            if (bridges.find(v) == bridges.end())
+            if (std::find(bridges.begin(), bridges.end(), v) == bridges.end())
               t[i++] = v;
           }
           break;
-        case clusters_vertex_flag::clusters_arrangement_input:
-          for (auto v : bridges_in)
-            t[i++] = v;
-
-          break;
-        case clusters_vertex_flag::clusters_arrangement_output:
-          for (auto v : bridges_out)
-            t[i++] = v;
-
+        case clusters_vertex_flag::clusters_vertex_flag_input:
+        case clusters_vertex_flag::clusters_vertex_flag_output:
+          process_io(o);
+          if (!c) {
+            process_io(clusters_vertex_flag_input_output);
+            c = true;
+          }
           break;
       }
     }
+
+    this->m_clusters.at(cindex) = t;
   }
 
   //
   //
   //
   void
-  calculate_indeces(T cindex) {
-    auto vertices = this->m_clusters.at(cindex);
+  optimise(T cindex) {
+    auto vertices      = this->m_clusters.at(cindex);
+    auto bridges       = this->m_bridges.at(cindex);
+    auto bridges_flags = this->m_bridges_flags.at(cindex);
 
-    auto bridges     = this->m_bridges.at(cindex);
-    auto bridges_in  = this->m_bridges_in.at(cindex);
-    auto bridges_out = this->m_bridges_out.at(cindex);
+    auto& bridges_in  = this->m_bridges_in.at(cindex);
+    auto& bridges_out = this->m_bridges_out.at(cindex);
+
+    auto process_bridges = [&bridges, &bridges_flags](std::vector<T>& result, clusters_vertex_flag flag) {
+      result.clear();
+
+      for (auto i = size_type(0); i < bridges.size(); ++i) {
+        if (bridges_flags[i] & flag)
+          result.push_back(bridges[i]);
+      }
+    };
+
+    process_bridges(bridges_in, clusters_vertex_flag_input);
+    process_bridges(bridges_out, clusters_vertex_flag_output);
+
 
     auto& indeces           = this->m_indeces.at(cindex);
     auto& indeces_in        = this->m_indeces_in.at(cindex);
@@ -167,30 +186,32 @@ public:
     auto& indeces_in_flags  = this->m_indeces_in_flags.at(cindex);
     auto& indeces_out_flags = this->m_indeces_out_flags.at(cindex);
 
-    auto calculate = [](std::vector<T>& destination, std::vector<T>& source, std::vector<T>& reference) {
-      destination.clear();
-      destination.resize(source.size());
+    auto calculate_indeces = [&vertices](std::vector<T>& result, std::vector<T>& source) {
+      result.clear();
 
       for (auto i = size_t(0); i < source.size(); ++i) {
         auto v     = source[i];
-        auto index = std::distance(reference.begin(), std::find(reference.begin(), reference.end(), v));
+        auto index = std::distance(vertices.begin(), std::find(vertices.begin(), vertices.end(), v));
 
-        destination[i] = index;
+        result.push_back(index);
       }
     };
+    auto calculate_indeces_flags = [&vertices](std::vector<bool>& result, std::vector<T>& source) {
+      result.clear();
+      result.resize(vertices.size());
 
-    calculate(indeces, bridges, vertices);
-    calculate(indeces_in, bridges_in, vertices);
-    calculate(indeces_out, bridges_out, vertices);
+      std::fill(result.begin(), result.end(), false);
 
-    std::fill(indeces_in_flags.begin(), indeces_in_flags.end(), false);
-    std::fill(indeces_out_flags.begin(), indeces_out_flags.end(), false);
+      for (auto v : source)
+        result[v] = true;
+    };
 
-    for (auto v : indeces_in)
-      indeces_in_flags[v] = true;
+    calculate_indeces(indeces, bridges);
+    calculate_indeces(indeces_in, bridges_in);
+    calculate_indeces(indeces_out, bridges_out);
 
-    for (auto v : indeces_out)
-      indeces_out_flags[v] = true;
+    calculate_indeces_flags(indeces_in_flags, indeces_in);
+    calculate_indeces_flags(indeces_out_flags, indeces_out);
   }
 
   size_type

@@ -226,6 +226,7 @@ list(APPEND targets_names "03")
 list(APPEND targets_names "04")
 list(APPEND targets_names "07")
 list(APPEND targets_names "08")
+list(APPEND targets_names "09")
 
 # Initialise Metal specific targets (MacOS)
 #
@@ -249,6 +250,7 @@ if (OpenMP_CXX_FOUND)
   list(APPEND omp_targets "04-omp")
   list(APPEND omp_targets "07-omp")
   list(APPEND omp_targets "08-omp")
+  list(APPEND omp_targets "09-omp")
 endif()
 
 # Initialise ITT targets if ITT is enabled
