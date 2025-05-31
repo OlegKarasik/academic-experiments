@@ -6,7 +6,8 @@
                 "${workspaceFolder:program}/**",
                 "${workspaceFolder:_common}/**",
                 "${workspaceFolder:_deps}/**",
-                "C:/Program Files/Oleg Karasik/AK-Kernel/1.31.0/include"
+                "C:/Program Files/Oleg Karasik/AK-Kernel/**",
+                "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/VS/include"
             ],
             "defines": [
                 "_DEBUG",
