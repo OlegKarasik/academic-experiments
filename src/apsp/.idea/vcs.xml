@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/../.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/mingw-gcc-debug/_deps/googlebenchmark-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/mingw-gcc-debug/_deps/googletest-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/mingw-gcc-release/_deps/googlebenchmark-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/mingw-gcc-release/_deps/googletest-src" vcs="Git" />
+  </component>
+</project>
