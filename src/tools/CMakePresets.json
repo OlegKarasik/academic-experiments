@@ -3,9 +3,29 @@
   "configurePresets": [
     {
       "hidden": true,
+      "name": "basic-preset",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "hidden": true,
+      "name": "windows-basic-preset",
+      "environment": {
+        "CMAKE_BUILD_PARALLEL_LEVEL": "$penv{NUMBER_OF_PROCESSORS}"
+      },
+      "condition": {
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows",
+        "type": "equals"
+      }
+    },
+    {
+      "hidden": true,
+      "inherits": [
+        "basic-preset",
+        "windows-basic-preset"
+      ],
       "name": "mingw-gcc",
       "generator": "MinGW Makefiles",
-      "binaryDir": "${workspaceFolder}/build",
       "environment": {
         "MINGW64_ROOT": "C:/msys64/mingw64",
         "PATH": "$env{MINGW64_ROOT}/bin;$penv{PATH}"
@@ -44,9 +64,12 @@
     },
     {
       "hidden": true,
+      "inherits": [
+        "basic-preset",
+        "windows-basic-preset"
+      ],
       "name": "mingw-intel",
       "generator": "MinGW Makefiles",
-      "binaryDir": "${workspaceFolder}/build",
       "environment": {
         "VS_VER": "2019",
         "MSVC_VER": "14.29.30133",
@@ -139,8 +162,10 @@
     },
     {
       "hidden": true,
+      "inherits": [
+        "basic-preset"
+      ],
       "name": "osx-llvm-clang",
-      "binaryDir": "${workspaceFolder}/build",
       "environment": {
         "CPLUS_INCLUDE_PATH": "/opt/homebrew/Cellar/llvm/19.1.7/include/c++/v1"
       },

@@ -67,7 +67,7 @@ endif()
 if (WIN32)
   cmake_host_system_information(
     RESULT CMAKE_KERNEL_ROOT_PATH
-    QUERY WINDOWS_REGISTRY "HKLM\\SOFTWARE\\Oleg Karasik\\AK-Kernel\\1.30.0"
+    QUERY WINDOWS_REGISTRY "HKLM\\SOFTWARE\\Oleg Karasik\\AK-Kernel\\1.31.0"
     VALUE "InstallPath")
 
   find_path(KERNEL_INCLUDE_DIRS Kernel{Core}.h
@@ -78,17 +78,26 @@ if (WIN32)
     PATHS ${CMAKE_KERNEL_ROOT_PATH}
     PATH_SUFFIXES lib)
 
+  find_path(KERNEL_BINARY_DIRS Kernel.Core.dll
+    PATHS ${CMAKE_KERNEL_ROOT_PATH}
+    PATH_SUFFIXES bin)
+
   if(NOT KERNEL_INCLUDE_DIRS MATCHES NOTFOUND AND
-     NOT KERNEL_LIBRARY_DIRS MATCHES NOTFOUND)
+     NOT KERNEL_LIBRARY_DIRS MATCHES NOTFOUND AND
+     NOT KERNEL_BINARY_DIRS  MATCHES NOTFOUND)
 
     message(STATUS "Found AK-Kernel includes in ${KERNEL_INCLUDE_DIRS}")
     message(STATUS "Found AK-Kernel libraries in ${KERNEL_LIBRARY_DIRS}")
+    message(STATUS "Found AK-Kernel binaries in ${KERNEL_BINARY_DIRS}")
 
     include_directories(${KERNEL_INCLUDE_DIRS})
     link_directories(${KERNEL_LIBRARY_DIRS})
 
-    set(KERNEL_LIBRARY Kernel.Core.lib)
-    set(KERNEL_DLL "${CMAKE_KERNEL_ROOT_PATH}Kernel.Core.dll")
+    set(KERNEL_LIBRARY "Kernel.Core.lib")
+
+    set(KERNEL_DLL         "${KERNEL_BINARY_DIRS}/Kernel.Core.dll")
+    set(KERNEL_DLL_SYMBOLS "${KERNEL_BINARY_DIRS}/Kernel.Core.pdb")
+
     set(KERNEL_FOUND TRUE)
 
     message(STATUS "AK-Kernel - FOUND")
@@ -216,6 +225,8 @@ list(APPEND targets_names "02")
 list(APPEND targets_names "03")
 list(APPEND targets_names "04")
 list(APPEND targets_names "07")
+list(APPEND targets_names "08")
+list(APPEND targets_names "09")
 
 # Initialise Metal specific targets (MacOS)
 #
@@ -238,6 +249,8 @@ if (OpenMP_CXX_FOUND)
   list(APPEND omp_targets "03-omp")
   list(APPEND omp_targets "04-omp")
   list(APPEND omp_targets "07-omp")
+  list(APPEND omp_targets "08-omp")
+  list(APPEND omp_targets "09-omp")
 endif()
 
 # Initialise ITT targets if ITT is enabled
@@ -248,18 +261,26 @@ if (ITT_FOUND)
   endif()
 
   if (WIN32 AND KERNEL_FOUND AND VS_FOUND)
-    list(APPEND itt_kernel_targets "05-kernel-itt")
+    # Include all Kernel targets from kernel_targets into -itt targets
+    #
+    list(LENGTH kernel_targets _init_kernel_itt_targets_length)
+    math(EXPR init_kernel_itt_targets_length "${_init_kernel_itt_targets_length}-1")
+    foreach(index RANGE ${init_kernel_itt_targets_length})
+      list(GET kernel_targets ${index} t_name)
+
+      list(APPEND itt_kernel_targets "${t_name}-itt")
+    endforeach()
   endif()
 
   if (OpenMP_CXX_FOUND)
-    # Include all OpenMP targets from targets_names into -itt targets
+    # Include all OpenMP targets from omp_targets into -itt targets
     #
     list(LENGTH omp_targets _init_omp_itt_targets_length)
     math(EXPR init_omp_itt_targets_length "${_init_omp_itt_targets_length}-1")
     foreach(index RANGE ${init_omp_itt_targets_length})
       list(GET omp_targets ${index} t_name)
 
-      list(APPEND itt_omp_targets "${t_name}-omp-itt")
+      list(APPEND itt_omp_targets "${t_name}-itt")
     endforeach()
   endif()
 
@@ -275,12 +296,15 @@ if (ITT_FOUND)
 
   if (itt_omp_targets)
     list(APPEND itt_targets "${itt_omp_targets}")
+    list(APPEND omp_targets "${itt_omp_targets}")
   endif()
   if (itt_kernel_targets)
     list(APPEND itt_targets "${itt_kernel_targets}")
+    list(APPEND kernel_targets "${itt_kernel_targets}")
   endif()
   if (itt_metal_targets)
     list(APPEND itt_targets "${itt_metal_targets}")
+    list(APPEND targets_names "${itt_metal_targets}")
   endif()
 endif()
 
@@ -292,9 +316,6 @@ if (kernel_targets)
 endif()
 if (metal_targets)
   list(APPEND targets_names "${metal_targets}")
-endif()
-if (itt_targets)
-  list(APPEND targets_names "${itt_targets}")
 endif()
 
 add_custom_target(tests)
@@ -345,6 +366,22 @@ foreach(index RANGE ${length})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
 
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(_application-v${t_name} PRIVATE "-Wall")
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(_application-v${t_name} PRIVATE "-Wall")
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(_application-v${t_name} PRIVATE "/W4")
+  endif()
+
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      target_compile_options(_application-v${t_name} PRIVATE "-g" "-march=native" "-mtune=native")
+    endif()
+  endif()
+
   if (NOT SKIP_GSUITE)
     add_executable(_test-v${t_name}        ${t_tst_src_list})
     add_executable(_benchmark-v${t_name}   ${t_bnk_src_list})
@@ -362,8 +399,6 @@ foreach(index RANGE ${length})
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       target_compile_options(_benchmark-v${t_name} PRIVATE "-fopt-info-vec-optimized" "-fopt-info-loop-optimized" "-save-temps" "-fverbose-asm")
     endif()
-
-
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
       target_compile_options(_benchmark-v${t_name} PRIVATE "-Rpass=loop-vectorize")
     endif()
@@ -381,6 +416,7 @@ foreach(index RANGE ${length})
     endif()
 
     file(COPY ${KERNEL_DLL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(COPY ${KERNEL_DLL_SYMBOLS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
   endif()
 
   # If compiler supports OpenMP and target requires OpenMP,

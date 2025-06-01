@@ -18,6 +18,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
+#include "memory.hpp"
 
 // local includes
 //
@@ -50,27 +51,50 @@ public:
 // aliasing
 //
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-  using buffer = utilz::memory::buffer_dyn;
+  using buffer = ::utilz::memory::buffer_dyn;
 #endif
 
+// define global types
+//
+using g_calculation_type = T;
+
+template<typename K>
+using g_allocator_type = typename std::allocator<K>;
+
+// aliasing
+//
 #ifdef APSP_ALG_MATRIX_BLOCKS
-  using matrix = utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T>>;
+  using matrix_block = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+  using matrix       = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
+#endif
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  using matrix                  = utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T>>;
-  using clusters                = utilz::matrices::clusters<typename utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T>>::size_type>;
-  using matrix_arrange_clusters = utilz::matrices::procedures::matrix_arrange_clusters<matrix>;
+  using matrix_block            = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+  using matrix                  = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
+  using clusters                = ::utilz::matrices::clusters;
+  using matrix_arrange_clusters = ::utilz::matrices::procedures::matrix_arrange_clusters<matrix>;
+
+  #ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration     = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
+#endif
 #endif
 
 #ifdef APSP_ALG_MATRIX
-  using matrix = utilz::matrices::square_matrix<T>;
+  using matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+
+#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
+#endif
 #endif
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
   buffer               m_buf;
-  run_configuration<T> m_run_config;
+  extra_configuration  m_run_config;
 #endif
 
   std::vector<matrix> m_src;
@@ -81,7 +105,7 @@ public:
 
   Fixture()
   {
-    utilz::graphs::io::graph_format graph_format = utilz::graphs::io::graph_format::graph_fmt_weightlist;
+    ::utilz::graphs::io::graph_format graph_format = ::utilz::graphs::io::graph_format::graph_fmt_weightlist;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
     utilz::communities::io::communities_format communities_format = utilz::communities::io::communities_format::communities_fmt_rlang;
@@ -114,15 +138,15 @@ public:
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-      utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix, std::get<1>(params));
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix, std::get<1>(params));
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix, src_clusters);
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix, src_clusters);
 #endif
 
 #ifdef APSP_ALG_MATRIX
-      utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix);
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix);
 #endif
 
       this->m_src.push_back(std::move(src_matrix));
@@ -145,9 +169,41 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+    #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
+      for (auto group : this->m_src_clusters[src_index].list()) {
+        const auto input_count = std::ranges::count_if(
+          group.list(),
+          [](const auto& vertex) -> bool {
+            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
+          });
+        const auto output_count = std::ranges::count_if(
+          group.list(),
+          [](const auto& vertex) -> bool {
+            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
+          });
+        if (input_count > output_count) {
+          group.sort(
+            {
+              ::utilz::matrices::clusters_vertex_flag_none,
+              ::utilz::matrices::clusters_vertex_flag_output,
+              ::utilz::matrices::clusters_vertex_flag_input,
+              ::utilz::matrices::clusters_vertex_flag_input_output
+            });
+        } else {
+          group.sort(
+            {
+              ::utilz::matrices::clusters_vertex_flag_none,
+              ::utilz::matrices::clusters_vertex_flag_input,
+              ::utilz::matrices::clusters_vertex_flag_output,
+              ::utilz::matrices::clusters_vertex_flag_input_output
+            });
+        }
+      }
+      this->m_src_clusters[src_index].optimise();
+    #endif
     matrix_arrange_clusters src_rearrange;
 
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
@@ -188,7 +244,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
     src_rearrange(
       this->m_src[src_index],
       this->m_src_clusters[src_index],
-      utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+      ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
   }

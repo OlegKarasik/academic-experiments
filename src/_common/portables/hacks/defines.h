@@ -11,6 +11,11 @@
 #endif
 
 #ifdef _INTEL_COMPILER
+#else
+#define __hack_nounroll _Pragma("GCC unroll 1")
+#endif
+
+#ifdef _INTEL_COMPILER
 #define __hack_noexcept
 #else
 #define __hack_noexcept noexcept

@@ -7,6 +7,7 @@
 #include "portables/hacks/defines.h"
 
 #include "matrix.hpp"
+#include "matrix-traits.hpp"
 
 template<typename T, typename A>
 void
@@ -38,8 +39,8 @@ calculate_block(
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto kj_size = kj.height();
-  const auto ij_w = ij.width();
-  const auto ij_h = ij.height();
+  const auto ij_w    = ij.width();
+  const auto ij_h    = ij.height();
 
   for (auto k = size_type(0); k < kj_size; ++k)
     for (auto i = size_type(0); i < ij_h; ++i)
@@ -49,10 +50,11 @@ calculate_block(
 };
 
 template<typename T, typename A, typename U>
-__hack_noinline void
+__hack_noinline
+void
 run(
-  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& blocks,
-  utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type>& clusters)
+  ::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>& blocks,
+  ::utilz::matrices::clusters& clusters)
 {
   using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 
@@ -69,7 +71,7 @@ run(
 
         calculate_block(mm, mm, mm);
 
-        auto indeces = clusters.get_indeces(m);
+        auto positions = clusters.get_all_bridges_positions(m);
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
@@ -77,14 +79,14 @@ run(
             auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, indeces)
+  #pragma omp task untied default(none) shared(im, mm, positions)
 #endif
-            calculate_block(im, im, mm, indeces);
+            calculate_block(im, im, mm, positions);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, indeces)
+  #pragma omp task untied default(none) shared(mi, mm, positions)
 #endif
-            calculate_block(mi, mm, mi, indeces);
+            calculate_block(mi, mm, mi, positions);
           }
         }
 #ifdef _OPENMP
@@ -99,9 +101,9 @@ run(
                 auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, im, mj, indeces)
+  #pragma omp task untied default(none) shared(ij, im, mj, positions)
 #endif
-                calculate_block(ij, im, mj, indeces);
+                calculate_block(ij, im, mj, positions);
               }
             }
           }

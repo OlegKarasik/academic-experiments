@@ -10,10 +10,10 @@
 #include "matrix.hpp"
 #include "constants.hpp"
 
-template<typename T>
+template<typename T, typename A>
 struct run_configuration
 {
-  using pointer = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T>>::pointer;
+  using pointer = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -22,15 +22,16 @@ struct run_configuration
 };
 
 template<typename T, typename A>
-__hack_noinline void
+__hack_noinline
+void
 up(
-  utilz::matrices::square_matrix<T, A>& m,
-  utilz::memory::buffer& b,
-  run_configuration<T>& run_config)
+  ::utilz::matrices::square_matrix<T, A>& m,
+  ::utilz::memory::buffer& b,
+  run_configuration<T, A>& run_config)
 {
-  using pointer    = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::pointer;
-  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
+  using pointer    = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::pointer;
+  using size_type  = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
+  using value_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
 
   auto allocation_size = m.size() * sizeof(value_type);
 
@@ -40,24 +41,24 @@ up(
   run_config.mm_array_nxt_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
 
   for (auto i = size_type(0); i < m.size(); ++i) {
-    run_config.mm_array_cur_row[i] = utilz::constants::infinity<value_type>();
-    run_config.mm_array_prv_col[i] = utilz::constants::infinity<value_type>();
-    run_config.mm_array_cur_col[i] = utilz::constants::infinity<value_type>();
-    run_config.mm_array_nxt_col[i] = utilz::constants::infinity<value_type>();
+    run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
+    run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
+    run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
+    run_config.mm_array_nxt_col[i] = ::utilz::constants::infinity<value_type>();
   }
 };
 
 template<typename T, typename A>
-__hack_noinline void
+__hack_noinline
+void
 down(
-  utilz::matrices::square_matrix<T, A>& m,
-  utilz::memory::buffer& b,
-  run_configuration<T>& run_config)
+  ::utilz::matrices::square_matrix<T, A>& m,
+  ::utilz::memory::buffer& b,
+  run_configuration<T, A>& run_config)
 {
-  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
+  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
 
-  using alptr_type = typename utilz::memory::buffer::pointer;
+  using alptr_type = typename ::utilz::memory::buffer::pointer;
 
   auto allocation_size = m.size() * sizeof(value_type);
 
@@ -68,22 +69,23 @@ down(
 }
 
 template<typename T, typename A>
-__hack_noinline void
+__hack_noinline
+void
 run(
-  utilz::matrices::square_matrix<T, A>& m,
-  run_configuration<T>& run_config)
+  ::utilz::matrices::square_matrix<T, A>& m,
+  run_configuration<T, A>& run_config)
 {
-  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
+  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
+  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
 
-  run_config.mm_array_prv_col[0] = utilz::constants::infinity<value_type>();
+  run_config.mm_array_prv_col[0] = ::utilz::constants::infinity<value_type>();
   run_config.mm_array_nxt_col[0] = m.at(0, 1);
 
   const auto x = m.size() - size_type(1);
   for (auto k = size_type(1); k < m.size(); ++k) {
     __hack_ivdep
     for (auto i = size_type(0); i < k; ++i)
-      run_config.mm_array_cur_row[i] = utilz::constants::infinity<value_type>();
+      run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
 
     const auto z = k - size_type(1);
 
@@ -91,7 +93,7 @@ run(
       const auto v = m.at(k, i);
       const auto w = run_config.mm_array_prv_col[i];
 
-      auto minimum = utilz::constants::infinity<value_type>();
+      auto minimum = ::utilz::constants::infinity<value_type>();
 
       __hack_ivdep
       for (auto j = size_type(0); j < k; ++j) {

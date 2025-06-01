@@ -5,6 +5,11 @@
 #define APSP_ALG_EXTRA_CONFIGURATION
 
 #define APSP_ALG_EXTRA_REARRANGEMENTS
+#define APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
+
+#include <constants.hpp>
+#include <matrix-manip.hpp>
+#include <matrix-traits.hpp>
 
 #include "portables/hacks/defines.h"
 
@@ -83,6 +88,46 @@ calculate_diagonal(
 
 template<typename T, typename A>
 void
+calculate_vertical_fast(
+  ::utilz::matrices::rect_matrix<T, A>& im,
+  ::utilz::matrices::rect_matrix<T, A>& mm,
+  auto bridges,
+  auto bridges_flags)
+{
+  using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
+
+  const auto w = im.width();
+  const auto h = im.height();
+
+  for (auto k = bridges[0]; k < w; ++k) {
+    const auto z = k - size_type(1);
+    for (auto i = size_type(0); i < h; ++i) {
+      const auto iz = im.at(i, z);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < k; ++j) {
+        if (bridges_flags[z])
+          im.at(i, j) = (std::min)(im.at(i, j), iz + mm.at(z, j));
+
+        if (bridges_flags[j])
+          im.at(i, k) = (std::min)(im.at(i, k), im.at(i, j) + mm.at(j, k));
+      }
+    }
+  }
+
+  const auto z = w - size_type(1);
+  if (bridges_flags[z]) {
+    for (auto i = size_type(0); i < h; ++i) {
+      __hack_ivdep
+      for (auto j = size_type(0); j < z; ++j)
+        im.at(i, j) = (std::min)(im.at(i, j), im.at(i, z) + mm.at(z, j));
+    }
+  }
+};
+
+
+template<typename T, typename A>
+void
 calculate_vertical(
   ::utilz::matrices::rect_matrix<T, A>& ij,
   ::utilz::matrices::rect_matrix<T, A>& ik,
@@ -99,6 +144,48 @@ calculate_vertical(
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
+template<typename T, typename A>
+void
+calculate_horizontal_fast(
+  ::utilz::matrices::rect_matrix<T, A>& mi,
+  ::utilz::matrices::rect_matrix<T, A>& mm,
+  auto bridges,
+  auto bridges_flags)
+{
+  using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
+
+  const auto w = mi.width();
+  const auto h = mm.height();
+
+  for (auto k = bridges[0]; k < h; ++k) {
+    auto const z = k - size_type(1);
+    for (auto i = size_type(0); i < k; ++i) {
+      const auto iz = mm.at(i, z);
+      const auto ki = mm.at(k, i);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < w; ++j) {
+        if (bridges_flags[z])
+          mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+
+        if (bridges_flags[i])
+          mi.at(k, j) = (std::min)(mi.at(k, j), ki + mi.at(i, j));
+      }
+    }
+  }
+
+  const auto z = h - size_type(1);
+  if (bridges_flags[z]) {
+    for (auto i = size_type(0); i < z; ++i) {
+      const auto iz = mm.at(i, z);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < w; ++j)
+        mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+    }
+  }
 };
 
 template<typename T, typename A>
@@ -217,23 +304,41 @@ run(
 
         calculate_diagonal(mm, run_config);
 
-        auto input_positions  = clusters.get_input_bridges_positions(m);
-        auto output_positions = clusters.get_output_bridges_positions(m);
+        auto input_positions        = clusters.get_input_bridges_positions(m);
+        auto output_positions       = clusters.get_output_bridges_positions(m);
+        auto input_positions_flags  = clusters.get_input_bridges_positions_flags(m);
+        auto output_positions_flags = clusters.get_output_bridges_positions_flags(m);
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
+            if (input_positions.size() > output_positions.size()) {
+              if (!input_positions.empty()) {
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, input_positions)
+  #pragma omp task untied default(none) shared(im, mm, input_positions, input_positions_flags)
 #endif
-            calculate_vertical(im, im, mm, input_positions);
+                calculate_vertical_fast(im, mm, input_positions, input_positions_flags);
+              }
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, output_positions)
 #endif
-            calculate_horizontal(mi, mm, mi, output_positions);
+              calculate_horizontal(mi, mm, mi, output_positions);
+            } else {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(im, mm, input_positions)
+#endif
+              calculate_vertical(im, im, mm, input_positions);
+
+              if (!output_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(mi, mm, output_positions, output_positions_flags)
+#endif
+                calculate_horizontal_fast(mi, mm, output_positions, output_positions_flags);
+              }
+            }
           }
         }
 #ifdef _OPENMP

@@ -1,432 +1,615 @@
 #pragma once
 
-#define APSP_ALG_MATRIX
+#define APSP_ALG_MATRIX_BLOCKS
+
+#define APSP_ALG_EXTRA_CONFIGURATION
 
 #include "portables/hacks/defines.h"
 
-#include "Kernel{Core}.h"
 #include "Kernel{Algorithm}.h"
 #include "Kernel{Base}.h"
 #include "Kernel{Bitfield}.h"
+#include "Kernel{Core}.h"
 #include "Kernel{Memory}.h"
 #include "Kernel{Queue}.h"
 #include "Kernel{System}.h"
 
 #include "matrix.hpp"
+#include "memory.hpp"
 
+#include <thread>
+#include <cassert>
 
-// __forceinline
-// void __fw_block(size_t block_size,
-//                 long *ij_data,
-//                 long *ik_data,
-//                 long *kj_data) {
-//     for (size_t k = 0ULL; k < block_size; ++k) {
-// long *kj_row = &kj_data[k * block_size];
-//         for (size_t i = 0ULL; i < block_size; ++i) {
-//             long *ij_row = &ij_data[i * block_size];
-//             long *__kj_row = kj_row;
+using heights_matrix      = ::utilz::matrices::square_matrix<size_t, ::utilz::memory::buffer_allocator<size_t>>;
+using heights_sync_matrix = ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>;
 
-//             long ik = ik_data[i * block_size + k];
+struct stream_node_wait_condition
+{
+  size_t* c;
+  size_t  v;
+};
 
-//             #pragma vector aligned
-//             #pragma vecremainder
-//             for (size_t j = 0ULL; j < block_size; ++j, ++ij_row, ++__kj_row) {
-//                 long distance = ik + *__kj_row;
-//                 if (*ij_row > distance)
-//                     *ij_row = distance;
-//             };
-//         };
-//     };
+template<typename T, typename A, typename U>
+struct stream_node
+{
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* blocks;
 
-//     #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//     __statistics_block_general_blocks_calculated++;
-//     #endif
-// };
+  size_t rank;
+  size_t processors_count;
 
-// __forceinline
-// void __fw_auto_block(size_t matrix_size,
-//                      square_matrix<long, fw_numa_allocator<long>> *matrix_data,
-//                      size_t block_size,
-//                      size_t block_index,
-//                      size_t i,
-//                      size_t j) {
-//     auto *ij = matrix_data[i * matrix_size + j].get_pointer();
-//     if (block_index != i) {
-//         if (block_index == j) {
-//             auto *current = matrix_data[block_index * matrix_size + block_index].get_pointer();
+  heights_matrix*      heights;
+  heights_sync_matrix* heights_sync;
 
-//             __fw_block(block_size, ij, ij, current);
+  PPKRCORE_TASK tasks;
 
-//             #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//             __statistics_stream_node_cross_blocks_calculated[i]++;
-//             #endif
-//         } else {
-//             auto *west_or_east = matrix_data[i * matrix_size + block_index].get_pointer(),
-//                  *north_or_south = matrix_data[block_index * matrix_size + j].get_pointer();
+  size_t fst_rank;
+  size_t lst_rank;
+  size_t nxt_rank;
+  size_t prv_rank;
+};
 
-//             __fw_block(block_size, ij, west_or_east, north_or_south);
+template<typename T, typename A, typename U>
+struct run_configuration
+{
+  heights_matrix      heights;
+  heights_sync_matrix heights_sync;
 
-//             #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//             __statistics_stream_node_rest_blocks_calculated[i]++;
-//             #endif
-//         };
-//     } else if (block_index != j) {
-//         auto *current = matrix_data[block_index * matrix_size + block_index].get_pointer();
+  size_t tasks_count;
+  size_t threads_count;
 
-//         __fw_block(block_size, ij, current, ij);
+  PKRCORE           core;
+  PPKRCORE_TASK     tasks;
+  PPKRCORE_THREAD   threads;
+  PKRCORE_SYNCBLOCK delay;
 
-//         #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//         __statistics_stream_node_cross_blocks_calculated[i]++;
-//         #endif
-//     } else {
-//         __fw_block(block_size, ij, ij, ij);
+  stream_node<T, A, U>* nodes;
+};
 
-//         #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//         __statistics_stream_node_diagonal_blocks_calculated[i]++;
-//         #endif
-//     };
-//     #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//     __statistics_stream_node_blocks_calculated[i]++;
-//     #endif
-// };
+void
+wait_block(
+  heights_matrix* heights,
+  heights_sync_matrix* heights_sync,
+  size_t height,
+  size_t i,
+  size_t j)
+{
+  stream_node_wait_condition wait_condition;
+  wait_condition.c = &heights->at(i, j);
+  wait_condition.v = height + size_t(1);
 
-// __declspec(noinline)
-// void __fw_ak_kernel_wait_block(size_t matrix_size,
-//                                short *matrix_data,
-//            size_t rank,
-//                                size_t block_index,
-//                                size_t row,
-//                                size_t col) {
-// short *p_v = &matrix_data[row * matrix_size + col];
+  if (*wait_condition.c >= wait_condition.v)
+    return;
 
-//     short v = *p_v, z = static_cast<short>(block_index + 1ULL);
-//     #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//     if (v >= z) __statistics_stream_sync_fetch++;
-//     #endif
+  std::ignore = ::KrCoreTaskCurrentSynchronizeUntil(
+    heights_sync->at(i, j),
+    [](void* state) -> BOOL
+    {
+      auto condition = (stream_node_wait_condition*)state;
+      return *condition->c >= condition->v;
+    },
+    &wait_condition);
+};
 
-//     while (v < z) {
-//         #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//         measure statistics;
-//         statistics.begin();
-//         #endif
-//         KRASSERT(::KrCoreTaskCurrentSynchronizeOnAddress(p_v, &v, sizeof(short)));
+void
+notify_block(
+  heights_matrix* heights,
+  heights_sync_matrix* heights_sync,
+  size_t height,
+  size_t i,
+  size_t j)
+{
+  heights->at(i, j) = height + size_t(1);
 
-//         v = *p_v;
-
-//         #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//         statistics.end();
-
-// if (rank == 39) {
-// rank = 39;
-// }
-// __statistics_stream_node_sync_wait_time[rank] += statistics.elapsed_milliseconds();
-
-//         if (v < z) __statistics_stream_sync_miss++;
-//         else __statistics_stream_sync_load++;
-//         #endif
-//     };
-// };
-
-// __declspec(noinline)
-// void __fw_ak_kernel_notify_block(size_t matrix_size,
-//                                  short *matrix_data,
-//                                  size_t progress_value,
-//                                  size_t row,
-//                                  size_t col) {
-//     short *p_v = &matrix_data[row * matrix_size + col];
-//     *p_v = static_cast<short>(progress_value + 1ULL);
-
-//     #if defined(_DEBUG) || defined(_FW_STATISTICS)
-//     __statistics_stream_sync_store++;
-//     #endif
-
-//     KRASSERT(::KrManagerPulseAddress(p_v));
-// };
-
-// __declspec(noinline)
-// void __fw_ak_kernel_switch(PKRCORE_TASK p_task) {
-//     #if defined(_DEBUG) || defined(_FW_STATISTICS)
-
-// {
-// unsigned long core_number = ::GetCurrentProcessorNumber();
-
-// std::unique_lock<std::mutex> lock(__statistics_stream_core_switch_mutex);
-// __statistics_stream_core_switch[core_number]++;
-// }
-
-// __statistics_stream_switch++;
-//     #endif
-
-//     KRASSERT(::KrCoreTaskCurrentSwitchToTask(p_task));
-// };
+  std::ignore = ::KrCoreSyncblockSignal(heights_sync->at(i, j));
+};
 
 template<typename T, typename A>
-__hack_noinline void
-run(
-  ::utilz::matrices::square_matrix<T, A>& m)
+void
+calculate_block(
+  ::utilz::matrices::square_matrix<T, A>& ij,
+  ::utilz::matrices::square_matrix<T, A>& ik,
+  ::utilz::matrices::square_matrix<T, A>& kj)
 {
-  // KRCORE_INIT_DATA CoreInitData = { 0 };
-  // CoreInitData.TraceKey = 1UL;
+  using size_type = typename ::utilz::matrices::square_matrix<T, A>::size_type;
 
-  // PKRCORE Core = ::KrCoreInitialize(&CoreInitData);
+  const auto x = ij.size();
+  for (auto k = size_type(0); k < x; ++k)
+    for (auto i = size_type(0); i < x; ++i)
+      __hack_ivdep
+      for (auto j = size_type(0); j < x; ++j)
+        ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
 
-  // using kr_task_state = std::tuple<std::vector<PKRCORE_TASK>*, std::vector<fw_stream_node>*, fw_stream_node*>;
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+calculate_complimenting_type(
+  stream_node<T, A, U>* node
+) {
+  auto* tasks        = node->tasks;
+  auto* blocks       = node->blocks;
+  auto* heights      = node->heights;
+  auto* heights_sync = node->heights_sync;
 
-  //               if (!::KrManagerInitialize())
-  //                   throw std::runtime_error("cannot run kernel -> " + std::to_string(::GetLastError()));
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
 
+  const size_t fst_task = node->fst_rank;
 
-  //               std::vector<std::string> error_messages;
+  const bool move_top = c != fst_task;
 
-  //               std::vector<PKRCORE_TASK> kr_task_index(stream_nodes.size());
-  //               std::vector<kr_task_state> kr_task_state_object(stream_nodes.size());
-  //               for (size_t i = 0ULL; i < kr_task_state_object.size(); ++i)
-  //                   kr_task_state_object[i] = std::make_tuple(&kr_task_index, &stream_nodes, &stream_nodes[i]);
+  if (move_top)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
-  //               size_t processor_count = stream_nodes[0].m_processors_count;
-  //               for (size_t i = 0ULL; i < kr_task_state_object.size(); ++i) {
-  //                   if (error_messages.empty()) {
-  //                       KRCORE_TASK_INIT_DATA init_data = { 0 };
-  //                       KRCORE_TASK_ATTRIBUTE attributes = {
-  //                           KRCORE_TASK_ATTRIBUTES::CoreTaskAttributeStartupCreateDelayed
-  //                       };
+  for (auto j = c + size_t(1); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //                       init_data.SYSTEM.dwTaskProcessor = static_cast<DWORD>(stream_nodes[i].m_processor);
-  //                       init_data.SYSTEM.STARTUP.pTaskState = reinterpret_cast<void*>(&kr_task_state_object[i]);
-  //                       init_data.SYSTEM.STARTUP.lpTaskStartRoutine = [](void* p_state) -> unsigned long {
-  //                           auto *p_kr_task_state = reinterpret_cast<kr_task_state*>(p_state);
+    wait_block(heights, heights_sync, j, j, j);
+    calculate_block(cj, cj, blocks->at(j, j));
 
-  //                           auto &kr_task_index = *std::get<0>(*p_kr_task_state);
-  //                           auto &kr_stream_node_index = *std::get<1>(*p_kr_task_state);
-  //                           auto &kr_stream_node = *std::get<2>(*p_kr_task_state);
-  //                           auto &kr_stream = *kr_stream_node.mp_stream;
+    if (move_top)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
-  //                           auto *block_matrix = kr_stream.m_block_matrix.get_pointer();
-  //                           auto *block_progress_matrix = kr_stream.m_progress_matrix.get_pointer();
+    for (auto b = size_t(0); b < j; ++b) {
+      wait_block(heights, heights_sync, j, j, b);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
+    };
+    for (auto b = j + size_t(1); b < blocks->size(); ++b) {
+      wait_block(heights, heights_sync, j, j, b);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
+    };
 
-  //                           const size_t block_size = kr_stream.m_block_size;
-  //                           const size_t block_count = kr_stream.m_block_count;
+    if (move_top)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
+  };
 
-  //                           const size_t processor_count = kr_stream_node.m_processors_count;
-  //                           const size_t processor = kr_stream_node.m_processor;
-  //                           const size_t rank = kr_stream_node.m_rank;
+  for (size_t i = fst_task; i < c; i += p)
+    std::ignore = ::KrCoreTaskContinue(tasks[i]);
+}
 
-  //                           const size_t kr_top_task = rank % processor_count;
-  //                           const size_t kr_bottom_task = block_count - (processor_count - kr_top_task);
-  //                           const size_t kr_previous_task = rank - processor_count;
-  //                           const size_t kr_next_task = rank + processor_count;
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+calculate_passive_type_c(
+  stream_node<T, A, U>* node
+) {
+  auto* tasks  = node->tasks;
+  auto* blocks = node->blocks;
 
-  //                           const bool move_top = rank != kr_top_task;
-  //                           const bool move_bottom = rank != kr_bottom_task;
+  const size_t c = node->rank;
 
-  //                           size_t kr_src_task = kr_top_task;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
-  //                           bool is_leader = false;
-  //                           bool is_follower = rank < processor_count;
-  //                           bool is_normalized = false;
+  const bool move_bottom = c != lst_task;
 
-  //                           for (size_t j = 0ULL; j < block_count; ++j) {
-  //                               if (rank <= j) {
-  //                                   for (size_t block_index = 0ULL; block_index < rank; ++block_index) {
-  //                                       __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, j);
+  for (auto j = size_t(0); j <= c; ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //                                       __fw_auto_block(block_count, block_matrix, block_size, block_index, rank, j);
-  //                                   };
-  //                                   __fw_auto_block(block_count, block_matrix, block_size, rank, rank, j);
+    for (auto b = c + size_t(1); b <= lst_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+  };
 
-  //                                   __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, j);
-  //                               } else {
-  //                                   for (size_t block_index = 0ULL; block_index <= j; ++block_index) {
-  //                                       __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, j);
+  for (auto j = c + size_t(1); j < lst_task; ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //                                       __fw_auto_block(block_count, block_matrix, block_size, block_index, rank, j);
-  //                                   };
-  //                               };
-  //                               if (!is_leader) {
-  //                                   if (rank == j) {
-  //                                       for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-  //                                           __fw_auto_block(block_count, block_matrix, block_size, rank, rank, reverse_j);
+    for (auto b = j + size_t(1); b <= lst_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+  };
 
-  //                                           __fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, reverse_j);
-  //                                       };
+  for (auto j = lst_task + size_t(1); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
 
-	// 									for (size_t forward_j = j + 1ULL; forward_j < block_count; ++forward_j) {
-	// 										for (size_t block_index = 0ULL; block_index < rank; ++block_index) {
-	// 											__fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, block_index, block_index, forward_j);
+    for (auto b = c + size_t(1); b <= lst_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+  };
 
-	// 											__fw_auto_block(block_count, block_matrix, block_size, block_index, rank, forward_j);
-	// 										};
-	// 										__fw_auto_block(block_count, block_matrix, block_size, rank, rank, forward_j);
+  if (move_bottom)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-	// 										__fw_ak_kernel_notify_block(block_count, block_progress_matrix, rank, rank, forward_j);
-	// 									};
+  for (auto j = (lst_task + size_t(1)); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
+    auto& jj = blocks->at(j, j);
 
-  //                                       if (move_top)
-  //                                           __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+    calculate_block(cj, cj, jj);
 
-  //                                       if (move_bottom)
-  //                                           __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  //                                       is_leader = true;
-  //                                       break;
-  //                                   } else {
-  //                                       if (!is_follower) {
-  //                                           if (move_bottom) {
-  //                                               __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
-  //                                           } else {
-  //                                               __fw_ak_kernel_switch(kr_task_index[kr_src_task]);
+    for (auto b = size_t(0); b < j; ++b)
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
 
-  //                                               if (j == kr_src_task)
-  //                                                   kr_src_task += processor_count;
-  //                                           };
-	// 										is_follower = is_follower || (j == kr_previous_task);
-	// 										if (is_follower && !is_normalized) {
-	// 											for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-	// 												for (size_t block_index = (reverse_j + 1UL); block_index <= j; ++block_index) {
-	// 													__fw_auto_block(block_count, block_matrix, block_size, block_index, rank, reverse_j);
-	// 												};
-	// 											};
-	// 											is_normalized = true;
-	// 										};
-  //                                       } else {
-  //                                           if (move_top)
-  //                                               __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+    for (auto b = (j + size_t(1)); b < blocks->size(); ++b)
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
 
-  //                                           if (move_bottom)
-  //                                               __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+  };
+}
 
-	// 										for (size_t reverse_j = 0ULL; reverse_j < j; ++reverse_j) {
-	// 											__fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, j, j, reverse_j);
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+calculate_passive_type_b(
+  stream_node<T, A, U>* node
+) {
+  auto* tasks  = node->tasks;
+  auto* blocks = node->blocks;
 
-	// 											__fw_auto_block(block_count, block_matrix, block_size, j, rank, reverse_j);
-	// 										};
-  //                                       };
+  const size_t c = node->rank;
 
-  //                                   };
-  //                               };
-  //                           };
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
-  //                           is_leader = false;
-  //                           is_follower = false;
-  //                           if (move_bottom) {
-  //                               __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+  const bool move_bottom = c != lst_task;
 
-  //                               for (size_t j = (rank + 1ULL); j <= kr_bottom_task; ++j) {
-  //                                   for (size_t block_index = (rank + 1ULL); block_index <= j; ++block_index) {
-  //                                       __fw_auto_block(block_count, block_matrix, block_size, block_index, rank, j);
-	// 								};
+  if (move_bottom)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  //                                   __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
-  //                               };
+  for (size_t j = c + size_t(1); j <= lst_task; ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //                               for (size_t reverse_j = 0ULL; reverse_j <= rank; ++reverse_j) {
-	// 								for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-	// 									__fw_auto_block(block_count, block_matrix, block_size, block_index, rank, reverse_j);
-	// 								};
-  //                               };
-  //                               for (size_t reverse_j = (rank + 1ULL); reverse_j < kr_bottom_task; ++reverse_j) {
-	// 								for (size_t block_index = (reverse_j + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-	// 									__fw_auto_block(block_count, block_matrix, block_size, block_index, rank, reverse_j);
-	// 								};
-  //                               };
-  //                               for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < block_count; ++reverse_j) {
-	// 								for (size_t block_index = (rank + 1ULL); block_index <= kr_bottom_task; ++block_index) {
-	// 									__fw_auto_block(block_count, block_matrix, block_size, block_index, rank, reverse_j);
-	// 								};
-  //                               };
+    for (auto b = c + size_t(1); b <= j; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
 
-  //                               __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+  };
 
-  //                               for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < block_count; ++reverse_j) {
-  //                                   __fw_auto_block(block_count, block_matrix, block_size, reverse_j, rank, reverse_j);
+  calculate_passive_type_c(node);
+}
 
-  //                                   __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+calculate_leading_type(
+  stream_node<T, A, U>* node
+) {
+  auto* tasks        = node->tasks;
+  auto* blocks       = node->blocks;
+  auto* heights      = node->heights;
+  auto* heights_sync = node->heights_sync;
 
-	// 								for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-	// 									__fw_auto_block(block_count, block_matrix, block_size, reverse_j, rank, inner_j);
-	// 								};
-	// 								for (size_t inner_j = (reverse_j + 1ULL); inner_j < block_count; ++inner_j) {
-	// 									__fw_auto_block(block_count, block_matrix, block_size, reverse_j, rank, inner_j);
-	// 								};
+  const size_t c = node->rank;
 
-  //                                   __fw_ak_kernel_switch(kr_task_index[kr_next_task]);
-  //                               };
-  //                           } else {
-  //                               __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+  const size_t fst_task = node->fst_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
-  //                               for (size_t reverse_j = (kr_bottom_task + 1ULL); reverse_j < block_count; ++reverse_j) {
-  //                                   __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, reverse_j, reverse_j, reverse_j);
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
 
-  //                                   __fw_auto_block(block_count, block_matrix, block_size, reverse_j, rank, reverse_j);
+  auto& cc = blocks->at(c, c);
 
-  //                                   __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
+  for (auto j = size_t(0); j < c; ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //                                   for (size_t inner_j = 0ULL; inner_j < reverse_j; ++inner_j) {
-  //                                       __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, reverse_j, reverse_j, inner_j);
+    calculate_block(cj, cc, cj);
+    notify_block(heights, heights_sync, c, c, j);
+  };
 
-  //                                       __fw_auto_block(block_count, block_matrix, block_size, reverse_j, rank, inner_j);
-  //                                   };
-  //                                   for (size_t inner_j = (reverse_j + 1ULL); inner_j < block_count; ++inner_j) {
-  //                                       __fw_ak_kernel_wait_block(block_count, block_progress_matrix, rank, reverse_j, reverse_j, inner_j);
+  for (auto j = c + size_t(1); j < blocks->size(); ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //                                       __fw_auto_block(block_count, block_matrix, block_size, reverse_j, rank, inner_j);
-  //                                   };
+    for (auto b = size_t(0); b < c; ++b) {
+      wait_block(heights, heights_sync, b, b, j);
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+    };
 
-  //                                   __fw_ak_kernel_switch(kr_task_index[kr_top_task]);
-  //                               };
-  //                           };
+    calculate_block(cj, cc, cj);
+    notify_block(heights, heights_sync, c, c, j);
+  };
 
-  //                           if (rank == kr_bottom_task) {
-  //                               for (size_t i = kr_top_task; i < kr_bottom_task; i += processor_count)
-  //                                   KRASSERT(::KrCoreTaskContinue(kr_task_index[i]));
-  //                           };
-  //                           return 0UL;
-  //                       };
+  if (move_top)
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
 
-  //                       if (stream_nodes[i].m_rank >= processor_count) {
-  //                           init_data.CORE.ATTRIBUTES.dwCount = 1;
-  //                           init_data.CORE.ATTRIBUTES.pAttributes = &attributes;
-  //                       };
+  if (move_bottom) {
+    std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
 
-  //                       PKRCORE_TASK p_kr_core_task = ::KrManagerTaskInitialize(&init_data);
-  //                       if (p_kr_core_task == nullptr) {
-  //                           error_messages.push_back("cannot create kernel task -> " + std::to_string(::GetLastError()));
+    calculate_passive_type_b(node);
+  } else {
+    calculate_complimenting_type(node);
+  };
+}
 
-  //                           for (size_t j = 0ULL; j < i; ++j) {
-  //                               if (!::TerminateThread(kr_task_index[j]->SYSTEM.hHandle, 1UL))
-  //                                   error_messages.push_back("cannot terminate kernel task -> " + std::to_string(::GetLastError()));
-  //                           };
-  //                       };
-  //                       kr_task_index[i] = p_kr_core_task;
-  //                   };
-  //               };
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+calculate_following_type(
+  stream_node<T, A, U>* node
+) {
+  auto* tasks        = node->tasks;
+  auto* blocks       = node->blocks;
+  auto* heights      = node->heights;
+  auto* heights_sync = node->heights_sync;
 
-  //               if (error_messages.empty()) {
-  //                   std::for_each(kr_task_index.rbegin(), kr_task_index.rend(), [&error_messages](PKRCORE_TASK p_kr_task) -> void {
-  //                       if (!::KrCoreTaskSubmit(p_kr_task))
-  //                           error_messages.push_back("cannot submit kernel task -> " + std::to_string(::GetLastError()));
-  //                   });
+  const size_t p  = node->processors_count;
+  const size_t c  = node->rank;
 
-  //                   if (error_messages.empty()) {
-  //                       std::for_each(kr_task_index.rbegin(), kr_task_index.rend(), [](PKRCORE_TASK p_kr_task) -> void {
-  //                           ::WaitForSingleObject(p_kr_task->SYSTEM.hHandle, INFINITE);
-	// 					});
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
 
-  //                       std::for_each(kr_task_index.rbegin(), kr_task_index.rend(), [&error_messages](PKRCORE_TASK p_kr_task) -> void {
-  //                           if (!::KrManagerTaskDeinitialize(p_kr_task))
-  //                               error_messages.push_back("cannot deinitialize kernel task -> " + std::to_string(::GetLastError()));
-  //                       });
-	// 				};
-  //               };
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
 
-  //               if (!::KrManagerDeinitialize())
-  //                   throw std::runtime_error("cannot shutdown kernel -> " + std::to_string(::GetLastError()));
+  for (auto j = c >= p ? prv_task + size_t(1) : size_t(0); j < c; ++j) {
+    auto& cj = blocks->at(c, j);
 
-  //               if (!error_messages.empty()) {
-  //                   std::stringstream errors;
-  //                   std::for_each(error_messages.begin(), error_messages.end(), [&errors](std::string &error_message) -> void {
-  //                       errors << error_message << std::endl;
-  //                   });
-  //                   throw std::runtime_error(errors.str());
-  //               };
+    for (auto b = size_t(0); b <= j; ++b) {
+      wait_block(heights, heights_sync, b, b, j);
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+    };
+
+    if (move_top)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[fst_task]);
+
+    if (move_bottom)
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+
+    for (auto b = size_t(0); b < j; ++b) {
+      wait_block(heights, heights_sync, j, j, b);
+      calculate_block(blocks->at(c, b), cj, blocks->at(j, b));
+    };
+  };
+
+  auto& cc = blocks->at(c, c);
+
+  for (auto b = size_t(0); b < c; ++b) {
+    wait_block(heights, heights_sync, b, b, c);
+    calculate_block(cc, blocks->at(c, b), blocks->at(b, c));
+  };
+
+  calculate_block(cc, cc, cc);
+  notify_block(heights, heights_sync, c, c, c);
+
+  calculate_leading_type(node);
+}
+
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+calculate_passive_type_a(
+  stream_node<T, A, U>* node
+) {
+  auto* tasks  = node->tasks;
+  auto* blocks = node->blocks;
+
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
+
+  const size_t fst_task = node->fst_rank;
+  const size_t prv_task = node->prv_rank;
+  const size_t lst_task = node->lst_rank;
+  const size_t nxt_task = node->nxt_rank;
+
+  const bool move_top    = c != fst_task;
+  const bool move_bottom = c != lst_task;
+
+  for (auto j = size_t(0), s = fst_task; j <= prv_task; ++j) {
+    auto& cj = blocks->at(c, j);
+
+    for (auto b = size_t(0); b <= j; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+
+    if (move_bottom) {
+      std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[nxt_task]);
+    } else {
+      if (move_top) {
+        std::ignore = ::KrCoreTaskCurrentSwitchToTask(tasks[s]);
+
+        if (j == s) {
+          s += p;
+        }
+      }
+    };
+  };
+  for (size_t j = size_t(0); j < prv_task; ++j) {
+    auto& cj = blocks->at(c, j);
+    for (size_t b = j + size_t(1); b <= prv_task; ++b)
+      calculate_block(cj, blocks->at(c, b), blocks->at(b, j));
+  };
+
+  calculate_following_type(node);
+}
+
+template<typename T, typename A, typename U>
+__hack_noinline
+unsigned long
+calculation_routine(
+  void* routine_state
+)
+{
+  auto* node = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
+
+  const size_t p = node->processors_count;
+  const size_t c = node->rank;
+
+  if (c < p)
+  {
+    calculate_following_type(node);
+  }
+  else
+  {
+    calculate_passive_type_a(node);
+  }
+
+  return 0UL;
+};
+
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+up(
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  ::utilz::memory::buffer& b,
+  run_configuration<T, A, U>& run_config)
+{
+  // Set parameters
+  //
+  run_config.tasks_count   = blocks.size();
+  run_config.threads_count = blocks.size() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : blocks.size();
+
+  // Initialise "Heights" matrix
+  //
+  run_config.heights      = heights_matrix(run_config.tasks_count, ::utilz::memory::buffer_allocator<size_t>(&b));
+  run_config.heights_sync = heights_sync_matrix(run_config.tasks_count, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>(&b));
+
+  // Allocate space
+  //
+  run_config.tasks   = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
+  run_config.threads = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * run_config.threads_count));
+  run_config.nodes   = reinterpret_cast<stream_node<T, A, U>*>(b.allocate(sizeof(stream_node<T, A, U>) * run_config.tasks_count));
+
+  // Prepare runtime configuration
+  //
+  for (auto i = size_t(0); i < blocks.size(); ++i) {
+    run_config.nodes[i].rank = i;
+    run_config.nodes[i].processors_count = run_config.threads_count;
+    run_config.nodes[i].tasks = run_config.tasks;
+
+    run_config.nodes[i].blocks = &blocks;
+    run_config.nodes[i].heights = &run_config.heights;
+    run_config.nodes[i].heights_sync = &run_config.heights_sync;
+
+    run_config.nodes[i].fst_rank = i % run_config.threads_count;
+    run_config.nodes[i].lst_rank = (run_config.tasks_count / run_config.threads_count) * run_config.threads_count + (i % run_config.threads_count);
+    run_config.nodes[i].prv_rank = i - run_config.threads_count;
+    run_config.nodes[i].nxt_rank = i + run_config.threads_count;
+
+    if (i < run_config.threads_count)
+      run_config.nodes[i].prv_rank = i;
+
+    if (run_config.nodes[i].nxt_rank >= run_config.tasks_count)
+      run_config.nodes[i].nxt_rank = i;
+
+    if (run_config.threads_count > run_config.tasks_count)
+      run_config.nodes[i].lst_rank = i;
+
+    if (run_config.nodes[i].lst_rank < run_config.nodes[i].nxt_rank || run_config.nodes[i].lst_rank >= run_config.tasks_count)
+      run_config.nodes[i].lst_rank = run_config.nodes[i].nxt_rank;
+  }
+
+  // Initialise Core
+  //
+  KRCORE_INIT_DATA CoreInitData;
+  ::memset(&CoreInitData, 0, sizeof(KRCORE_INIT_DATA));
+
+  CoreInitData.MaxResourceCount = 1 + /* delay syncblock */
+    run_config.tasks_count +
+    run_config.threads_count +
+    run_config.tasks_count * run_config.tasks_count;
+
+  run_config.core = ::KrCoreInitialize(&CoreInitData);
+  assert(run_config.core != nullptr);
+
+  // Initialise delay Syncblock
+  //
+  KRCORE_SYNCBLOCK_INIT_DATA DelayInitData;
+  ::memset(&DelayInitData, 0, sizeof(KRCORE_SYNCBLOCK_INIT_DATA));
+
+  DelayInitData.ResetMode = CoreSyncblockResetModeManual;
+
+  run_config.delay = ::KrCoreInitializeSyncblock(run_config.core, &DelayInitData);
+  assert(run_config.delay != nullptr);
+
+  // Initialise Heights
+  //
+  for (auto i = size_t(0); i < blocks.size(); ++i) {
+    for (auto j = size_t(0); j < blocks.size(); ++j) {
+      KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData;
+      ::memset(&SyncblockInitData, 0, sizeof(KRCORE_SYNCBLOCK_INIT_DATA));
+
+      SyncblockInitData.ResetMode = CoreSyncblockResetModeAutoAll;
+
+      PKRCORE_SYNCBLOCK Syncblock = ::KrCoreInitializeSyncblock(run_config.core, &SyncblockInitData);
+      assert(Syncblock != nullptr);
+
+      run_config.heights.at(i, j) = size_t(0);
+      run_config.heights_sync.at(i, j) = Syncblock;
+    }
+  }
+
+  // Initialise Threads
+  //
+  for (auto i = size_t(0); i < run_config.threads_count; ++i) {
+    KRCORE_THREAD_INIT_DATA ThreadInitData;
+    ::memset(&ThreadInitData, 0, sizeof(KRCORE_THREAD_INIT_DATA));
+
+    ThreadInitData.Binding.Type = SystemBindingLogicalProcessors;
+    ThreadInitData.Binding.LogicalProcessors.Group = 0;
+    ThreadInitData.Binding.LogicalProcessors.Mask  = 1ULL << i;
+
+    run_config.threads[i] = ::KrCoreInitializeThread(run_config.core, &ThreadInitData);
+
+    assert(run_config.threads[i] != nullptr);
+  }
+
+  // Initialise Tasks
+  //
+  for (auto i = size_t(0); i < run_config.tasks_count; ++i) {
+    KRCORE_TASK_INIT_DATA TaskInitData;
+    ::memset(&TaskInitData, 0, sizeof(KRCORE_TASK_INIT_DATA));
+
+    KRCORE_TASK_ATTRIBUTE Attribute;
+    ::memset(&Attribute, 0, sizeof(KRCORE_TASK_ATTRIBUTE));
+
+    Attribute.Attribute = CoreTaskAttributeStartupCreateDelayed;
+
+    if (i < run_config.threads_count)
+      Attribute.ON_DELAY.Syncblock = run_config.delay;
+
+    TaskInitData.AttributesCount = 1;
+    TaskInitData.Attributes = &Attribute;
+    TaskInitData.Binding.Type = SystemBindingLogicalProcessors;
+    TaskInitData.Binding.LogicalProcessors.Group = 0;
+    TaskInitData.Binding.LogicalProcessors.Mask  = 1ULL << (i % run_config.threads_count);
+    TaskInitData.TaskRoutineState = &run_config.nodes[i];
+    TaskInitData.TaskRoutine = calculation_routine<T, A, U>;
+
+    run_config.tasks[i] = ::KrCoreInitializeTask(run_config.core, &TaskInitData);
+
+    assert(run_config.tasks[i] != nullptr);
+  }
+};
+
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+down(
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  ::utilz::memory::buffer& b,
+  run_configuration<T, A, U>& run_config)
+{
+  for (auto i = size_t(0); i < run_config.tasks_count; ++i)
+    KRASSERT(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]));
+
+  for (auto i = size_t(0); i < run_config.threads_count; ++i)
+    KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
+
+  for (auto i = size_t(0); i < blocks.size(); ++i) {
+    for (auto j = size_t(0); j < blocks.size(); ++j) {
+      KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.heights_sync.at(i, j)));
+    }
+  }
+
+  KRASSERT(::KrCoreDeinitialize(run_config.core));
+}
+
+template<typename T, typename A, typename U>
+__hack_noinline
+void
+run(
+  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  run_configuration<T, A, U>& run_config)
+{
+  // Unblock all previously initialised Tasks
+  //
+  KRASSERT(::KrCoreSyncblockSignal(run_config.delay));
+
+  // Wait them run to completion
+  //
+  for (auto i = size_t(0); i < run_config.tasks_count; ++i)
+    ::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE);
 };

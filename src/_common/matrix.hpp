@@ -10,11 +10,27 @@
 namespace utilz {
 namespace matrices {
 
+enum clusters_vertex_flag
+{
+  clusters_vertex_flag_none         = 0,
+  clusters_vertex_flag_input        = 1,
+  clusters_vertex_flag_output       = 2,
+  clusters_vertex_flag_input_output = 3
+};
+inline clusters_vertex_flag operator & (clusters_vertex_flag a, clusters_vertex_flag b)
+{
+  return static_cast<clusters_vertex_flag>(static_cast<int>(a) & static_cast<int>(b));
+}
+inline clusters_vertex_flag operator | (clusters_vertex_flag a, clusters_vertex_flag b)
+{
+  return static_cast<clusters_vertex_flag>(static_cast<int>(a) | static_cast<int>(b));
+}
+
 // ---
 // Forward declarations
 //
 
-template<typename T>
+class group;
 class clusters;
 
 template<typename T, typename A>
@@ -27,157 +43,252 @@ class square_matrix;
 // Forward declarations
 // ---
 
-template<typename T>
+class group
+{
+public:
+  using index_t = size_t;
+
+private:
+  std::vector<std::tuple<index_t, clusters_vertex_flag>> m_vertices;
+
+private:
+  auto
+  find(const index_t& vertex)
+  {
+    return std::ranges::find_if(
+      this->m_vertices,
+      [&vertex](auto v) -> bool { return std::get<index_t>(v) == vertex; });
+  }
+
+public:
+  void
+  insert(const index_t& vertex)
+  {
+    if (const auto it = this->find(vertex); it != this->m_vertices.end()) {
+      throw std::logic_error("erro: Unable to insert duplicate vertex into the group");
+    }
+    this->m_vertices.emplace_back(vertex, clusters_vertex_flag_none);
+  }
+
+  void
+  update(const index_t& vertex, const clusters_vertex_flag flag)
+  {
+    const auto it = this->find(vertex);
+    if (it == this->m_vertices.end()) {
+      throw std::logic_error("erro: Unable to update vertex which isn't included into the group");
+    }
+    *it = std::make_tuple(vertex, std::get<clusters_vertex_flag>(*it) | flag);
+  }
+
+  void
+  sort(const std::array<clusters_vertex_flag, 4> arrangements)
+  {
+    std::array<long, 4> orders = { 3, 3, 3, 3 };
+    orders[arrangements[0]] = 0;
+    orders[arrangements[1]] = 1;
+    orders[arrangements[2]] = 2;
+    orders[arrangements[3]] = 3;
+
+    std::ranges::sort(
+      this->m_vertices,
+      [&orders](auto a, auto b) -> bool {
+        return orders[std::get<clusters_vertex_flag>(a)] < orders[std::get<clusters_vertex_flag>(b)]
+            || std::get<size_t>(a) < std::get<size_t>(b);
+      });
+  }
+
+  [[nodiscard]]
+  size_t
+  size() const
+  {
+    return this->m_vertices.size();
+  }
+
+  auto
+  list()
+  {
+    return std::views::all(this->m_vertices);
+  }
+
+  bool
+  contains(const index_t& vertex)
+  {
+    return this->find(vertex) != this->m_vertices.end();
+  }
+};
+
 class clusters
 {
 public:
-  using size_type = size_t;
+  using index_t = size_t;
 
 private:
-  std::map<T, std::vector<T>>           m_clusters;
-  std::unordered_map<T, std::vector<T>> m_bridges;
-  std::unordered_map<T, std::vector<T>> m_indeces;
-  std::unordered_map<T, std::vector<T>> m_bridges_in;
-  std::unordered_map<T, std::vector<T>> m_indeces_in;
-  std::unordered_map<T, std::vector<T>> m_bridges_out;
-  std::unordered_map<T, std::vector<T>> m_indeces_out;
-  std::unordered_map<T, T>              m_reverse;
+  std::map<index_t, group>   m_groups;
+  std::map<index_t, index_t> m_groups_lookup;
+
+  std::unordered_map<index_t, std::vector<index_t>> m_bridges;
+  std::unordered_map<index_t, std::vector<index_t>> m_bridges_input;
+  std::unordered_map<index_t, std::vector<index_t>> m_bridges_output;
+  std::unordered_map<index_t, std::vector<index_t>> m_bridges_position;
+  std::unordered_map<index_t, std::vector<index_t>> m_bridges_positions_input;
+  std::unordered_map<index_t, std::vector<index_t>> m_bridges_positions_output;
+  std::unordered_map<index_t, std::vector<bool>>    m_bridges_positions_flags_input;
+  std::unordered_map<index_t, std::vector<bool>>    m_bridges_positions_flags_output;
 
 public:
-  // Inserts a mapping between cluster and vertex
-  //
   void
-  insert_map(const T& cindex, const T& vindex)
+  insert_vertex(const index_t& group_idx, const index_t& vertex_idx)
   {
-    auto it = this->m_clusters.find(cindex);
-    if (it == this->m_clusters.end()) {
-      this->m_clusters.emplace(cindex, std::vector<T>({ vindex }));
-      this->m_bridges.emplace(cindex, std::vector<T>());
-      this->m_bridges_in.emplace(cindex, std::vector<T>());
-      this->m_bridges_out.emplace(cindex, std::vector<T>());
-      this->m_indeces.emplace(cindex, std::vector<T>());
-      this->m_indeces_in.emplace(cindex, std::vector<T>());
-      this->m_indeces_out.emplace(cindex, std::vector<T>());
-    } else {
-      it->second.push_back(vindex);
+    auto it = this->m_groups.find(group_idx);
+    if (it == this->m_groups.end()) {
+      it = this->m_groups.emplace(group_idx, group()).first;
     }
-    this->m_reverse.emplace(vindex, cindex);
+    it->second.insert(vertex_idx);
+
+    this->m_groups_lookup[vertex_idx] = group_idx;
   }
 
-  // Inserts bridge information about an `edge` (requires the clusters to
-  // be filled with the mappings between clusters and vertecies)
-  //
   void
-  insert_edge(const T& from, const T& to)
+  insert_edge(const index_t& from_idx, const index_t& to_idx)
   {
-    auto x = this->m_reverse.at(from);
-    auto z = this->m_reverse.at(to);
+    const auto x = this->m_groups.find(this->m_groups_lookup.at(from_idx));
+    const auto z = this->m_groups.find(this->m_groups_lookup.at(to_idx));
 
-    if (x != z) {
-      auto& vx     = this->m_bridges.at(x);
-      auto& vz     = this->m_bridges.at(z);
-      auto& vz_in  = this->m_bridges_in.at(z);
-      auto& vx_out = this->m_bridges_out.at(x);
-
-      bool vx_found     = std::find(vx.begin(), vx.end(), from) == vx.end();
-      bool vz_found     = std::find(vz.begin(), vz.end(), to) == vz.end();
-      bool vz_in_found  = std::find(vz_in.begin(), vz_in.end(), to) == vz_in.end();
-      bool vx_out_found = std::find(vx_out.begin(), vx_out.end(), from) == vx_out.end();
-
-      if (vx_found)
-        this->m_bridges.at(x).push_back(from);
-
-      if (vx_out_found)
-        this->m_bridges_out.at(x).push_back(from);
-
-      if (vx_found || vx_out_found) {
-        auto c = this->m_clusters.at(x);
-        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), from));
-
-        if (vx_found)
-          this->m_indeces.at(x).push_back(v);
-
-        if (vx_out_found)
-          this->m_indeces_out.at(x).push_back(v);
-      }
-
-      if (vz_found)
-        this->m_bridges.at(z).push_back(to);
-
-      if (vz_in_found)
-        this->m_bridges_in.at(z).push_back(to);
-
-      if (vz_found || vz_in_found) {
-        auto c = this->m_clusters.at(z);
-        auto v = std::distance(c.begin(), std::find(c.begin(), c.end(), to));
-
-        if (vz_found)
-          this->m_indeces.at(z).push_back(v);
-
-        if (vz_in_found)
-          this->m_indeces_in.at(z).push_back(v);
-      }
+    if (!x->second.contains(to_idx)) {
+      x->second.update(from_idx, clusters_vertex_flag_output);
+    }
+    if (!z->second.contains(from_idx)) {
+      z->second.update(to_idx, clusters_vertex_flag_input);
     }
   }
 
-  size_type
+  void
+  optimise() {
+    this->m_bridges.clear();
+    this->m_bridges_input.clear();
+    this->m_bridges_output.clear();
+
+    this->m_bridges_position.clear();
+    this->m_bridges_positions_input.clear();
+    this->m_bridges_positions_output.clear();
+
+    this->m_bridges_positions_flags_input.clear();
+    this->m_bridges_positions_flags_output.clear();
+
+    for (auto [key, group] : this->m_groups) {
+      std::vector<index_t> bridges;
+      std::vector<index_t> bridges_input;
+      std::vector<index_t> bridges_output;
+
+      std::vector<index_t> bridges_positions;
+      std::vector<index_t> bridges_positions_input;
+      std::vector<index_t> bridges_positions_output;
+
+      std::vector<bool> bridges_positions_flags_input;
+      std::vector<bool> bridges_positions_flags_output;
+
+      auto i = static_cast<index_t>(0);
+      for (auto v : group.list()) {
+        auto bridges_positions_input_flag  = bridges_positions_flags_input.emplace_back(false);
+        auto bridges_positions_output_flag = bridges_positions_flags_output.emplace_back(false);
+
+        const auto position = i++;
+
+        if (std::get<clusters_vertex_flag>(v) == clusters_vertex_flag_none) {
+          continue;
+        }
+
+        const auto index    = std::get<index_t>(v);
+        const auto flag     = std::get<clusters_vertex_flag>(v);
+
+        bridges.emplace_back(index);
+        bridges_positions.emplace_back(position);
+
+        if (flag & clusters_vertex_flag_input) {
+          bridges_input.emplace_back(index);
+          bridges_positions_input.emplace_back(position);
+
+          bridges_positions_input_flag = true;
+        }
+        if (flag & clusters_vertex_flag_output) {
+          bridges_output.emplace_back(index);
+          bridges_positions_output.emplace_back(position);
+
+          bridges_positions_output_flag = true;
+        }
+      }
+
+      this->m_bridges.emplace(key, bridges);
+      this->m_bridges_input.emplace(key, bridges_input);
+      this->m_bridges_output.emplace(key, bridges_output);
+
+      this->m_bridges_position.emplace(key, bridges_positions);
+      this->m_bridges_positions_input.emplace(key, bridges_positions_input);
+      this->m_bridges_positions_output.emplace(key, bridges_positions_output);
+
+      this->m_bridges_positions_flags_input.emplace(key, bridges_positions_flags_input);
+      this->m_bridges_positions_flags_output.emplace(key, bridges_positions_flags_output);
+    }
+  }
+
+  size_t
   size() const noexcept
   {
-    return this->m_clusters.size();
+    return this->m_groups.size();
   }
 
   auto
   list() const noexcept
   {
-    return std::views::keys(this->m_clusters);
+    return std::views::values(this->m_groups);
   }
 
   auto
-  get_bridges(const T& cindex) const
+  get_all_bridges(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges.at(cindex));
+    return std::views::all(this->m_bridges.at(group_idx));
   }
 
   auto
-  get_bridges_in(const T& cindex) const
+  get_input_bridges(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_in.at(cindex));
+    return std::views::all(this->m_bridges_input.at(group_idx));
   }
 
   auto
-  get_bridges_out(const T& cindex) const
+  get_output_bridges(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_out.at(cindex));
+    return std::views::all(this->m_bridges_output.at(group_idx));
   }
 
   auto
-  get_indeces(const T& cindex) const
+  get_all_bridges_positions(const index_t& group_idx) const
   {
-    return std::views::all(this->m_indeces.at(cindex));
+    return std::views::all(this->m_bridges_position.at(group_idx));
   }
 
   auto
-  get_indeces_in(const T& cindex) const
+  get_input_bridges_positions(const index_t& group_idx) const
   {
-    return std::views::all(this->m_indeces_in.at(cindex));
+    return std::views::all(this->m_bridges_positions_input.at(group_idx));
   }
 
   auto
-  get_indeces_out(const T& cindex) const
+  get_input_bridges_positions_flags(const index_t& group_idx) const
   {
-    return std::views::all(this->m_indeces_out.at(cindex));
+    return std::views::all(this->m_bridges_positions_flags_input.at(group_idx));
   }
 
   auto
-  get_vertices(const T& cindex) const
+  get_output_bridges_positions(const index_t& group_idx) const
   {
-    return std::views::all(this->m_clusters.at(cindex));
+    return std::views::all(this->m_bridges_positions_output.at(group_idx));
   }
 
-  size_type
-  count_vertices(const T& cindex) const
+  auto
+  get_output_bridges_positions_flags(const index_t& group_idx) const
   {
-    return this->m_clusters.at(cindex).size();
+    return std::views::all(this->m_bridges_positions_flags_output.at(group_idx));
   }
 };
 
@@ -213,7 +324,7 @@ private:
     pointer   t = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++);
   }
   void
@@ -245,7 +356,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       *(t++) = std::move(*(f++));
   }
   void
@@ -254,7 +365,7 @@ private:
     pointer   p = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<A>::destroy(this->m_a, p++);
   }
   void
@@ -266,28 +377,28 @@ private:
 
 public:
   rect_matrix()
-    : m_m(nullptr)
-    , m_msize(0)
+    : m_a(allocator_type())
     , m_width(0)
     , m_height(0)
-    , m_a(allocator_type())
+    , m_msize(0)
+    , m_m(nullptr)
   {
   }
   rect_matrix(const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(0)
+    : m_a(a)
     , m_width(0)
     , m_height(0)
-    , m_a(a)
+    , m_msize(0)
+    , m_m(nullptr)
   {
   }
 
   rect_matrix(size_type w, size_type h, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(w * h)
+    : m_a(a)
     , m_width(w)
     , m_height(h)
-    , m_a(a)
+    , m_msize(w * h)
+    , m_m(nullptr)
   {
     if ((w * h) > 0) {
       this->allocate_resources();
@@ -296,29 +407,29 @@ public:
   }
 
   rect_matrix(const rect_matrix& o)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
     , m_width(o.m_width)
     , m_height(o.m_height)
-    , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
   rect_matrix(rect_matrix&& o) noexcept
-    : m_m(std::move(o.m_m))
-    , m_msize(std::exchange(o.m_msize, 0))
+    : m_a(std::move(o.m_a))
     , m_width(std::exchange(o.m_width, 0))
     , m_height(std::exchange(o.m_height, 0))
-    , m_a(std::move(o.m_a))
+    , m_msize(std::exchange(o.m_msize, 0))
+    , m_m(std::move(o.m_m))
   {
   }
   rect_matrix(rect_matrix&& o, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(a)
     , m_width(o.m_width)
     , m_height(o.m_height)
-    , m_a(a)
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     if (this->m_msize > 0) {
       if (this->m_a == o.m_a) {
@@ -485,7 +596,7 @@ private:
     pointer   t = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++);
   }
   void
@@ -493,7 +604,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++, *(f++));
   }
   void
@@ -501,7 +612,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       *(t++) = *(f++);
   }
   void
@@ -509,7 +620,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<allocator_type>::construct(this->m_a, t++, std::move(*(f++)));
   }
   void
@@ -517,7 +628,7 @@ private:
   {
     pointer t = this->m_m;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       *(t++) = std::move(*(f++));
   }
   void
@@ -526,13 +637,13 @@ private:
     pointer   p = this->m_m;
     size_type n = this->m_msize;
 
-    for (auto i = 0; i < n; ++i)
+    for (auto i = size_type(0); i < n; ++i)
       std::allocator_traits<A>::destroy(this->m_a, p++);
   }
   void
   free_resources()
   {
-    if (this->m_msize > 0)
+    if (this->m_msize > size_type(0))
       std::allocator_traits<allocator_type>::deallocate(this->m_a, this->m_m, this->m_msize);
   }
 
@@ -542,10 +653,10 @@ public:
   {
   }
   square_matrix(const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(0)
+    : m_a(a)
     , m_size(0)
-    , m_a(a)
+    , m_msize(0)
+    , m_m(nullptr)
   {
   }
 
@@ -554,10 +665,10 @@ public:
   {
   }
   square_matrix(size_type s, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(s * s)
+    : m_a(a)
     , m_size(s)
-    , m_a(a)
+    , m_msize(s * s)
+    , m_m(nullptr)
   {
     if (s > 0) {
       this->allocate_resources();
@@ -566,26 +677,26 @@ public:
   }
 
   square_matrix(const square_matrix& o)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
     , m_size(o.m_size)
-    , m_a(std::allocator_traits<allocator_type>::select_on_container_copy_construction(o.m_a))
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     this->allocate_resources();
     this->copy_insert_resources_n(o.m_m, o.m_msize);
   }
   square_matrix(square_matrix&& o) noexcept
-    : m_m(std::move(o.m_m))
-    , m_msize(std::exchange(o.m_msize, 0))
+    : m_a(std::move(o.m_a))
     , m_size(std::exchange(o.m_size, 0))
-    , m_a(std::move(o.m_a))
+    , m_msize(std::exchange(o.m_msize, 0))
+    , m_m(std::move(o.m_m))
   {
   }
   square_matrix(square_matrix&& o, const allocator_type& a)
-    : m_m(nullptr)
-    , m_msize(o.m_msize)
+    : m_a(a)
     , m_size(o.m_size)
-    , m_a(a)
+    , m_msize(o.m_msize)
+    , m_m(nullptr)
   {
     if (this->m_msize > 0) {
       if (this->m_a == o.m_a) {
