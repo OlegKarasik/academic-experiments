@@ -354,6 +354,13 @@ foreach(index RANGE ${length})
   set(t_tst_src_list "${TST_SRC_LIST}")
   set(t_bnk_src_list "${BNK_SRC_LIST}")
 
+  # Including 'algorithm' files to ensure they are part
+  # of the compilation
+  #
+  list(APPEND t_app_src_list src/variants/${t_alias}/algorithm.hpp)
+  list(APPEND t_tst_src_list src/variants/${t_alias}/algorithm.hpp)
+  list(APPEND t_bnk_src_list src/variants/${t_alias}/algorithm.hpp)
+
   # Include Metal.cpp into compilation list if the target is Metal
   #
   if ((APPLE) AND (${t_name} IN_LIST metal_targets))
