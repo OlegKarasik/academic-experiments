@@ -527,38 +527,42 @@ private:
 
 public:
   void
-  operator()(S& matrix, utilz::matrices::clusters<size_type>& clusters, matrix_clusters_arrangement arrangement)
+  operator()(S& matrix, const utilz::matrices::clusters& clusters, const matrix_clusters_arrangement arrangement)
   {
     std::map<size_type, size_type> mapping;
 
-    auto mindex = size_type(0);
-    for (auto cindex : clusters.list()) {
-      for (auto vindex : clusters.get_vertices(cindex)) {
-        auto map = mapping.find(vindex);
-        if (map != mapping.end()) {
-          auto chain_map = map;
+    auto mapping_idx = size_type(0);
+    for (auto group : clusters.list()) {
+      for (auto vertex : group.list()) {
+        auto vertex_it = mapping.find(std::get<size_t>(vertex));
+        if (vertex_it != mapping.end()) {
+          auto lookup_vertex_it = vertex_it;
           while (true) {
-            auto chain_link = mapping.find(chain_map->second);
-            if (chain_link != mapping.end()) {
-              chain_map = chain_link;
+            auto it = mapping.find(lookup_vertex_it->second);
+            if (it != mapping.end()) {
+              lookup_vertex_it = it;
             } else {
-              map = chain_map;
+              vertex_it = lookup_vertex_it;
               break;
             }
           }
         }
 
-        mapping.emplace(mindex, map == mapping.end() ? vindex : map->second);
+        mapping.emplace(
+          mapping_idx,
+          vertex_it == mapping.end()
+            ? std::get<size_t>(vertex)
+            : vertex_it->second);
 
-        ++mindex;
+        ++mapping_idx;
       }
     }
 
     switch (arrangement) {
-      case matrix_clusters_arrangement::matrix_clusters_arrangement_forward:
+      case matrix_clusters_arrangement_forward:
         matrix_arrange_clusters(matrix, mapping.begin(), mapping.end());
         break;
-      case matrix_clusters_arrangement::matrix_clusters_arrangement_backward:
+      case matrix_clusters_arrangement_backward:
         matrix_arrange_clusters(matrix, mapping.rbegin(), mapping.rend());
         break;
       default:

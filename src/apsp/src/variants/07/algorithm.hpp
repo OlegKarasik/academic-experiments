@@ -200,7 +200,7 @@ void
 run(
   ::utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& blocks,
   run_configuration<T, A, U>& run_config,
-  ::utilz::matrices::clusters<typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type>& clusters)
+  ::utilz::matrices::clusters& clusters)
 {
   using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
 
@@ -217,8 +217,8 @@ run(
 
         calculate_diagonal(mm, run_config);
 
-        auto indeces_in  = clusters.get_indeces_in(m);
-        auto indeces_out = clusters.get_indeces_out(m);
+        auto input_positions  = clusters.get_input_bridges_positions(m);
+        auto output_positions = clusters.get_output_bridges_positions(m);
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
@@ -226,21 +226,24 @@ run(
             auto& mi = blocks.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, indeces_in)
+  #pragma omp task untied default(none) shared(im, mm, input_positions)
 #endif
-            calculate_vertical(im, im, mm, indeces_in);
+            calculate_vertical(im, im, mm, input_positions);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, indeces_out)
+  #pragma omp task untied default(none) shared(mi, mm, output_positions)
 #endif
-            calculate_horizontal(mi, mm, mi, indeces_out);
+            calculate_horizontal(mi, mm, mi, output_positions);
           }
         }
 #ifdef _OPENMP
   #pragma omp taskwait
 #endif
-        auto indeces_min = indeces_in.size() < indeces_out.size() ? indeces_in : indeces_out;
-        if (indeces_min.size() == 0)
+        auto min_positions = input_positions.size() < output_positions.size()
+          ? input_positions
+          : output_positions;
+
+        if (min_positions.size() == 0)
           continue;
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
@@ -252,9 +255,9 @@ run(
                 auto& mj = blocks.at(m, j);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(ij, im, mj, indeces_min)
+  #pragma omp task untied default(none) shared(ij, im, mj, min_positions)
 #endif
-                calculate_peripheral(ij, im, mj, indeces_min);
+                calculate_peripheral(ij, im, mj, min_positions);
               }
             }
           }

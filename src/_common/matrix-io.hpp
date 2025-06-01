@@ -30,12 +30,12 @@ scan_matrix(
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                                                                                              graph_format,
-  std::istream&                                                                                                                graph_is,
-  utilz::communities::io::communities_format                                                                                   communities_format,
-  std::istream&                                                                                                                communities_is,
-  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>&                                                       block_matrix,
-  utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type>& clusters);
+  utilz::graphs::io::graph_format                                        graph_format,
+  std::istream&                                                          graph_is,
+  utilz::communities::io::communities_format                             communities_format,
+  std::istream&                                                          communities_is,
+  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& block_matrix,
+  utilz::matrices::clusters&                                             clusters);
 
 template<typename T, typename A>
 void
@@ -133,19 +133,19 @@ scan_matrix(
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                                                                                              graph_format,
-  std::istream&                                                                                                                graph_is,
-  utilz::communities::io::communities_format                                                                                   communities_format,
-  std::istream&                                                                                                                communities_is,
-  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>&                                                       block_matrix,
-  utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type>& clusters)
+  utilz::graphs::io::graph_format                                        graph_format,
+  std::istream&                                                          graph_is,
+  utilz::communities::io::communities_format                             communities_format,
+  std::istream&                                                          communities_is,
+  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& block_matrix,
+  utilz::matrices::clusters&                                             clusters)
 {
   static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices or matrices type");
 
   using matrix_type   = utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>;
   using size_type     = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
   using value_type    = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
-  using clusters_type = utilz::matrices::clusters<size_type>;
+  using clusters_type = utilz::matrices::clusters;
 
   using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
   using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
@@ -158,13 +158,13 @@ scan_matrix(
 
   matrix_set_all set_all;
 
-  auto set_cluster_value = std::function([](clusters_type& c, size_type cindex, size_type vindex) -> void {
-    c.insert_map(cindex, vindex);
+  auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
+    c.insert_vertex(cluster_idx, vertex_idx);
   });
   utilz::communities::io::scan_communities(communities_format, communities_is, clusters, set_cluster_value);
 
   std::vector<size_type> item_sizes;
-  for (auto size : clusters.list() | std::views::transform([&clusters](auto& cindex) -> auto { return clusters.count_vertices(cindex); }))
+  for (auto size : clusters.list() | std::views::transform([](auto group) -> auto { return group.size(); }))
     item_sizes.push_back(size);
 
   set_dimensions(block_matrix, item_sizes);
@@ -181,9 +181,7 @@ scan_matrix(
   for (auto i = size_type(0); i < dimensions.s(); ++i)
     get_at(block_matrix, i, i) = value_type(0);
 
-  for (auto cindex : clusters.list()) {
-    clusters.optimise(cindex);
-  }
+  clusters.optimise();
 };
 
 template<typename T, typename A>
@@ -221,7 +219,7 @@ public:
   //
   using iterator_category = std::forward_iterator_tag;
   using difference_type   = _size_type;
-  using value_type        = typename std::tuple<_size_type, _size_type, _value_type>;
+  using value_type        = std::tuple<_size_type, _size_type, _value_type>;
   using pointer           = value_type*;
   using reference         = value_type&;
 

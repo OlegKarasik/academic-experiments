@@ -75,7 +75,7 @@ using g_allocator_type = typename std::allocator<K>;
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   using matrix_block            = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
   using matrix                  = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-  using clusters                = ::utilz::matrices::clusters<typename utilz::matrices::traits::matrix_traits<matrix>::size_type>;
+  using clusters                = ::utilz::matrices::clusters;
   using matrix_arrange_clusters = ::utilz::matrices::procedures::matrix_arrange_clusters<matrix>;
 
   #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -169,6 +169,38 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+    #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
+      for (auto group : this->m_src_clusters[src_index].list()) {
+        const auto input_count = std::ranges::count_if(
+          group.list(),
+          [](const auto& vertex) -> bool {
+            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
+          });
+        const auto output_count = std::ranges::count_if(
+          group.list(),
+          [](const auto& vertex) -> bool {
+            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
+          });
+        if (input_count > output_count) {
+          group.sort(
+            {
+              ::utilz::matrices::clusters_vertex_flag_none,
+              ::utilz::matrices::clusters_vertex_flag_output,
+              ::utilz::matrices::clusters_vertex_flag_input,
+              ::utilz::matrices::clusters_vertex_flag_input_output
+            });
+        } else {
+          group.sort(
+            {
+              ::utilz::matrices::clusters_vertex_flag_none,
+              ::utilz::matrices::clusters_vertex_flag_input,
+              ::utilz::matrices::clusters_vertex_flag_output,
+              ::utilz::matrices::clusters_vertex_flag_input_output
+            });
+        }
+      }
+      this->m_src_clusters[src_index].optimise();
+    #endif
     matrix_arrange_clusters src_rearrange;
 
     src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);

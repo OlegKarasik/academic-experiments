@@ -51,7 +51,7 @@ using g_allocator_type = typename std::allocator<K>;
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   using source_matrix_block    = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
   using source_matrix          = ::utilz::matrices::square_matrix<source_matrix_block, g_allocator_type<source_matrix_block>>;
-  using source_clusters        = ::utilz::matrices::clusters<typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type>;
+  using source_clusters        = ::utilz::matrices::clusters;
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
   using extra_configuration    = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<source_matrix_block>>;
@@ -163,6 +163,39 @@ public:
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+    #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
+      for (auto group : this->m_src_clusters.list()) {
+        const auto input_count = std::ranges::count_if(
+          group.list(),
+          [](const auto& vertex) -> bool {
+            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
+          });
+        const auto output_count = std::ranges::count_if(
+          group.list(),
+          [](const auto& vertex) -> bool {
+            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
+          });
+        if (input_count > output_count) {
+          group.sort(
+            {
+              ::utilz::matrices::clusters_vertex_flag_none,
+              ::utilz::matrices::clusters_vertex_flag_output,
+              ::utilz::matrices::clusters_vertex_flag_input,
+              ::utilz::matrices::clusters_vertex_flag_input_output
+            });
+        } else {
+          group.sort(
+            {
+              ::utilz::matrices::clusters_vertex_flag_none,
+              ::utilz::matrices::clusters_vertex_flag_input,
+              ::utilz::matrices::clusters_vertex_flag_output,
+              ::utilz::matrices::clusters_vertex_flag_input_output
+            });
+        }
+      }
+      this->m_src_clusters.optimise();
+    #endif
+
     source_matrix_rearrange src_rearrange;
 
     src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
@@ -209,7 +242,8 @@ public:
 
 using FixtureT = Fixture<int>;
 
-const auto graphs = testing::Values("7-7 (3)", "7-7 (2)", "7-7", "8-9", "9-12", "10-14", "10-36", "17-46", "17-48", "17-57", "17-61", "17-61 (2)", "17-67", "32-376");
+const auto graphs = testing::Values("7-7 (3)", "7-7 (2)", "7-7", "8-9", "9-12 (2)", "9-12", "10-14", "10-36", "17-46", "17-48", "17-57", "17-61", "17-61 (2)", "17-67", "32-376");
+//const auto graphs = testing::Values("9-12 (2)");
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
 const auto values = testing::Combine(graphs, testing::Values(2, 4, 5));
