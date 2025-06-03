@@ -1,8 +1,8 @@
 {
   "folders": [
     {
-      "name": "_deps",
-      "path": "../_deps"
+      "name": "program",
+      "path": "."
     },
     {
       "name": "_common",
@@ -13,8 +13,8 @@
       "path": "../../data/_test"
     },
     {
-      "name": "program",
-      "path": "."
+      "name": "_deps",
+      "path": "../_deps"
     }
   ],
   "extensions": {
@@ -27,16 +27,6 @@
   },
   "settings": {
     "cmake.useCMakePresets": "always",
-    "cmake.debugConfig": {
-      "args": [
-        "-r", "2000",
-        "-g", "${workspaceFolder:_test}/graphs/7-7.source.g",
-        "-G", "weightlist",
-        "-O", "weightlist",
-        "-o", "${workspaceFolder:program}/build/7-7.result.g"
-      ],
-    },
-    "cmake.sourceDirectory": "${workspaceFolder:program}",
     "cmake.autoSelectActiveFolder": false,
     "cmake.defaultActiveFolder": "${workspaceFolder:program}",
     "files.associations": {

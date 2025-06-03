@@ -1,7 +1,7 @@
 {
   "folders": [
     {
-      "name": "programs",
+      "name": "program",
       "path": "."
     },
     {
@@ -11,6 +11,8 @@
   ],
   "settings": {
     "cmake.useCMakePresets": "always",
+    "cmake.autoSelectActiveFolder": false,
+    "cmake.defaultActiveFolder": "${workspaceFolder:program}",
     "files.associations": {
       "array": "cpp",
       "atomic": "cpp",
