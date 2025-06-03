@@ -20,7 +20,8 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-gcc-x64",
             "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
+                "${workspaceFolder}/build/mingw-gcc-debug/compile_commands.json",
+                "${workspaceFolder}/build/mingw-gcc-release/compile_commands.json"
             ],
             "configurationProvider": "ms-vscode.cmake-tools"
         },
