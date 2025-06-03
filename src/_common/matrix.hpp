@@ -81,19 +81,31 @@ public:
   }
 
   void
-  sort(const std::array<clusters_vertex_flag, 4> arrangements)
+  sort(const std::array<clusters_vertex_flag, 3> arrangements)
   {
     std::array<long, 4> orders = { 3, 3, 3, 3 };
     orders[arrangements[0]] = 0;
     orders[arrangements[1]] = 1;
     orders[arrangements[2]] = 2;
-    orders[arrangements[3]] = 3;
+
+    if (   arrangements[2] == clusters_vertex_flag_input
+        || arrangements[2] == clusters_vertex_flag_output) {
+      orders[clusters_vertex_flag_input_output] = 2;
+    }
+    if (   arrangements[1] == clusters_vertex_flag_input
+        || arrangements[1] == clusters_vertex_flag_output) {
+      orders[clusters_vertex_flag_input_output] = 1;
+    }
+    if (   arrangements[0] == clusters_vertex_flag_input
+        || arrangements[0] == clusters_vertex_flag_output) {
+      orders[clusters_vertex_flag_input_output] = 0;
+    }
 
     std::ranges::sort(
       this->m_vertices,
       [&orders](auto a, auto b) -> bool {
-        return orders[std::get<clusters_vertex_flag>(a)] < orders[std::get<clusters_vertex_flag>(b)]
-            || std::get<size_t>(a) < std::get<size_t>(b);
+        return std::tie(orders[std::get<clusters_vertex_flag>(a)], std::get<index_t>(a))
+             < std::tie(orders[std::get<clusters_vertex_flag>(b)], std::get<index_t>(b));
       });
   }
 
@@ -104,6 +116,7 @@ public:
     return this->m_vertices.size();
   }
 
+  [[nodiscard]]
   auto
   list()
   {
@@ -188,7 +201,7 @@ public:
       std::vector<bool> bridges_positions_flags_output;
 
       auto i = static_cast<index_t>(0);
-      for (auto v : group.list()) {
+      for (auto& v : group.list()) {
         auto bridges_positions_input_flag  = bridges_positions_flags_input.emplace_back(false);
         auto bridges_positions_output_flag = bridges_positions_flags_output.emplace_back(false);
 
@@ -238,7 +251,7 @@ public:
   }
 
   auto
-  list() const noexcept
+  list()
   {
     return std::views::values(this->m_groups);
   }

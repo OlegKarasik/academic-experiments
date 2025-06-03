@@ -164,7 +164,7 @@ scan_matrix(
   utilz::communities::io::scan_communities(communities_format, communities_is, clusters, set_cluster_value);
 
   std::vector<size_type> item_sizes;
-  for (auto size : clusters.list() | std::views::transform([](auto group) -> auto { return group.size(); }))
+  for (auto size : clusters.list() | std::views::transform([](auto& group) -> auto { return group.size(); }))
     item_sizes.push_back(size);
 
   set_dimensions(block_matrix, item_sizes);

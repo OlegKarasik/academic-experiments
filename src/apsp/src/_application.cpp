@@ -351,7 +351,7 @@ main(int argc, char* argv[]) __hack_noexcept
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
-    for (auto group : c.list()) {
+    for (auto& group : c.list()) {
       const auto input_count = std::ranges::count_if(
         group.list(),
         [](const auto& vertex) -> bool {
@@ -367,16 +367,14 @@ main(int argc, char* argv[]) __hack_noexcept
           {
             ::utilz::matrices::clusters_vertex_flag_none,
             ::utilz::matrices::clusters_vertex_flag_output,
-            ::utilz::matrices::clusters_vertex_flag_input,
-            ::utilz::matrices::clusters_vertex_flag_input_output
+            ::utilz::matrices::clusters_vertex_flag_input
           });
       } else {
         group.sort(
           {
             ::utilz::matrices::clusters_vertex_flag_none,
             ::utilz::matrices::clusters_vertex_flag_input,
-            ::utilz::matrices::clusters_vertex_flag_output,
-            ::utilz::matrices::clusters_vertex_flag_input_output
+            ::utilz::matrices::clusters_vertex_flag_output
           });
       }
     }

@@ -164,7 +164,7 @@ public:
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
-      for (auto group : this->m_src_clusters.list()) {
+      for (auto& group : this->m_src_clusters.list()) {
         const auto input_count = std::ranges::count_if(
           group.list(),
           [](const auto& vertex) -> bool {
@@ -180,16 +180,14 @@ public:
             {
               ::utilz::matrices::clusters_vertex_flag_none,
               ::utilz::matrices::clusters_vertex_flag_output,
-              ::utilz::matrices::clusters_vertex_flag_input,
-              ::utilz::matrices::clusters_vertex_flag_input_output
+              ::utilz::matrices::clusters_vertex_flag_input
             });
         } else {
           group.sort(
             {
               ::utilz::matrices::clusters_vertex_flag_none,
               ::utilz::matrices::clusters_vertex_flag_input,
-              ::utilz::matrices::clusters_vertex_flag_output,
-              ::utilz::matrices::clusters_vertex_flag_input_output
+              ::utilz::matrices::clusters_vertex_flag_output
             });
         }
       }

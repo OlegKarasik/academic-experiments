@@ -527,13 +527,13 @@ private:
 
 public:
   void
-  operator()(S& matrix, const utilz::matrices::clusters& clusters, const matrix_clusters_arrangement arrangement)
+  operator()(S& matrix, utilz::matrices::clusters& clusters, const matrix_clusters_arrangement arrangement)
   {
     std::map<size_type, size_type> mapping;
 
     auto mapping_idx = size_type(0);
-    for (auto group : clusters.list()) {
-      for (auto vertex : group.list()) {
+    for (auto& group : clusters.list()) {
+      for (auto& vertex : group.list()) {
         auto vertex_it = mapping.find(std::get<size_t>(vertex));
         if (vertex_it != mapping.end()) {
           auto lookup_vertex_it = vertex_it;

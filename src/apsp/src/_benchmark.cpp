@@ -170,7 +170,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
     #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
-      for (auto group : this->m_src_clusters[src_index].list()) {
+      for (auto& group : this->m_src_clusters[src_index].list()) {
         const auto input_count = std::ranges::count_if(
           group.list(),
           [](const auto& vertex) -> bool {
@@ -186,16 +186,14 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
             {
               ::utilz::matrices::clusters_vertex_flag_none,
               ::utilz::matrices::clusters_vertex_flag_output,
-              ::utilz::matrices::clusters_vertex_flag_input,
-              ::utilz::matrices::clusters_vertex_flag_input_output
+              ::utilz::matrices::clusters_vertex_flag_input
             });
         } else {
           group.sort(
             {
               ::utilz::matrices::clusters_vertex_flag_none,
               ::utilz::matrices::clusters_vertex_flag_input,
-              ::utilz::matrices::clusters_vertex_flag_output,
-              ::utilz::matrices::clusters_vertex_flag_input_output
+              ::utilz::matrices::clusters_vertex_flag_output
             });
         }
       }
