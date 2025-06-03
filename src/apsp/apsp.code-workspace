@@ -34,8 +34,11 @@
         "-G", "weightlist",
         "-O", "weightlist",
         "-o", "${workspaceFolder:program}/build/7-7.result.g"
-      ]
+      ],
     },
+    "cmake.sourceDirectory": "${workspaceFolder:program}",
+    "cmake.autoSelectActiveFolder": false,
+    "cmake.defaultActiveFolder": "${workspaceFolder:program}",
     "files.associations": {
       "array": "cpp",
       "atomic": "cpp",

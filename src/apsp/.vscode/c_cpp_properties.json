@@ -37,11 +37,12 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64",
             "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
+                "${workspaceFolder}/build/osx-llvm-clang-debug/compile_commands.json",
+                "${workspaceFolder}/build/osx-llvm-clang-release/compile_commands.json"
             ],
             "configurationProvider": "ms-vscode.cmake-tools",
             "macFrameworkPath": [
-                "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk"
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
             ]
         }
     ],
