@@ -2,7 +2,7 @@
 
 #define APSP_ALG_MATRIX_CLUSTERS
 
-#define APSP_ALG_EXTRA_REARRANGEMENTS
+#define APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
 
 #include "portables/hacks/defines.h"
 

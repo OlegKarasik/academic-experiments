@@ -3,9 +3,8 @@
 #define APSP_ALG_MATRIX_CLUSTERS
 
 #define APSP_ALG_EXTRA_CONFIGURATION
-
-#define APSP_ALG_EXTRA_REARRANGEMENTS
-#define APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
+#define APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
+#define APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
 
 #include <constants.hpp>
 #include <matrix-manip.hpp>
@@ -124,7 +123,6 @@ calculate_vertical_fast(
   }
 };
 
-
 template<typename T, typename A>
 void
 calculate_vertical(
@@ -228,6 +226,41 @@ calculate_peripheral(
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
+
+__hack_noinline
+void
+up_clusters(
+  ::utilz::matrices::clusters& clusters)
+{
+  for (auto& group : clusters.list()) {
+    const auto input_count = std::ranges::count_if(
+      group.list(),
+      [](const auto& vertex) -> bool {
+        return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
+      });
+    const auto output_count = std::ranges::count_if(
+      group.list(),
+      [](const auto& vertex) -> bool {
+        return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
+      });
+    if (input_count > output_count) {
+      group.sort(
+        {
+          ::utilz::matrices::clusters_vertex_flag_none,
+          ::utilz::matrices::clusters_vertex_flag_output,
+          ::utilz::matrices::clusters_vertex_flag_input
+        });
+    } else {
+      group.sort(
+        {
+          ::utilz::matrices::clusters_vertex_flag_none,
+          ::utilz::matrices::clusters_vertex_flag_input,
+          ::utilz::matrices::clusters_vertex_flag_output
+        });
+    }
+  }
+  clusters.optimise();
+}
 
 template<typename T, typename A, typename U>
 __hack_noinline

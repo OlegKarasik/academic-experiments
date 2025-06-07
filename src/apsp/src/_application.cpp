@@ -349,37 +349,11 @@ main(int argc, char* argv[]) __hack_noexcept
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
-    for (auto& group : c.list()) {
-      const auto input_count = std::ranges::count_if(
-        group.list(),
-        [](const auto& vertex) -> bool {
-          return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
-        });
-      const auto output_count = std::ranges::count_if(
-        group.list(),
-        [](const auto& vertex) -> bool {
-          return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
-        });
-      if (input_count > output_count) {
-        group.sort(
-          {
-            ::utilz::matrices::clusters_vertex_flag_none,
-            ::utilz::matrices::clusters_vertex_flag_output,
-            ::utilz::matrices::clusters_vertex_flag_input
-          });
-      } else {
-        group.sort(
-          {
-            ::utilz::matrices::clusters_vertex_flag_none,
-            ::utilz::matrices::clusters_vertex_flag_input,
-            ::utilz::matrices::clusters_vertex_flag_output
-          });
-      }
-    }
-    c.optimise();
+  #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
+  up_clusters(c);
   #endif
+
+  #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
   ::utilz::matrices::procedures::matrix_arrange_clusters<matrix> arrange_matrix;
 
   arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
@@ -449,7 +423,7 @@ main(int argc, char* argv[]) __hack_noexcept
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+  #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
   arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif

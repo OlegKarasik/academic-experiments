@@ -162,38 +162,10 @@ public:
     result_matrix_get_dimensions res_get_dimensions;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
-    #ifdef APSP_ALG_EXTRA_REARRANGEMENTS_OPTIMISE
-      for (auto& group : this->m_src_clusters.list()) {
-        const auto input_count = std::ranges::count_if(
-          group.list(),
-          [](const auto& vertex) -> bool {
-            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
-          });
-        const auto output_count = std::ranges::count_if(
-          group.list(),
-          [](const auto& vertex) -> bool {
-            return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
-          });
-        if (input_count > output_count) {
-          group.sort(
-            {
-              ::utilz::matrices::clusters_vertex_flag_none,
-              ::utilz::matrices::clusters_vertex_flag_output,
-              ::utilz::matrices::clusters_vertex_flag_input
-            });
-        } else {
-          group.sort(
-            {
-              ::utilz::matrices::clusters_vertex_flag_none,
-              ::utilz::matrices::clusters_vertex_flag_input,
-              ::utilz::matrices::clusters_vertex_flag_output
-            });
-        }
-      }
-      this->m_src_clusters.optimise();
-    #endif
-
+  #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
+    up_clusters(this->m_src_clusters);
+  #endif
+  #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
     source_matrix_rearrange src_rearrange;
 
     src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
@@ -224,7 +196,7 @@ public:
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  #ifdef APSP_ALG_EXTRA_REARRANGEMENTS
+  #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
     src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
