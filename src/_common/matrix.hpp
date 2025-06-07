@@ -145,8 +145,6 @@ private:
   std::unordered_map<index_t, std::vector<index_t>> m_bridges_position;
   std::unordered_map<index_t, std::vector<index_t>> m_bridges_positions_input;
   std::unordered_map<index_t, std::vector<index_t>> m_bridges_positions_output;
-  std::unordered_map<index_t, std::vector<bool>>    m_bridges_positions_flags_input;
-  std::unordered_map<index_t, std::vector<bool>>    m_bridges_positions_flags_output;
 
 public:
   void
@@ -185,9 +183,6 @@ public:
     this->m_bridges_positions_input.clear();
     this->m_bridges_positions_output.clear();
 
-    this->m_bridges_positions_flags_input.clear();
-    this->m_bridges_positions_flags_output.clear();
-
     for (auto [key, group] : this->m_groups) {
       std::vector<index_t> bridges;
       std::vector<index_t> bridges_input;
@@ -197,14 +192,8 @@ public:
       std::vector<index_t> bridges_positions_input;
       std::vector<index_t> bridges_positions_output;
 
-      std::vector<bool> bridges_positions_flags_input;
-      std::vector<bool> bridges_positions_flags_output;
-
       auto i = static_cast<index_t>(0);
       for (auto& v : group.list()) {
-        auto bridges_positions_input_flag  = bridges_positions_flags_input.emplace_back(false);
-        auto bridges_positions_output_flag = bridges_positions_flags_output.emplace_back(false);
-
         const auto position = i++;
 
         if (std::get<clusters_vertex_flag>(v) == clusters_vertex_flag_none) {
@@ -220,14 +209,10 @@ public:
         if (flag & clusters_vertex_flag_input) {
           bridges_input.emplace_back(index);
           bridges_positions_input.emplace_back(position);
-
-          bridges_positions_input_flag = true;
         }
         if (flag & clusters_vertex_flag_output) {
           bridges_output.emplace_back(index);
           bridges_positions_output.emplace_back(position);
-
-          bridges_positions_output_flag = true;
         }
       }
 
@@ -238,9 +223,6 @@ public:
       this->m_bridges_position.emplace(key, bridges_positions);
       this->m_bridges_positions_input.emplace(key, bridges_positions_input);
       this->m_bridges_positions_output.emplace(key, bridges_positions_output);
-
-      this->m_bridges_positions_flags_input.emplace(key, bridges_positions_flags_input);
-      this->m_bridges_positions_flags_output.emplace(key, bridges_positions_flags_output);
     }
   }
 
@@ -287,21 +269,9 @@ public:
   }
 
   auto
-  get_input_bridges_positions_flags(const index_t& group_idx) const
-  {
-    return std::views::all(this->m_bridges_positions_flags_input.at(group_idx));
-  }
-
-  auto
   get_output_bridges_positions(const index_t& group_idx) const
   {
     return std::views::all(this->m_bridges_positions_output.at(group_idx));
-  }
-
-  auto
-  get_output_bridges_positions_flags(const index_t& group_idx) const
-  {
-    return std::views::all(this->m_bridges_positions_flags_output.at(group_idx));
   }
 };
 
