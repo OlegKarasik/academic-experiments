@@ -539,7 +539,6 @@ template<typename TIndex, typename TWeight>
 std::istream&
 operator>>(std::istream& is, graph_edge<graph_format::graph_fmt_edgelist, TIndex, TWeight>& edge)
 {
-
   std::string line;
   if (std::getline(is, line)) {
     TIndex f, t;
