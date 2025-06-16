@@ -4,7 +4,7 @@ param(
   [string] $RunConfigPath = './run.run-config',
   [string] $EventConfigPath = './events.event-config',
   [ValidateNotNullOrEmpty()]
-  [string] $OutputDirectory = $(throw 'OutputDirectory parameter is required.'),
+  [string] $OutputDirectory = $(throw '-OutputDirectory parameter is required.'),
   [int]    $Repeat = 1,
   [switch] $MeasureEnergy,
   [switch] $RunBase,
@@ -36,7 +36,6 @@ $ext = '';
 if ($IsWindows -eq $true) {
   $ext = '.exe';
 }
-
 
 Write-Verbose -Message "LAUNCH CONFIG PATH : $LaunchConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "RUN CONFIG PATH    : $RunConfigPath" -ErrorAction Stop;
