@@ -178,7 +178,7 @@ Write-Verbose "[State Verified]";
 #
 $MeasureShuffle = Measure-Command {
   $ShuffleSet = New-Object System.Collections.Generic.HashSet[int];
-  $RandomIterations = $Index#[System.Random]::Shared.NextInt64($Index / 2, $Index);
+  $RandomIterations = [System.Random]::Shared.NextInt64($Index / 2, $Index);
   for ($i = 0; $i -lt $RandomIterations; ++$i) {
     $O = [System.Random]::Shared.NextInt64(0, $Index);
     $R = [System.Random]::Shared.NextInt64(0, $Index);
