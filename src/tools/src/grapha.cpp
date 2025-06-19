@@ -304,7 +304,7 @@ analyse_communities_intersections(
             }
           }
           if (!sanity_edges)
-            throw std::logic_error("erro: the graph contains edges which doesn't match community structure");
+            throw std::logic_error("erro: the graph contains edges which doesn't match community structure [" + std::to_string(i) + ", " + std::to_string(j) + "]");
         }
       }
     }
