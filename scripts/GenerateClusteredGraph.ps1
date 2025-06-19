@@ -283,3 +283,4 @@ Write-Verbose "[Analysis Generation Completed] $($MeasureAnalysis.TotalSeconds)"
 $ClustersConfig | ForEach-Object {
   Remove-Item -Path "$($OutputDirectory)\intermediate.$($_.Code).g";
 }
+Remove-Item -Path "$($OutputDirectory)\intermediate.connections.g";
