@@ -21,8 +21,9 @@ if (-not (Test-Path -Path $ClustersConfigPath -PathType Leaf -ErrorAction Stop))
   throw "File '$ClustersConfigPath' does not exist";
 };
 if (-not (Test-Path -Path $OutputDirectory -PathType Container -ErrorAction Stop)) {
-  throw "Directory '$OutputDirectory' does not exist";
+  New-Item -Path $OutputDirectory -ItemType Directory -ErrorAction Stop | Out-Null;
 };
+
 if ($MinWeight -eq 0) {
   throw "-MinWeight parameter can't be 0";
 };
@@ -178,7 +179,7 @@ Write-Verbose "[State Verified]";
 #
 $MeasureShuffle = Measure-Command {
   $ShuffleSet = New-Object System.Collections.Generic.HashSet[int];
-  $RandomIterations = [System.Random]::Shared.NextInt64($Index / 2, $Index);
+  $RandomIterations = [System.Random]::Shared.NextInt64(($Index / $ClustersConfig.Length), $Index);
   for ($i = 0; $i -lt $RandomIterations; ++$i) {
     $O = [System.Random]::Shared.NextInt64(0, $Index);
     $R = [System.Random]::Shared.NextInt64(0, $Index);
@@ -193,6 +194,10 @@ $MeasureShuffle = Measure-Command {
 
     $X = $ClustersConfig | Where-Object { ($_.IndexShift -le $O) -and (($_.IndexShift + $_.Size) -gt $O) } | Select-Object -First 1;
     $Y = $ClustersConfig | Where-Object { ($_.IndexShift -le $R) -and (($_.IndexShift + $_.Size) -gt $R) } | Select-Object -First 1;
+
+    if (($X.IndexShift) -eq ($Y.IndexShift)) {
+      continue;
+    }
 
     for ($j = $X.StartIndex; $j -lt $X.EndIndex; ++$j) {
       if ($Edges[$j].X -eq $O) { $Edges[$j].X = $R; } elseif ($Edges[$j].X -eq $R) { $Edges[$j].X = $O; }
