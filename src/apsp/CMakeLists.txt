@@ -213,6 +213,22 @@ set(BNK_SRC_LIST src/_benchmark.cpp)
 #
 include_directories(${INC_LIST})
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options("-Wall")
+endif()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_compile_options("-Wall")
+endif()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  add_compile_options("/W4")
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options("-g" "-march=native" "-mtune=native")
+  endif()
+endif()
+
 # Enable testing
 #
 enable_testing()
@@ -370,22 +386,6 @@ foreach(index RANGE ${length})
   add_executable(_application-v${t_name} ${t_app_src_list})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(_application-v${t_name} PRIVATE "-Wall")
-  endif()
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(_application-v${t_name} PRIVATE "-Wall")
-  endif()
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(_application-v${t_name} PRIVATE "/W4")
-  endif()
-
-  if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-      target_compile_options(_application-v${t_name} PRIVATE "-g" "-march=native" "-mtune=native")
-    endif()
-  endif()
 
   if (NOT SKIP_GSUITE)
     add_executable(_test-v${t_name}        ${t_tst_src_list})

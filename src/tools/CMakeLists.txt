@@ -15,7 +15,16 @@ set(INC_LIST ../_common)
 #
 include_directories(${INC_LIST})
 
+# Include global compile options
+#
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options("-g" "-march=native" "-mtune=native")
+  endif()
+endif()
+
 # Initialise targets
+#
 add_executable(graphg   src/graphg.cpp)
 add_executable(graphc   src/graphc.cpp)
 add_executable(grapha   src/grapha.cpp)
