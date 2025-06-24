@@ -8,6 +8,8 @@
 
 #include "portables/hacks/defines.h"
 
+#include "measure.hpp"
+
 #include "memory.hpp"
 #include "matrix.hpp"
 
