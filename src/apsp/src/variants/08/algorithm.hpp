@@ -12,6 +12,8 @@
 
 #include "portables/hacks/defines.h"
 
+#include "measure.hpp"
+
 #include "memory.hpp"
 #include "matrix.hpp"
 
@@ -37,6 +39,8 @@ calculate_diagonal(
   ::utilz::matrices::rect_matrix<T, A>& mm,
   run_configuration<T, A, U>& run_config)
 {
+  SCOPE_MEASURE_MILLISECONDS("calculate_diagonal");
+
   using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T, A>>::size_type;
   using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T, A>>::value_type;
 
@@ -92,6 +96,8 @@ calculate_vertical_fast(
   ::utilz::matrices::rect_matrix<T, A>& mm,
   auto bridges)
 {
+  SCOPE_MEASURE_MILLISECONDS("calculate_vertical_fast");
+
   using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto w = im.width();
@@ -131,6 +137,8 @@ calculate_vertical(
   ::utilz::matrices::rect_matrix<T, A>& kj,
   auto bridges)
 {
+  SCOPE_MEASURE_MILLISECONDS("calculate_vertical");
+
   using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
@@ -150,6 +158,8 @@ calculate_horizontal_fast(
   ::utilz::matrices::rect_matrix<T, A>& mm,
   auto bridges)
 {
+  SCOPE_MEASURE_MILLISECONDS("calculate_horizontal_fast");
+
   using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto w = mi.width();
@@ -195,6 +205,8 @@ calculate_horizontal(
   ::utilz::matrices::rect_matrix<T, A>& kj,
   auto bridges)
 {
+  SCOPE_MEASURE_MILLISECONDS("calculate_horizontal");
+
   using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
@@ -215,6 +227,8 @@ calculate_peripheral(
   ::utilz::matrices::rect_matrix<T, A>& kj,
   auto bridges)
 {
+  SCOPE_MEASURE_MILLISECONDS("calculate_peripheral");
+
   using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
@@ -338,8 +352,8 @@ run(
 
         calculate_diagonal(mm, run_config);
 
-        auto input_positions        = clusters.get_input_bridges_positions(m);
-        auto output_positions       = clusters.get_output_bridges_positions(m);
+        auto input_positions  = clusters.get_input_bridges_positions(m);
+        auto output_positions = clusters.get_output_bridges_positions(m);
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {

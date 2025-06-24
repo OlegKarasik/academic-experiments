@@ -13,6 +13,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <map>
 
 // global C includes
 //
@@ -33,6 +34,10 @@
 
 #ifdef _WIN32
 #include "win-memory.hpp"
+#endif
+
+#ifdef APSP_STATISTICS
+#define ENABLE_SCOPE_MEASUREMENTS
 #endif
 
 // local utilz
@@ -432,4 +437,10 @@ main(int argc, char* argv[]) __hack_noexcept
     ::utilz::matrices::io::print_matrix(opt_output_format, output_stream, m);
   });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
+
+#ifdef APSP_STATISTICS
+  for (auto k : utilz::auto_measurements<std::chrono::milliseconds>) {
+    std::cerr << "Prnt: " << k.first << ":" << k.second.size() << std::endl;
+  }
+#endif
 }

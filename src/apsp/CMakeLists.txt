@@ -243,6 +243,10 @@ list(APPEND targets_names "04")
 list(APPEND targets_names "07")
 list(APPEND targets_names "08")
 
+# Initialise algorithms stats targets
+#
+list(APPEND stats_targets "08-stats")
+
 # Initialise Metal specific targets (MacOS)
 #
 if (APPLE)
@@ -322,6 +326,9 @@ if (ITT_FOUND)
   endif()
 endif()
 
+if (stats_targets)
+  list(APPEND targets_names "${stats_targets}")
+endif()
 if (omp_targets)
   list(APPEND targets_names "${omp_targets}")
 endif()
@@ -354,10 +361,18 @@ foreach(index RANGE ${length})
     string(SUBSTRING "${t_name}" 0 "${position}" t_alias)
   endif ()
 
+  # Understand whether testing and benchmarking is enabled
+  #
+  if ((NOT SKIP_GSUITE) AND NOT (${t_name} IN_LIST stats_targets))
+    set(TESTS_ENABLED ON)
+  else()
+    set(TESTS_ENABLED OFF)
+  endif()
+
   # Here if tests are enabled we initialize name of the
   # test fixture -- `t_fixture`
   #
-  if (NOT SKIP_GSUITE)
+  if (TESTS_ENABLED)
     string(REPLACE - _ t_fixture ${t_name})
   endif()
 
@@ -387,7 +402,7 @@ foreach(index RANGE ${length})
 
   target_include_directories(_application-v${t_name} PRIVATE src/variants/${t_alias})
 
-  if (NOT SKIP_GSUITE)
+  if (TESTS_ENABLED)
     add_executable(_test-v${t_name}        ${t_tst_src_list})
     add_executable(_benchmark-v${t_name}   ${t_bnk_src_list})
 
@@ -409,13 +424,19 @@ foreach(index RANGE ${length})
     endif()
   endif()
 
+  # Enable statistics if target requires it
+  #
+  if ((${t_name} IN_LIST stats_targets))
+    target_compile_definitions(_application-v${t_name} PRIVATE APSP_STATISTICS)
+  endif()
+
   # If Kernel is found and target requires OpenMP,
   # then link Kernel libraries
   #
   if ((KERNEL_FOUND) AND (${t_name} IN_LIST kernel_targets))
     target_link_libraries(_application-v${t_name} PUBLIC ${KERNEL_LIBRARY})
 
-    if (NOT SKIP_GSUITE)
+    if (TESTS_ENABLED)
       target_link_libraries(_test-v${t_name} PUBLIC ${KERNEL_LIBRARY})
       target_link_libraries(_benchmark-v${t_name} PUBLIC ${KERNEL_LIBRARY})
     endif()
@@ -430,7 +451,7 @@ foreach(index RANGE ${length})
   if ((OpenMP_CXX_FOUND) AND (${t_name} IN_LIST omp_targets))
     target_link_libraries(_application-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
 
-    if (NOT SKIP_GSUITE)
+    if (TESTS_ENABLED)
       target_link_libraries(_test-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
       target_link_libraries(_benchmark-v${t_name} PUBLIC OpenMP::OpenMP_CXX)
     endif()
@@ -462,7 +483,7 @@ foreach(index RANGE ${length})
 
     add_dependencies(_application-v${t_name} _algorithm-v${t_name}-metallib)
 
-    if (NOT SKIP_GSUITE)
+    if (TESTS_ENABLED)
       target_link_libraries(_test-v${t_name} PUBLIC ${METAL_LIBS})
       target_link_libraries(_benchmark-v${t_name} PUBLIC ${METAL_LIBS})
 
@@ -471,7 +492,7 @@ foreach(index RANGE ${length})
     endif()
   endif()
 
-  if (NOT SKIP_GSUITE)
+  if (TESTS_ENABLED)
     # Discover Google Tests in the target
     #
     gtest_discover_tests(_test-v${t_name})
