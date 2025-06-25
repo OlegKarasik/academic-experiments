@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <cmath>
 
 // global C includes
 //
@@ -439,8 +440,12 @@ main(int argc, char* argv[]) __hack_noexcept
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 
 #ifdef APSP_STATISTICS
-  for (auto k : utilz::auto_measurements<std::chrono::milliseconds>) {
-    std::cerr << "Prnt: " << k.first << ":" << k.second.size() << std::endl;
+  for (auto k : utilz::auto_measurements) {
+    auto average = std::reduce(k.second.begin(), k.second.end()) / k.second.size();
+
+    std::cerr << std::setw(10) << k.first << ": (" << k.second.size() << ")"
+      << ", average (ms): " << std::chrono::duration_cast<std::chrono::milliseconds>(average)
+      << std::endl;
   }
 #endif
 }

@@ -5,7 +5,7 @@
 #include <map>
 
 #ifdef ENABLE_SCOPE_MEASUREMENTS
-  #define SCOPE_MEASURE_MILLISECONDS(KEY) utilz::auto_measurement<std::chrono::milliseconds> __auto__measurement(KEY)
+  #define SCOPE_MEASURE_MILLISECONDS(KEY) utilz::auto_measurement __auto__measurement(KEY)
 #else
   #define SCOPE_MEASURE_MILLISECONDS(KEY)
 #endif
@@ -16,15 +16,13 @@ namespace utilz {
 // Forward declarations
 //
 
-template<typename TDuration>
 class auto_measurement;
 
 //
 // Forward declarations
 // ---
 
-template<typename TDuration>
-static std::unordered_map<std::string, std::vector<TDuration>> auto_measurements;
+static std::unordered_map<std::string, std::vector<std::chrono::nanoseconds>> auto_measurements;
 
 template<typename TDuration, typename TFunction, typename... Args>
 TDuration
@@ -46,7 +44,6 @@ measure_milliseconds(TFunction fn, Args&&... args)
   return measure<std::chrono::milliseconds>(fn, std::forward<Args>(args)...).count();
 };
 
-template<typename TDuration>
 class auto_measurement
 {
   private:
@@ -64,11 +61,11 @@ class auto_measurement
     {
       auto stop = std::chrono::high_resolution_clock::now();
 
-      auto it = auto_measurements<TDuration>.find(this->m_key);
-      if (it == auto_measurements<TDuration>.end()) {
-        auto_measurements<TDuration>.emplace(this->m_key, std::vector<TDuration> { std::chrono::duration_cast<TDuration>(stop - this->m_start) });
+      auto it = auto_measurements.find(this->m_key);
+      if (it == auto_measurements.end()) {
+        auto_measurements.emplace(this->m_key, std::vector<std::chrono::nanoseconds> { stop - this->m_start });
       } else {
-        auto_measurements<TDuration>[this->m_key].push_back(std::chrono::duration_cast<TDuration>(stop - this->m_start));
+        auto_measurements[this->m_key].push_back(stop - this->m_start);
       }
     }
 };
