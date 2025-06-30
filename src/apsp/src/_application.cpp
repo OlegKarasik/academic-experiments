@@ -327,6 +327,13 @@ main(int argc, char* argv[]) __hack_noexcept
   //
   matrix m(buffer_allocator);
 
+#ifdef APSP_ALG_MATRIX
+  auto scan_ms = ::utilz::measure_milliseconds(
+    [&m, &input_graph_stream, opt_input_graph_format]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m);
+    });
+#endif
+
 #ifdef APSP_ALG_MATRIX_BLOCKS
   auto scan_ms = ::utilz::measure_milliseconds(
     [&m, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
@@ -345,24 +352,27 @@ main(int argc, char* argv[]) __hack_noexcept
     });
 #endif
 
-#ifdef APSP_ALG_MATRIX
-  auto scan_ms = ::utilz::measure_milliseconds(
-    [&m, &input_graph_stream, opt_input_graph_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m);
-    });
-#endif
-
   std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
-  up_clusters(c);
+  auto up_clusters_ms = ::utilz::measure_milliseconds([&c]() -> void { up_clusters(c); });
+
+  std::cerr << "U/CU: " << up_clusters_ms << "ms" << std::endl;
   #endif
+
+  auto op_clusters_ms = ::utilz::measure_milliseconds([&c]() -> void { c.optimise(); });
+
+  std::cerr << "U/CO: " << op_clusters_ms << "ms" << std::endl;
 
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
   ::utilz::matrices::procedures::matrix_arrange_clusters<matrix> arrange_matrix;
 
-  arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+  auto up_arrange_ms = ::utilz::measure_milliseconds([&m, &c, &arrange_matrix]() -> void {
+    arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+  });
+
+  std::cerr << "U/AR: " << up_arrange_ms << "ms" << std::endl;
   #endif
 #endif
 
@@ -376,7 +386,7 @@ main(int argc, char* argv[]) __hack_noexcept
   extra_configuration run_config;
   auto up_ms = ::utilz::measure_milliseconds([&run_config, &m, &buffer_fx]() -> void { up(m, buffer_fx, run_config); });
 
-  std::cerr << ">>>>: " << up_ms << "ms" << std::endl;
+  std::cerr << "U/CF: " << up_ms << "ms" << std::endl;
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(
@@ -425,12 +435,16 @@ main(int argc, char* argv[]) __hack_noexcept
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
   auto down_ms = utilz::measure_milliseconds([&m, &buffer_fx, &run_config]() -> void { down(m, buffer_fx, run_config); });
 
-  std::cerr << "<<<<: " << down_ms << "ms" << std::endl;
+  std::cerr << "D/CF: " << down_ms << "ms" << std::endl;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-  arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+  auto down_arrange_ms = ::utilz::measure_milliseconds([&m, &c, &arrange_matrix]() -> void {
+    arrange_matrix(m, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+  });
+
+  std::cerr << "D/AR: " << down_arrange_ms << "ms" << std::endl;
   #endif
 #endif
 
@@ -441,11 +455,12 @@ main(int argc, char* argv[]) __hack_noexcept
 
 #ifdef APSP_STATISTICS
   for (auto k : utilz::auto_measurements) {
-    auto average = std::reduce(k.second.begin(), k.second.end()) / k.second.size();
+    auto total   = std::reduce(k.second.begin(), k.second.end());
+    auto average = total / k.second.size();
 
-    std::cerr << std::setw(10) << k.first << ": (" << k.second.size() << ")"
-      << ", average (ms): " << std::chrono::duration_cast<std::chrono::milliseconds>(average)
-      << std::endl;
+    std::cerr << std::setw(4) << k.first << ": (Cnt): " << k.second.size() << std::endl;
+    std::cerr << std::setw(4) << k.first << ": (Ttl): " << std::chrono::duration_cast<std::chrono::milliseconds>(total) << std::endl;
+    std::cerr << std::setw(4) << k.first << ": (Avg): " << std::chrono::duration_cast<std::chrono::milliseconds>(average) << std::endl;
   }
 #endif
 }

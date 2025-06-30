@@ -24,6 +24,10 @@
 //
 #include "algorithm.hpp"
 
+#ifdef APSP_ALG_MATRIX
+const auto parameters = std::array<std::tuple<std::string>, 2>({ "10-14.source.g", "32-376.source.g" });
+#endif
+
 #ifdef APSP_ALG_MATRIX_BLOCKS
 const auto parameters = std::array<std::tuple<std::string, size_t>, 6>(
   { std::make_tuple("10-14.source.g", 2),
@@ -38,10 +42,6 @@ const auto parameters = std::array<std::tuple<std::string, size_t>, 6>(
 const auto parameters = std::array<std::tuple<std::string, std::string>, 2>(
   { std::make_tuple("10-14.source.g", "10-14.communities.g"),
     std::make_tuple("32-376.source.g", "32-376.communities.g") });
-#endif
-
-#ifdef APSP_ALG_MATRIX
-const auto parameters = std::array<std::tuple<std::string>, 2>({ "10-14.source.g", "32-376.source.g" });
 #endif
 
 template<typename T>
@@ -63,13 +63,21 @@ using g_allocator_type = typename std::allocator<K>;
 
 // aliasing
 //
+#ifdef APSP_ALG_MATRIX
+  using matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
+
+  #ifdef APSP_ALG_EXTRA_CONFIGURATION
+  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
+  #endif
+#endif
+
 #ifdef APSP_ALG_MATRIX_BLOCKS
   using matrix_block = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
   using matrix       = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
 
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
+  #ifdef APSP_ALG_EXTRA_CONFIGURATION
   using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
-#endif
+  #endif
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
@@ -80,15 +88,7 @@ using g_allocator_type = typename std::allocator<K>;
 
   #ifdef APSP_ALG_EXTRA_CONFIGURATION
   using extra_configuration     = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
-#endif
-#endif
-
-#ifdef APSP_ALG_MATRIX
-  using matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-  using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
-#endif
+  #endif
 #endif
 
 public:
@@ -137,16 +137,16 @@ public:
       clusters src_clusters;
 #endif
 
+#ifdef APSP_ALG_MATRIX
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix);
+#endif
+
 #ifdef APSP_ALG_MATRIX_BLOCKS
       ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix, std::get<1>(params));
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
       ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix, src_clusters);
-#endif
-
-#ifdef APSP_ALG_MATRIX
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix);
 #endif
 
       this->m_src.push_back(std::move(src_matrix));
@@ -171,6 +171,9 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
   #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
     up_clusters(this->m_src_clusters[src_index]);
   #endif
+
+    this->m_src_clusters[src_index].optimise();
+
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
     matrix_arrange_clusters src_rearrange;
 
@@ -199,10 +202,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
 #endif
 
     auto end = std::chrono::high_resolution_clock::now();
-
-    auto elapsed_seconds =
-      std::chrono::duration_cast<std::chrono::duration<double>>(
-        end - start);
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 
     state.SetIterationTime(elapsed_seconds.count());
 
