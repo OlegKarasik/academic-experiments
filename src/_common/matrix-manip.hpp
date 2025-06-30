@@ -317,40 +317,59 @@ template<typename T, typename A>
 struct impl_at<utilz::matrices::square_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_matrix::value>::type>
 {
 private:
+  using matrix_type     = typename utilz::matrices::square_matrix<T, A>;
   using size_type       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
   using item_type       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::item_type;
   using reference       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::reference;
   using const_reference = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::const_reference;
 
+  utilz::matrices::square_matrix<T, A>* m_cache_key;
+  std::vector<size_type>                m_y_cache;
+  std::vector<size_type>                m_x_cache;
+
 private:
+  void
+  refresh_caches(utilz::matrices::square_matrix<T, A>& s) {
+    impl_get_dimensions<matrix_type> get_matrix_dimensions;
+    impl_get_dimensions<item_type>   get_item_dimensions;
+
+    auto matrix_dimensions = get_matrix_dimensions(s);
+
+    this->m_y_cache.resize(matrix_dimensions.h());
+    this->m_x_cache.resize(matrix_dimensions.w());
+
+    auto x = size_type(0), y = size_type(0);
+    auto w = size_type(0), h = size_type(0);
+    for (auto z = size_type(0); z < s.size(); ++z) {
+      auto item_dimensions = get_item_dimensions(s.at(z, z));
+      for (auto i = size_type(0); i < item_dimensions.h(); ++i, ++y) {
+        this->m_y_cache[y] = size_type(h << 32 | z);
+      }
+      for (auto j = size_type(0); j < item_dimensions.w(); ++j, ++x) {
+        this->m_x_cache[x] = size_type(w << 32 | z);
+      }
+      w += item_dimensions.w();
+      h += item_dimensions.h();
+    }
+  }
+
   reference
   at(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
   {
-    impl_at<item_type>             get_at;
-    impl_get_dimensions<item_type> get_dimensions;
-
-    auto wf = false, hf = false;
-    auto x = size_type(0), y = size_type(0);
-    auto w = size_type(0), h = size_type(0);
-    for (auto z = size_type(0); z < s.size() && (!wf || !hf); ++z) {
-      auto dimensions = get_dimensions(s.at(z, z));
-      if (!hf) {
-        if (i < h + dimensions.h()) {
-          y  = z;
-          hf = true;
-        } else {
-          h = h + dimensions.h();
-        }
-      }
-      if (!wf) {
-        if (j < w + dimensions.w()) {
-          x  = z;
-          wf = true;
-        } else {
-          w = w + dimensions.w();
-        }
-      }
+    if (this->m_cache_key != &s) {
+      this->m_cache_key = &s;
+      this->refresh_caches(s);
     }
+
+    impl_at<item_type> get_at;
+
+    auto x_w = this->m_x_cache[j];
+    auto y_h = this->m_y_cache[i];
+
+    auto x = x_w & 0xFFFFFFFF;
+    auto w = x_w >> 32;
+    auto y = y_h & 0xFFFFFFFF;
+    auto h = y_h >> 32;
 
     return get_at(s.at(y, x), i - h, j - w);
   }

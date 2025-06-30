@@ -180,8 +180,6 @@ scan_matrix(
   auto dimensions = get_dimensions(block_matrix);
   for (auto i = size_type(0); i < dimensions.s(); ++i)
     get_at(block_matrix, i, i) = value_type(0);
-
-  clusters.optimise();
 };
 
 template<typename T, typename A>
@@ -224,6 +222,9 @@ public:
   using reference         = value_type&;
 
 private:
+  utilz::matrices::procedures::matrix_get_dimensions<S> m_get_dimensions;
+  utilz::matrices::procedures::matrix_at<S>             m_get_at;
+
   _size_type m_width;
   _size_type m_height;
   _size_type m_i;
@@ -245,9 +246,7 @@ public:
   iterator(S& s, _value_type infinity, begin_iterator)
     : m_s(s)
   {
-    utilz::matrices::procedures::matrix_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(s);
+    auto dimensions = this->m_get_dimensions(s);
 
     this->m_width  = dimensions.w();
     this->m_height = dimensions.h();
@@ -263,9 +262,7 @@ public:
   iterator(S& s, _value_type infinity, end_iterator)
     : m_s(s)
   {
-    utilz::matrices::procedures::matrix_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(s);
+    auto dimensions = this->m_get_dimensions(s);
 
     this->m_width  = dimensions.w();
     this->m_height = dimensions.h();
@@ -278,15 +275,12 @@ public:
   value_type
   operator*()
   {
-    utilz::matrices::procedures::matrix_at<S> get_at;
-
-    return std::make_tuple(this->m_i, this->m_j, get_at(this->m_s, this->m_i, this->m_j));
+    return std::make_tuple(this->m_i, this->m_j, this->m_get_at(this->m_s, this->m_i, this->m_j));
   }
 
   iterator&
   operator++()
   {
-    utilz::matrices::procedures::matrix_at<S> get_at;
 
     do {
       if (++this->m_j == this->m_width) {
@@ -298,7 +292,7 @@ public:
           break;
         }
       }
-    } while (this->m_i == this->m_j || get_at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
+    } while (this->m_i == this->m_j || this->m_get_at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
 
     return *this;
   }
