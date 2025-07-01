@@ -154,9 +154,6 @@ scan_matrix(
 
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
-  matrix_at             get_at;
-
-  matrix_set_all set_all;
 
   auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
     c.insert_vertex(cluster_idx, vertex_idx);
@@ -168,6 +165,10 @@ scan_matrix(
     item_sizes.push_back(size);
 
   set_dimensions(block_matrix, item_sizes);
+
+  typename matrix_at::focused      get_at (block_matrix);
+  typename matrix_set_all::focused set_all(get_at);
+
   set_all(block_matrix, utilz::constants::infinity<value_type>());
 
   auto set_matrix_value = std::function([&clusters, &get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {

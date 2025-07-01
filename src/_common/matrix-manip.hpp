@@ -300,6 +300,31 @@ private:
   using const_reference = typename utilz::matrices::traits::matrix_traits<S<T, A>>::const_reference;
 
 public:
+  struct focused
+  {
+    public:
+      focused(utilz::matrices::square_matrix<T, A>& s)
+      {
+      }
+      ~focused()
+      {
+      }
+
+  public:
+    reference
+    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
+    {
+      return s.at(i, j);
+    }
+
+    const_reference
+    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j) const
+    {
+      return s.at(i, j);
+    }
+  };
+
+public:
   reference
   operator()(S<T, A>& s, size_type i, size_type j)
   {
@@ -323,53 +348,121 @@ private:
   using reference       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::reference;
   using const_reference = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::const_reference;
 
-  utilz::matrices::square_matrix<T, A>* m_cache_key;
-  std::vector<size_type>                m_y_cache;
-  std::vector<size_type>                m_x_cache;
+public:
+  struct focused
+  {
+    private:
+      using _value_type = int;
+      using _pointer    = _value_type*;
+
+    private:
+      _pointer m_v_cache;
+      _pointer m_h_cache;
+
+    public:
+      focused(utilz::matrices::square_matrix<T, A>& s)
+        : m_v_cache(nullptr)
+        , m_h_cache(nullptr)
+      {
+        this->init_caches(s);
+      }
+      ~focused()
+      {
+        if (this->m_v_cache != nullptr)
+          ::free(this->m_v_cache);
+
+        if (this->m_h_cache != nullptr)
+          ::free(this->m_h_cache);
+      }
+
+    private:
+      void
+      init_caches(utilz::matrices::square_matrix<T, A>& s) {
+        impl_get_dimensions<matrix_type> get_matrix_dimensions;
+        impl_get_dimensions<item_type>   get_item_dimensions;
+
+        auto matrix_dimensions = get_matrix_dimensions(s);
+
+        this->m_v_cache = static_cast<_pointer>(::malloc(matrix_dimensions.h() * sizeof(_value_type)));
+        this->m_h_cache = static_cast<_pointer>(::malloc(matrix_dimensions.w() * sizeof(_value_type)));
+
+        auto h       = size_type(0), v       = size_type(0);
+        auto h_delta = size_type(0), v_delta = size_type(0);
+
+        for (auto z = size_type(0); z < s.size(); ++z) {
+          auto item_dimensions = get_item_dimensions(s.at(z, z));
+
+          for (auto i = size_type(0); i < item_dimensions.h(); ++i, ++v)
+            this->m_v_cache[v] = _value_type(v_delta << 16 | z);
+
+          for (auto j = size_type(0); j < item_dimensions.w(); ++j, ++h)
+            this->m_h_cache[h] = _value_type(h_delta << 16 | z);
+
+          h_delta += item_dimensions.w();
+          v_delta += item_dimensions.h();
+        }
+      }
+
+      reference
+      at(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
+      {
+        impl_at<item_type> get_at;
+
+        auto v_entry = this->m_v_cache[i];
+        auto h_entry = this->m_h_cache[j];
+
+        auto v       = v_entry & 0xFFFF;
+        auto v_delta = v_entry >> 16;
+
+        auto h       = h_entry & 0xFFFF;
+        auto h_delta = h_entry >> 16;
+
+        return get_at(s.at(v, h), i - v_delta, j - h_delta);
+      }
+
+  public:
+    reference
+    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
+    {
+      return this->at(s, i, j);
+    }
+
+    const_reference
+    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j) const
+    {
+      return this->at(s, i, j);
+    }
+  };
 
 private:
-  void
-  refresh_caches(utilz::matrices::square_matrix<T, A>& s) {
-    impl_get_dimensions<matrix_type> get_matrix_dimensions;
-    impl_get_dimensions<item_type>   get_item_dimensions;
-
-    auto matrix_dimensions = get_matrix_dimensions(s);
-
-    this->m_y_cache.resize(matrix_dimensions.h());
-    this->m_x_cache.resize(matrix_dimensions.w());
-
-    auto x = size_type(0), y = size_type(0);
-    auto w = size_type(0), h = size_type(0);
-    for (auto z = size_type(0); z < s.size(); ++z) {
-      auto item_dimensions = get_item_dimensions(s.at(z, z));
-      for (auto i = size_type(0); i < item_dimensions.h(); ++i, ++y) {
-        this->m_y_cache[y] = size_type(h << 32 | z);
-      }
-      for (auto j = size_type(0); j < item_dimensions.w(); ++j, ++x) {
-        this->m_x_cache[x] = size_type(w << 32 | z);
-      }
-      w += item_dimensions.w();
-      h += item_dimensions.h();
-    }
-  }
-
   reference
   at(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
   {
-    if (this->m_cache_key != &s) {
-      this->m_cache_key = &s;
-      this->refresh_caches(s);
+    impl_at<item_type>             get_at;
+    impl_get_dimensions<item_type> get_dimensions;
+
+    auto wf = false, hf = false;
+    auto x = size_type(0), y = size_type(0);
+    auto w = size_type(0), h = size_type(0);
+    for (auto z = size_type(0); z < s.size() && (!wf || !hf); ++z) {
+      auto dimensions = get_dimensions(s.at(z, z));
+      if (!hf) {
+        if (i < h + dimensions.h()) {
+          y  = z;
+          hf = true;
+        } else {
+          h = h + dimensions.h();
+        }
+      }
+      if (!wf) {
+        if (j < w + dimensions.w()) {
+          x  = z;
+          wf = true;
+        } else {
+          w = w + dimensions.w();
+        }
+      }
     }
-
-    impl_at<item_type> get_at;
-
-    auto x_w = this->m_x_cache[j];
-    auto y_h = this->m_y_cache[i];
-
-    auto x = x_w & 0xFFFFFFFF;
-    auto w = x_w >> 32;
-    auto y = y_h & 0xFFFFFFFF;
-    auto h = y_h >> 32;
 
     return get_at(s.at(y, x), i - h, j - w);
   }
@@ -476,6 +569,31 @@ struct impl_set_all
 private:
   using size_type  = typename utilz::matrices::traits::matrix_traits<S>::size_type;
   using value_type = typename utilz::matrices::traits::matrix_traits<S>::value_type;
+
+public:
+  struct focused
+  {
+    private:
+      typename impl_at<S>::focused& m_get_at;
+
+    public:
+      focused(typename impl_at<S>::focused& get_at)
+        : m_get_at(get_at)
+      {
+      }
+
+  public:
+    void
+    operator()(S& s, value_type v)
+    {
+      impl_get_dimensions<S> get_dimensions;
+
+      auto dimensions = get_dimensions(s);
+      for (auto i = size_type(0); i < dimensions.h(); ++i)
+        for (auto j = size_type(0); j < dimensions.w(); ++j)
+          this->m_get_at(s, i, j) = v;
+    }
+  };
 
 public:
   void
