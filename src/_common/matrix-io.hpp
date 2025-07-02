@@ -71,11 +71,19 @@ scan_matrix(
 
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
-  matrix_at             get_at;
-  matrix_set_all        set_all;
 
-  auto set_vc = std::function([&set_dimensions, &set_all](matrix_type& c, size_type vertex_count) -> void {
+  typename matrix_at::bindable      get_at;
+  typename matrix_set_all::bindable set_all;
+
+  auto set_vc = std::function([&set_dimensions, &get_at, &set_all](matrix_type& c, size_type vertex_count) -> void {
     set_dimensions(c, vertex_count);
+
+    // Here we are late-binding the `get_at` and `set_all` operators
+    // (after the matrix size has been defined)
+    //
+    get_at.bind(c);
+    set_all.bind(&get_at);
+
     set_all(c, utilz::constants::infinity<value_type>());
   });
   auto set_ec = std::function([](matrix_type& c, size_type edge_count) -> void {});
@@ -111,11 +119,19 @@ scan_matrix(
 
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
-  matrix_at             get_at;
-  matrix_set_all        set_all;
 
-  auto set_vc = std::function([&set_dimensions, &set_all, &block_size](matrix_type& c, size_type vertex_count) -> void {
+  typename matrix_at::bindable      get_at;
+  typename matrix_set_all::bindable set_all;
+
+  auto set_vc = std::function([&set_dimensions, &get_at, &set_all, &block_size](matrix_type& c, size_type vertex_count) -> void {
     set_dimensions(c, vertex_count, block_size);
+
+    // Here we are late-binding the `get_at` and `set_all` operators
+    // (after the matrix size has been defined)
+    //
+    get_at.bind(c);
+    set_all.bind(&get_at);
+
     set_all(c, utilz::constants::infinity<value_type>());
   });
   auto set_ec = std::function([](matrix_type& c, size_type edge_count) -> void {});
@@ -155,6 +171,9 @@ scan_matrix(
   matrix_set_dimensions set_dimensions;
   matrix_get_dimensions get_dimensions;
 
+  typename matrix_at::bindable      get_at;
+  typename matrix_set_all::bindable set_all;
+
   auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
     c.insert_vertex(cluster_idx, vertex_idx);
   });
@@ -166,8 +185,11 @@ scan_matrix(
 
   set_dimensions(block_matrix, item_sizes);
 
-  typename matrix_at::focused      get_at (block_matrix);
-  typename matrix_set_all::focused set_all(get_at);
+  // Here we are late-binding the `get_at` and `set_all` operators
+  // (after the matrix size has been defined)
+  //
+  get_at.bind(block_matrix);
+  set_all.bind(&get_at);
 
   set_all(block_matrix, utilz::constants::infinity<value_type>());
 
@@ -193,8 +215,12 @@ print_matrix(
   using iterator_type = typename utilz::matrices::io::impl::iterator<utilz::matrices::square_matrix<T, A>>;
   using value_type    = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
 
-  auto get_iterators = std::function([](utilz::matrices::square_matrix<T, A>& c) -> std::tuple<iterator_type, iterator_type> {
-    auto begin = iterator_type(c, utilz::constants::infinity<value_type>(), typename iterator_type::begin_iterator());
+  typename utilz::matrices::procedures::matrix_at<utilz::matrices::square_matrix<T, A>>::bindable get_at;
+
+  get_at.bind(matrix);
+
+  auto get_iterators = std::function([&get_at](utilz::matrices::square_matrix<T, A>& c) -> std::tuple<iterator_type, iterator_type> {
+    auto begin = iterator_type(c, get_at, utilz::constants::infinity<value_type>(), typename iterator_type::begin_iterator());
     auto end   = iterator_type(c, utilz::constants::infinity<value_type>(), typename iterator_type::end_iterator());
     return std::make_tuple(begin, end);
   });
@@ -210,8 +236,11 @@ class iterator
   static_assert(utilz::matrices::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
 
 private:
-  using _size_type  = typename utilz::matrices::traits::matrix_traits<S>::size_type;
-  using _value_type = typename utilz::matrices::traits::matrix_traits<S>::value_type;
+  using _size_type   = typename utilz::matrices::traits::matrix_traits<S>::size_type;
+  using _value_type  = typename utilz::matrices::traits::matrix_traits<S>::value_type;
+
+  using _get_dimensions_type = typename utilz::matrices::procedures::matrix_get_dimensions<S>;
+  using _get_at_type         = typename utilz::matrices::procedures::matrix_at<S>::bindable;
 
 public:
   // Iterator definitions
@@ -223,9 +252,6 @@ public:
   using reference         = value_type&;
 
 private:
-  utilz::matrices::procedures::matrix_get_dimensions<S> m_get_dimensions;
-  utilz::matrices::procedures::matrix_at<S>             m_get_at;
-
   _size_type m_width;
   _size_type m_height;
   _size_type m_i;
@@ -234,6 +260,9 @@ private:
   _value_type m_infinity;
 
   S& m_s;
+
+  _get_dimensions_type m_get_dimensions;
+  _get_at_type         m_get_at;
 
 public:
   struct begin_iterator
@@ -244,8 +273,9 @@ public:
   };
 
 public:
-  iterator(S& s, _value_type infinity, begin_iterator)
+  iterator(S& s, _get_at_type& get_at, _value_type infinity, begin_iterator)
     : m_s(s)
+    , m_get_at(get_at)
   {
     auto dimensions = this->m_get_dimensions(s);
 
@@ -282,7 +312,6 @@ public:
   iterator&
   operator++()
   {
-
     do {
       if (++this->m_j == this->m_width) {
         this->m_j = _size_type(0);
