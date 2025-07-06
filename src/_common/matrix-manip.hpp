@@ -566,48 +566,18 @@ public:
 template<typename S>
 struct impl_set_all
 {
-  static_assert(utilz::matrices::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
-
 private:
-  using size_type  = typename utilz::matrices::traits::matrix_traits<S>::size_type;
-  using value_type = typename utilz::matrices::traits::matrix_traits<S>::value_type;
-
-public:
-  struct bindable
-  {
-  private:
-    typename impl_at<S>::bindable* m_get_at;
-
-  public:
-    void
-    bind(typename impl_at<S>::bindable* get_at)
-    {
-      this->m_get_at = get_at;
-    }
-
-    void
-    operator()(S& s, value_type v)
-    {
-      impl_get_dimensions<S> get_dimensions;
-
-      auto dimensions = get_dimensions(s);
-      for (auto i = size_type(0); i < dimensions.h(); ++i)
-        for (auto j = size_type(0); j < dimensions.w(); ++j)
-          (*this->m_get_at)(s, i, j) = v;
-    }
-  };
+  using size_type  = typename S::size_type;
+  using value_type = typename S::value_type;
 
 public:
   void
   operator()(S& s, value_type v)
   {
-    impl_at<S>             get_at;
-    impl_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(s);
+    auto dimensions = s.dimensions();
     for (auto i = size_type(0); i < dimensions.h(); ++i)
       for (auto j = size_type(0); j < dimensions.w(); ++j)
-        get_at(s, i, j) = v;
+        s.at(i, j) = v;
   }
 };
 

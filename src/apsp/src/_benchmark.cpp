@@ -91,6 +91,8 @@ using g_allocator_type = typename std::allocator<K>;
   #endif
 #endif
 
+  using matrix_wrap = ::utilz::matrices::matrix_wrap<matrix>;
+
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
   buffer               m_buf;
@@ -131,22 +133,23 @@ public:
         throw std::logic_error("erro: the file '" + src_communities_path.generic_string() + "' doesn't exist.");
 #endif
 
-      matrix src_matrix;
+      matrix      src_matrix;
+      matrix_wrap src_matrix_wrap(src_matrix);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
       clusters src_clusters;
 #endif
 
 #ifdef APSP_ALG_MATRIX
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix);
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix_wrap);
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix, std::get<1>(params));
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix_wrap, std::get<1>(params));
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix, src_clusters);
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix_wrap, src_clusters);
 #endif
 
       this->m_src.push_back(std::move(src_matrix));

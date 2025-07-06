@@ -68,13 +68,11 @@ using g_allocator_type = typename std::allocator<K>;
 
   using size_type = typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
 
-  using source_matrix_get_at         = ::utilz::matrices::procedures::matrix_at<source_matrix>;
-  using source_matrix_get_dimensions = ::utilz::matrices::procedures::matrix_get_dimensions<source_matrix>;
-  using source_matrix_rearrange      = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
+  using source_matrix_wrap      = ::utilz::matrices::matrix_wrap<source_matrix>;
+  using source_matrix_rearrange = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
 
-  using result_matrix                = ::utilz::matrices::square_matrix<T>;
-  using result_matrix_get_at         = ::utilz::matrices::procedures::matrix_at<result_matrix>;
-  using result_matrix_get_dimensions = ::utilz::matrices::procedures::matrix_get_dimensions<result_matrix>;
+  using result_matrix      = ::utilz::matrices::square_matrix<T>;
+  using result_matrix_wrap = ::utilz::matrices::matrix_wrap<result_matrix>;
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -135,30 +133,29 @@ public:
     if (!res_fs.is_open())
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
+    source_matrix_wrap src_wrap(this->m_src);
+    result_matrix_wrap res_wrap(this->m_res);
+
 #ifdef APSP_ALG_MATRIX
-    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, this->m_src);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_wrap);
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, this->m_src, block_size);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_wrap, block_size);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, communities_format, src_communities_fs, this->m_src, this->m_src_clusters);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, communities_format, src_communities_fs, src_wrap, this->m_src_clusters);
 #endif
 
-    ::utilz::matrices::io::scan_matrix(graph_format, res_fs, this->m_res);
+    ::utilz::matrices::io::scan_matrix(graph_format, res_fs, res_wrap);
   };
   ~Fixture(){};
 
   void
   invoke()
   {
-    source_matrix_get_at         src_get_at;
-    source_matrix_get_dimensions src_get_dimensions;
-
-    result_matrix_get_at         res_get_at;
-    result_matrix_get_dimensions res_get_dimensions;
+    source_matrix_wrap src_wrap(this->m_src);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
@@ -203,12 +200,10 @@ public:
   #endif
 #endif
 
-    auto src_dimensions = src_get_dimensions(this->m_src);
-    auto res_dimensions = res_get_dimensions(this->m_res);
-
-    for (auto i = size_type(0); i < src_dimensions.s() && i < res_dimensions.s(); ++i)
-      for (auto j = size_type(0); j < src_dimensions.s() && j < res_dimensions.s(); ++j)
-        ASSERT_EQ(src_get_at(this->m_src, i, j), res_get_at(this->m_res, i, j)) << "  indexes are: [" << i << "," << j << "]";
+    auto src_dimensions = src_wrap.dimensions();
+    for (auto i = size_type(0); i < src_dimensions.s() && i < this->m_res.size(); ++i)
+      for (auto j = size_type(0); j < src_dimensions.s() && j < this->m_res.size(); ++j)
+        ASSERT_EQ(src_wrap.at(i, j), this->m_res.at(i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };
 

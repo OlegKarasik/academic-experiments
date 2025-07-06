@@ -7,6 +7,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
+#include "matrix-wrap.hpp"
 
 namespace utilz {
 namespace matrices {
@@ -15,34 +16,34 @@ namespace io {
 template<typename T, typename A>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format       format,
-  std::istream&                         is,
-  utilz::matrices::square_matrix<T, A>& matrix);
+  utilz::graphs::io::graph_format   format,
+  std::istream&                     is,
+  matrix_wrap<square_matrix<T, A>>& wrap);
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                                                             format,
-  std::istream&                                                                               is,
-  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>&                    block_matrix,
-  typename utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type block_size);
+  utilz::graphs::io::graph_format                           format,
+  std::istream&                                             is,
+  matrix_wrap<square_matrix<square_matrix<T, A>, U>>&       wrap,
+  typename square_matrix<square_matrix<T, A>, U>::size_type block_size);
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                                        graph_format,
-  std::istream&                                                          graph_is,
-  utilz::communities::io::communities_format                             communities_format,
-  std::istream&                                                          communities_is,
-  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& block_matrix,
-  utilz::matrices::clusters&                                             clusters);
+  utilz::graphs::io::graph_format                   graph_format,
+  std::istream&                                     graph_is,
+  utilz::communities::io::communities_format        communities_format,
+  std::istream&                                     communities_is,
+  matrix_wrap<square_matrix<rect_matrix<T, A>, U>>& wrap,
+  clusters&                                         clusters);
 
 template<typename T, typename A>
 void
 print_matrix(
-  utilz::graphs::io::graph_format       format,
-  std::ostream&                         os,
-  utilz::matrices::square_matrix<T, A>& matrix);
+  utilz::graphs::io::graph_format format,
+  std::ostream&                   os,
+  square_matrix<T, A>&            matrix);
 
 namespace impl {
 
@@ -54,125 +55,107 @@ class iterator;
 template<typename T, typename A>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format       format,
-  std::istream&                         is,
-  utilz::matrices::square_matrix<T, A>& matrix)
+  utilz::graphs::io::graph_format   format,
+  std::istream&                     is,
+  matrix_wrap<square_matrix<T, A>>& wrap)
 {
-  static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices type");
+  static_assert(traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices type");
 
-  using matrix_type = utilz::matrices::square_matrix<T, A>;
-  using size_type   = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
-  using value_type  = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
+  using wrap_type      = matrix_wrap<square_matrix<T, A>>;
+  using size_type      = typename wrap_type::size_type;
+  using value_type     = typename wrap_type::value_type;
+  using matrix_set_all = procedures::matrix_set_all<wrap_type>;
 
-  using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
-  using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
-  using matrix_at             = utilz::matrices::procedures::matrix_at<matrix_type>;
-  using matrix_set_all        = utilz::matrices::procedures::matrix_set_all<matrix_type>;
+  matrix_set_all set_all;
 
-  matrix_set_dimensions set_dimensions;
-  matrix_get_dimensions get_dimensions;
+  auto set_vc = std::function([&set_all](wrap_type& wrap, size_type vertex_count) -> void {
+    auto& matrix = wrap.matrix();
+          matrix = square_matrix<T, A>(vertex_count, matrix.get_allocator());
 
-  typename matrix_at::bindable      get_at;
-  typename matrix_set_all::bindable set_all;
+    wrap.rebind();
 
-  auto set_vc = std::function([&set_dimensions, &get_at, &set_all](matrix_type& c, size_type vertex_count) -> void {
-    set_dimensions(c, vertex_count);
-
-    // Here we are late-binding the `get_at` and `set_all` operators
-    // (after the matrix size has been defined)
-    //
-    get_at.bind(c);
-    set_all.bind(&get_at);
-
-    set_all(c, utilz::constants::infinity<value_type>());
+    set_all(wrap, utilz::constants::infinity<value_type>());
   });
-  auto set_ec = std::function([](matrix_type& c, size_type edge_count) -> void {});
-  auto set_wv = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
-    get_at(c, f, t) = w;
+  auto set_ec = std::function([](wrap_type& wrap, size_type edge_count) -> void {});
+  auto set_wv = std::function([](wrap_type& wrap, size_type f, size_type t, value_type w) -> void {
+    wrap.at(f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, matrix, set_vc, set_ec, set_wv);
+  utilz::graphs::io::scan_graph(format, is, wrap, set_vc, set_ec, set_wv);
 
-  auto dimensions = get_dimensions(matrix);
+  auto dimensions = wrap.dimensions();
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    get_at(matrix, i, i) = value_type(0);
+    wrap.at(i, i) = value_type(0);
 };
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                                                             format,
-  std::istream&                                                                               is,
-  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>&                    block_matrix,
-  typename utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>::size_type block_size)
+  utilz::graphs::io::graph_format                           format,
+  std::istream&                                             is,
+  matrix_wrap<square_matrix<square_matrix<T, A>, U>>&       wrap,
+  typename square_matrix<square_matrix<T, A>, U>::size_type block_size)
 {
-  static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices of matrices type");
+  static_assert(traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices of matrices type");
 
-  using matrix_type = utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>;
-  using size_type   = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
-  using value_type  = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
+  using wrap_type      = matrix_wrap<square_matrix<square_matrix<T, A>, U>>;
+  using size_type      = typename wrap_type::size_type;
+  using value_type     = typename wrap_type::value_type;
+  using matrix_set_all = procedures::matrix_set_all<wrap_type>;
 
-  using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
-  using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
-  using matrix_at             = utilz::matrices::procedures::matrix_at<matrix_type>;
-  using matrix_set_all        = utilz::matrices::procedures::matrix_set_all<matrix_type>;
+  matrix_set_all set_all;
 
-  matrix_set_dimensions set_dimensions;
-  matrix_get_dimensions get_dimensions;
+  auto set_vc = std::function([&set_all, &block_size](wrap_type& wrap, size_type vertex_count) -> void {
+    auto size = vertex_count / block_size;
+    if (vertex_count % block_size != size_type(0))
+      ++size;
 
-  typename matrix_at::bindable      get_at;
-  typename matrix_set_all::bindable set_all;
+    auto& matrix = wrap.matrix();
+          matrix = square_matrix<square_matrix<T, A>, U>(size, matrix.get_allocator());
 
-  auto set_vc = std::function([&set_dimensions, &get_at, &set_all, &block_size](matrix_type& c, size_type vertex_count) -> void {
-    set_dimensions(c, vertex_count, block_size);
+    for (auto i = size_type(0); i < matrix.size(); ++i) {
+      for (auto j = size_type(0); j < matrix.size(); ++j) {
+        typename std::allocator_traits<U>::template rebind_alloc<A> allocator(matrix.get_allocator());
 
-    // Here we are late-binding the `get_at` and `set_all` operators
-    // (after the matrix size has been defined)
-    //
-    get_at.bind(c);
-    set_all.bind(&get_at);
+        matrix.at(i, j) = square_matrix<T, A>(block_size, allocator);
+      }
+    }
 
-    set_all(c, utilz::constants::infinity<value_type>());
+    wrap.rebind();
+
+    set_all(wrap, utilz::constants::infinity<value_type>());
   });
-  auto set_ec = std::function([](matrix_type& c, size_type edge_count) -> void {});
-  auto set_wv = std::function([&get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
-    get_at(c, f, t) = w;
+  auto set_ec = std::function([](wrap_type& wrap, size_type edge_count) -> void {});
+  auto set_wv = std::function([](wrap_type& wrap, size_type f, size_type t, value_type w) -> void {
+    wrap.at(f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, block_matrix, set_vc, set_ec, set_wv);
+  utilz::graphs::io::scan_graph(format, is, wrap, set_vc, set_ec, set_wv);
 
-  auto dimensions = get_dimensions(block_matrix);
+  auto dimensions = wrap.dimensions();
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    get_at(block_matrix, i, i) = value_type(0);
+    wrap.at(i, i) = value_type(0);
 };
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                                        graph_format,
-  std::istream&                                                          graph_is,
-  utilz::communities::io::communities_format                             communities_format,
-  std::istream&                                                          communities_is,
-  utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& block_matrix,
-  utilz::matrices::clusters&                                             clusters)
+  utilz::graphs::io::graph_format                   graph_format,
+  std::istream&                                     graph_is,
+  utilz::communities::io::communities_format        communities_format,
+  std::istream&                                     communities_is,
+  matrix_wrap<square_matrix<rect_matrix<T, A>, U>>& wrap,
+  clusters&                                         clusters)
 {
-  static_assert(utilz::matrices::traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices or matrices type");
+  static_assert(traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices or matrices type");
 
-  using matrix_type   = utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>;
-  using size_type     = typename utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
-  using value_type    = typename utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
-  using clusters_type = utilz::matrices::clusters;
+  using wrap_type      = matrix_wrap<square_matrix<rect_matrix<T, A>, U>>;
+  using size_type      = typename wrap_type::size_type;
+  using value_type     = typename wrap_type::value_type;
+  using clusters_type  = utilz::matrices::clusters;
+  using matrix_set_all = procedures::matrix_set_all<wrap_type>;
 
-  using matrix_set_dimensions = utilz::matrices::procedures::matrix_set_dimensions<matrix_type>;
-  using matrix_get_dimensions = utilz::matrices::procedures::matrix_get_dimensions<matrix_type>;
-  using matrix_at             = utilz::matrices::procedures::matrix_at<matrix_type>;
-  using matrix_set_all        = utilz::matrices::procedures::matrix_set_all<matrix_type>;
-
-  matrix_set_dimensions set_dimensions;
-  matrix_get_dimensions get_dimensions;
-
-  typename matrix_at::bindable      get_at;
-  typename matrix_set_all::bindable set_all;
+  matrix_set_all set_all;
 
   auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
     c.insert_vertex(cluster_idx, vertex_idx);
@@ -183,26 +166,31 @@ scan_matrix(
   for (auto size : clusters.list() | std::views::transform([](auto& group) -> auto { return group.size(); }))
     item_sizes.push_back(size);
 
-  set_dimensions(block_matrix, item_sizes);
+  auto& matrix = wrap.matrix();
+        matrix = square_matrix<rect_matrix<T, A>, U>(item_sizes.size(), matrix.get_allocator());
 
-  // Here we are late-binding the `get_at` and `set_all` operators
-  // (after the matrix size has been defined)
-  //
-  get_at.bind(block_matrix);
-  set_all.bind(&get_at);
+  for (auto i = size_type(0); i < matrix.size(); ++i) {
+    for (auto j = size_type(0); j < matrix.size(); ++j) {
+      typename std::allocator_traits<U>::template rebind_alloc<A> allocator(matrix.get_allocator());
 
-  set_all(block_matrix, utilz::constants::infinity<value_type>());
+      matrix.at(i, j) = rect_matrix<T, A>(item_sizes[j], item_sizes[i], allocator);
+    }
+  }
 
-  auto set_matrix_value = std::function([&clusters, &get_at](matrix_type& c, size_type f, size_type t, value_type w) -> void {
+  wrap.rebind();
+
+  set_all(wrap, utilz::constants::infinity<value_type>());
+
+  auto set_matrix_value = std::function([&clusters](wrap_type& wrap, size_type f, size_type t, value_type w) -> void {
     clusters.insert_edge(f, t);
 
-    get_at(c, f, t) = w;
+    wrap.at(f, t) = w;
   });
-  utilz::graphs::io::scan_graph(graph_format, graph_is, block_matrix, set_matrix_value);
+  utilz::graphs::io::scan_graph(graph_format, graph_is, wrap, set_matrix_value);
 
-  auto dimensions = get_dimensions(block_matrix);
+  auto dimensions = wrap.dimensions();
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    get_at(block_matrix, i, i) = value_type(0);
+    wrap.at(i, i) = value_type(0);
 };
 
 template<typename T, typename A>

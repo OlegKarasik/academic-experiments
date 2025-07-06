@@ -92,6 +92,8 @@ using extra_configuration = run_configuration<g_calculation_type, g_allocator_ty
 #endif
 #endif
 
+using matrix_wrap = ::utilz::matrices::matrix_wrap<matrix>;
+
 int
 main(int argc, char* argv[]) __hack_noexcept
 {
@@ -325,19 +327,20 @@ main(int argc, char* argv[]) __hack_noexcept
 
   // Define matrix and execute algorithm specific overloads of methods
   //
-  matrix m(buffer_allocator);
+  matrix      m(buffer_allocator);
+  matrix_wrap mw(m);
 
 #ifdef APSP_ALG_MATRIX
   auto scan_ms = ::utilz::measure_milliseconds(
-    [&m, &input_graph_stream, opt_input_graph_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m);
+    [&mw, &input_graph_stream, opt_input_graph_format]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, mw);
     });
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
   auto scan_ms = ::utilz::measure_milliseconds(
-    [&m, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, m, opt_block_size);
+    [&mw, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, mw, opt_block_size);
     });
 #endif
 
@@ -347,8 +350,8 @@ main(int argc, char* argv[]) __hack_noexcept
   clusters c;
 
   auto scan_ms = ::utilz::measure_milliseconds(
-    [&m, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, m, c);
+    [&mw, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, mw, c);
     });
 #endif
 
