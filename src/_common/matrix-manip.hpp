@@ -37,9 +37,6 @@ struct impl_get_dimensions;
 template<typename S, class Enable = void>
 struct impl_at;
 
-template<typename S, class Enable = void>
-struct impl_set_dimensions;
-
 template<typename S>
 struct impl_set_all;
 
@@ -57,9 +54,6 @@ struct impl_matrix_arrange_clusters;
 
 template<typename S>
 using matrix_get_dimensions = impl::impl_get_dimensions<S>;
-
-template<typename S>
-using matrix_set_dimensions = impl::impl_set_dimensions<S>;
 
 template<typename S>
 using matrix_at = impl::impl_at<S>;
@@ -480,86 +474,6 @@ public:
   operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j) const
   {
     return this->at(s, i, j);
-  }
-};
-
-template<typename S, class Enable>
-struct impl_set_dimensions
-{
-  static_assert(false, "erro: input type has to be a matrix");
-};
-
-template<typename T, typename A>
-struct impl_set_dimensions<utilz::matrices::rect_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_type::value>::type>
-{
-private:
-  using size_type = typename utilz::matrices::traits::matrix_traits<rect_matrix<T, A>>::size_type;
-
-public:
-  void
-  operator()(utilz::matrices::rect_matrix<T, A>& s, size_type width, size_type height)
-  {
-    s = utilz::matrices::rect_matrix<T, A>(width, height, s.get_allocator());
-  }
-};
-
-template<typename T, typename A>
-struct impl_set_dimensions<utilz::matrices::square_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_type::value>::type>
-{
-private:
-  using size_type = typename utilz::matrices::traits::matrix_traits<square_matrix<T, A>>::size_type;
-
-public:
-  void
-  operator()(utilz::matrices::square_matrix<T, A>& s, size_type total_size)
-  {
-    s = utilz::matrices::square_matrix<T, A>(total_size, s.get_allocator());
-  }
-};
-
-template<typename T, typename A, typename U>
-struct impl_set_dimensions<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>
-{
-private:
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
-
-public:
-  void
-  operator()(utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& s, size_type total_size, size_type item_size)
-  {
-    auto own_size = total_size / item_size;
-    if (total_size % item_size != size_type(0))
-      ++own_size;
-
-    s = utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>(own_size, s.get_allocator());
-    for (auto i = size_type(0); i < s.size(); ++i)
-      for (auto j = size_type(0); j < s.size(); ++j) {
-        typename std::allocator_traits<U>::template rebind_alloc<A> allocator(s.get_allocator());
-
-        s.at(i, j) = utilz::matrices::square_matrix<T, A>(item_size, allocator);
-      }
-  }
-};
-
-template<typename T, typename A, typename U>
-struct impl_set_dimensions<utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>>
-{
-private:
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>>::size_type;
-
-public:
-  void
-  operator()(utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& s, std::vector<size_type> item_sizes)
-  {
-    auto own_size = item_sizes.size();
-
-    s = utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>(own_size, s.get_allocator());
-    for (auto i = size_type(0); i < s.size(); ++i)
-      for (auto j = size_type(0); j < s.size(); ++j) {
-        typename std::allocator_traits<U>::template rebind_alloc<A> allocator(s.get_allocator());
-
-        s.at(i, j) = utilz::matrices::rect_matrix<T, A>(item_sizes[j], item_sizes[i], allocator);
-      }
   }
 };
 
