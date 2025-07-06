@@ -134,29 +134,29 @@ public:
     if (!res_fs.is_open())
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
-    source_matrix_abstract src_wrap(this->m_src);
-    result_matrix_abstract res_wrap(this->m_res);
+    source_matrix_abstract src_abstract(this->m_src);
+    result_matrix_abstract res_abstract(this->m_res);
 
 #ifdef APSP_ALG_MATRIX
-    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_wrap);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_abstract);
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_wrap, block_size);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_abstract, block_size);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, communities_format, src_communities_fs, src_wrap, this->m_src_clusters);
+    ::utilz::matrices::io::scan_matrix(graph_format, src_fs, communities_format, src_communities_fs, src_abstract, this->m_src_clusters);
 #endif
 
-    ::utilz::matrices::io::scan_matrix(graph_format, res_fs, res_wrap);
+    ::utilz::matrices::io::scan_matrix(graph_format, res_fs, res_abstract);
   };
   ~Fixture(){};
 
   void
   invoke()
   {
-    source_matrix_abstract src_wrap(this->m_src);
+    source_matrix_abstract src_abstract(this->m_src);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
@@ -201,10 +201,9 @@ public:
   #endif
 #endif
 
-    auto src_dimensions = src_wrap.dimensions();
-    for (auto i = size_type(0); i < src_dimensions.s() && i < this->m_res.size(); ++i)
-      for (auto j = size_type(0); j < src_dimensions.s() && j < this->m_res.size(); ++j)
-        ASSERT_EQ(src_wrap.at(i, j), this->m_res.at(i, j)) << "  indexes are: [" << i << "," << j << "]";
+    for (auto i = size_type(0); i < src_abstract.h() && i < this->m_res.size(); ++i)
+      for (auto j = size_type(0); j < src_abstract.w() && j < this->m_res.size(); ++j)
+        ASSERT_EQ(src_abstract.at(i, j), this->m_res.at(i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };
 

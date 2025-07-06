@@ -65,9 +65,11 @@ scan_matrix(
   using size_type     = typename abstract_type::size_type;
   using value_type    = typename abstract_type::value_type;
 
-  using abstract_set_all = procedures::abstract_set_all<abstract_type>;
+  using abstract_set_all      = procedures::abstract_set_all<abstract_type>;
+  using abstract_set_diagonal = procedures::abstract_set_diagonal<abstract_type>;
 
-  abstract_set_all set_all;
+  abstract_set_all      set_all;
+  abstract_set_diagonal set_diagonal;
 
   auto set_vc = std::function([&set_all](abstract_type& abstract, size_type vertex_count) -> void {
     auto& matrix = abstract.matrix();
@@ -84,9 +86,7 @@ scan_matrix(
 
   utilz::graphs::io::scan_graph(format, is, abstract, set_vc, set_ec, set_wv);
 
-  auto dimensions = abstract.dimensions();
-  for (auto i = size_type(0); i < dimensions.s(); ++i)
-    abstract.at(i, i) = value_type(0);
+  set_diagonal(abstract, value_type(0));
 };
 
 template<typename T, typename A, typename U>
@@ -103,9 +103,11 @@ scan_matrix(
   using size_type      = typename abstract_type::size_type;
   using value_type     = typename abstract_type::value_type;
 
-  using abstract_set_all = procedures::abstract_set_all<abstract_type>;
+  using abstract_set_all      = procedures::abstract_set_all<abstract_type>;
+  using abstract_set_diagonal = procedures::abstract_set_diagonal<abstract_type>;
 
-  abstract_set_all set_all;
+  abstract_set_all      set_all;
+  abstract_set_diagonal set_diagonal;
 
   auto set_vc = std::function([&set_all, &block_size](abstract_type& abstract, size_type vertex_count) -> void {
     auto size = vertex_count / block_size;
@@ -134,9 +136,7 @@ scan_matrix(
 
   utilz::graphs::io::scan_graph(format, is, abstract, set_vc, set_ec, set_wv);
 
-  auto dimensions = abstract.dimensions();
-  for (auto i = size_type(0); i < dimensions.s(); ++i)
-    abstract.at(i, i) = value_type(0);
+  set_diagonal(abstract, value_type(0));
 };
 
 template<typename T, typename A, typename U>
@@ -156,9 +156,11 @@ scan_matrix(
   using value_type     = typename abstract_type::value_type;
   using clusters_type  = utilz::matrices::clusters;
 
-  using abstract_set_all = procedures::abstract_set_all<abstract_type>;
+  using abstract_set_all      = procedures::abstract_set_all<abstract_type>;
+  using abstract_set_diagonal = procedures::abstract_set_diagonal<abstract_type>;
 
-  abstract_set_all set_all;
+  abstract_set_all      set_all;
+  abstract_set_diagonal set_diagonal;
 
   auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
     c.insert_vertex(cluster_idx, vertex_idx);
@@ -191,9 +193,7 @@ scan_matrix(
   });
   utilz::graphs::io::scan_graph(graph_format, graph_is, abstract, set_matrix_value);
 
-  auto dimensions = abstract.dimensions();
-  for (auto i = size_type(0); i < dimensions.s(); ++i)
-    abstract.at(i, i) = value_type(0);
+  set_diagonal(abstract, value_type(0));
 };
 
 template<typename T, typename A>

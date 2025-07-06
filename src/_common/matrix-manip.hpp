@@ -41,6 +41,9 @@ template<typename S>
 struct impl_set_all;
 
 template<typename S>
+struct impl_set_diagonal;
+
+template<typename S>
 struct impl_replace_all;
 
 template<typename S>
@@ -60,6 +63,9 @@ using matrix_at = impl::impl_at<S>;
 
 template<typename S>
 using abstract_set_all = impl::impl_set_all<S>;
+
+template<typename S>
+using abstract_set_diagonal = impl::impl_set_diagonal<S>;
 
 template<typename S>
 using matrix_replace_all = impl::impl_replace_all<S>;
@@ -488,10 +494,25 @@ public:
   void
   operator()(S& s, value_type v)
   {
-    auto dimensions = s.dimensions();
-    for (auto i = size_type(0); i < dimensions.h(); ++i)
-      for (auto j = size_type(0); j < dimensions.w(); ++j)
+    for (auto i = size_type(0); i < s.h(); ++i)
+      for (auto j = size_type(0); j < s.w(); ++j)
         s.at(i, j) = v;
+  }
+};
+
+template<typename S>
+struct impl_set_diagonal
+{
+private:
+  using size_type  = typename S::size_type;
+  using value_type = typename S::value_type;
+
+public:
+  void
+  operator()(S& s, value_type v)
+  {
+    for (auto i = size_type(0); i < s.h() && i < s.w(); ++i)
+      s.at(i, i) = v;
   }
 };
 

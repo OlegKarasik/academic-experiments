@@ -39,15 +39,11 @@ public:
   using matrix_type     = square_matrix<T, A>;
   using size_type       = typename traits::matrix_traits<matrix_type>::size_type;
   using value_type      = typename traits::matrix_traits<matrix_type>::value_type;
-  using dimensions_type = typename procedures::matrix_dimensions<procedures::matrix_dimensions_variant_square, size_type>;
 
 private:
   using reference        = typename traits::matrix_traits<matrix_type>::reference;
   using const_reference  = typename traits::matrix_traits<matrix_type>::const_reference;
   using matrix_reference = matrix_type&;
-
-private:
-  matrix_reference m_matrix;
 
 protected:
   reference
@@ -58,25 +54,18 @@ protected:
 
 public:
   matrix_abstract(matrix_reference matrix)
-    : m_matrix(matrix)
+    : impl::impl_matrix_abstract<square_matrix<T, A>>(matrix)
   {
+    this->rebind();
   }
 
   void
   rebind()
   {
-  }
-
-  matrix_reference
-  matrix()
-  {
-    return this->m_matrix;
-  }
-
-  dimensions_type
-  dimensions()
-  {
-    return dimensions_type(this->m_matrix.size());
+    // Updating "inherited width and height values"
+    //
+    this->m_w = this->m_matrix.size();
+    this->m_h = this->m_matrix.size();
   }
 };
 
@@ -88,18 +77,13 @@ public:
   using matrix_type     = square_matrix<square_matrix<T, A>, U>;
   using size_type       = typename traits::matrix_traits<matrix_type>::size_type;
   using value_type      = typename traits::matrix_traits<matrix_type>::value_type;
-  using dimensions_type = typename procedures::matrix_dimensions<procedures::matrix_dimensions_variant_square, size_type>;
 
 private:
   using reference         = typename traits::matrix_traits<matrix_type>::reference;
   using const_reference   = typename traits::matrix_traits<matrix_type>::const_reference;
   using matrix_reference  = matrix_type&;
-  using matrix_dimensions = dimensions_type;
 
 private:
-  matrix_reference  m_matrix;
-  matrix_dimensions m_matrix_dimensions;
-
   std::vector<int> m_cache;
 
 protected:
@@ -116,7 +100,7 @@ protected:
 
 public:
   matrix_abstract(matrix_reference matrix)
-    : m_matrix(matrix)
+    : impl::impl_matrix_abstract<square_matrix<square_matrix<T, A>, U>>(matrix)
   {
     this->rebind();
   }
@@ -128,7 +112,11 @@ public:
     for (auto z = size_type(0); z < this->m_matrix.size(); ++z)
       s += this->m_matrix.at(z, z).size();
 
-    this->m_matrix_dimensions = matrix_dimensions(s);
+    // Updating "inherited width and height values"
+    //
+    this->m_w = s;
+    this->m_h = s;
+
     this->m_cache.clear();
     this->m_cache.reserve(s);
 
@@ -142,18 +130,6 @@ public:
       delta += size;
     }
   }
-
-  matrix_reference
-  matrix()
-  {
-    return this->m_matrix;
-  }
-
-  dimensions_type
-  dimensions()
-  {
-    return this->m_matrix_dimensions;
-  }
 };
 
 template<typename T, typename A, typename U>
@@ -164,18 +140,13 @@ public:
   using matrix_type     = square_matrix<rect_matrix<T, A>, U>;
   using size_type       = typename traits::matrix_traits<matrix_type>::size_type;
   using value_type      = typename traits::matrix_traits<matrix_type>::value_type;
-  using dimensions_type = typename procedures::matrix_dimensions<procedures::matrix_dimensions_variant_square, size_type>;
 
 private:
   using reference         = typename traits::matrix_traits<matrix_type>::reference;
   using const_reference   = typename traits::matrix_traits<matrix_type>::const_reference;
   using matrix_reference  = matrix_type&;
-  using matrix_dimensions = dimensions_type;
 
 private:
-  matrix_reference  m_matrix;
-  matrix_dimensions m_matrix_dimensions;
-
   std::vector<int> m_row_cache;
   std::vector<int> m_col_cache;
 
@@ -192,8 +163,8 @@ protected:
   }
 
 public:
-  matrix_abstract(matrix_type& matrix)
-    : m_matrix(matrix)
+  matrix_abstract(matrix_reference matrix)
+    : impl::impl_matrix_abstract<square_matrix<rect_matrix<T, A>, U>>(matrix)
   {
     this->rebind();
   }
@@ -209,7 +180,10 @@ public:
       col_size += block.width();
     }
 
-    this->m_matrix_dimensions = matrix_dimensions(row_size);
+    // Updating "inherited width and height values"
+    //
+    this->m_w = col_size;
+    this->m_h = row_size;
 
     this->m_row_cache.clear();
     this->m_col_cache.clear();
@@ -232,18 +206,6 @@ public:
       col_delta += block.width();
     }
   }
-
-  matrix_reference
-  matrix()
-  {
-    return this->m_matrix;
-  }
-
-  dimensions_type
-  dimensions()
-  {
-    return this->m_matrix_dimensions;
-  }
 };
 
 namespace impl {
@@ -254,8 +216,15 @@ class impl_matrix_abstract
 private:
   using size_type = typename traits::matrix_traits<S>::size_type;
 
-  using reference       = typename traits::matrix_traits<S>::reference;
-  using const_reference = typename traits::matrix_traits<S>::const_reference;
+  using reference        = typename traits::matrix_traits<S>::reference;
+  using const_reference  = typename traits::matrix_traits<S>::const_reference;
+  using matrix_reference = S&;
+
+protected:
+  const matrix_reference m_matrix;
+
+  size_type m_w;
+  size_type m_h;
 
 protected:
   std::tuple<size_type, size_type>
@@ -275,7 +244,33 @@ protected:
   reference
   translate_at(size_type i, size_type j) = 0;
 
+protected:
+  impl_matrix_abstract(matrix_reference matrix)
+    : m_matrix(matrix)
+    , m_w(size_type(0))
+    , m_h(size_type(0))
+  {
+  }
+
 public:
+  matrix_reference
+  matrix()
+  {
+    return this->m_matrix;
+  }
+
+  size_type
+  w() const
+  {
+    return this->m_w;
+  }
+
+  size_type
+  h() const
+  {
+    return this->m_h;
+  }
+
   reference
   at(size_type i, size_type j)
   {
@@ -288,7 +283,7 @@ public:
   }
 };
 
-}
+} // namespace impl
 
 } // namespace matrices
 } // namespace utilz
