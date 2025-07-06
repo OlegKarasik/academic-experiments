@@ -12,20 +12,20 @@ namespace matrices {
 //
 
 template<typename S, class Enable = void>
-struct matrix_wrap;
+struct matrix_abstract;
 
 //
 // Forward declarations
 // ---
 
 template<typename S, class Enable>
-class matrix_wrap
+class matrix_abstract
 {
   static_assert(false, "The applied matrix type isn't supported");
 };
 
 template<typename T, typename A>
-class matrix_wrap<square_matrix<T, A>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
+class matrix_abstract<square_matrix<T, A>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
 {
 public:
   using matrix_type     = square_matrix<T, A>;
@@ -42,7 +42,7 @@ private:
   matrix_reference m_matrix;
 
 public:
-  matrix_wrap(matrix_reference matrix)
+  matrix_abstract(matrix_reference matrix)
     : m_matrix(matrix)
   {
   }
@@ -77,7 +77,7 @@ public:
 };
 
 template<typename T, typename A, typename U>
-class matrix_wrap<square_matrix<square_matrix<T, A>, U>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
+class matrix_abstract<square_matrix<square_matrix<T, A>, U>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
 {
 public:
   using matrix_type     = square_matrix<square_matrix<T, A>, U>;
@@ -118,7 +118,7 @@ private:
   }
 
 public:
-  matrix_wrap(matrix_reference matrix)
+  matrix_abstract(matrix_reference matrix)
     : m_matrix(matrix)
   {
     this->rebind();
@@ -171,7 +171,7 @@ public:
 };
 
 template<typename T, typename A, typename U>
-class matrix_wrap<square_matrix<rect_matrix<T, A>, U>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
+class matrix_abstract<square_matrix<rect_matrix<T, A>, U>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
 {
 public:
   using matrix_type     = square_matrix<rect_matrix<T, A>, U>;
@@ -213,7 +213,7 @@ private:
   }
 
 public:
-  matrix_wrap(matrix_type& matrix)
+  matrix_abstract(matrix_type& matrix)
     : m_matrix(matrix)
   {
     this->rebind();

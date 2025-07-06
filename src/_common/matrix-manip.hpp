@@ -59,7 +59,7 @@ template<typename S>
 using matrix_at = impl::impl_at<S>;
 
 template<typename S>
-using matrix_set_all = impl::impl_set_all<S>;
+using abstract_set_all = impl::impl_set_all<S>;
 
 template<typename S>
 using matrix_replace_all = impl::impl_replace_all<S>;

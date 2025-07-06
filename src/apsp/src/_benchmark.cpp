@@ -18,6 +18,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
+#include "matrix-abstract.hpp"
 #include "memory.hpp"
 
 // local includes
@@ -91,7 +92,7 @@ using g_allocator_type = typename std::allocator<K>;
   #endif
 #endif
 
-  using matrix_wrap = ::utilz::matrices::matrix_wrap<matrix>;
+  using matrix_abstract = ::utilz::matrices::matrix_abstract<matrix>;
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -134,7 +135,7 @@ public:
 #endif
 
       matrix      src_matrix;
-      matrix_wrap src_matrix_wrap(src_matrix);
+      matrix_abstract src_matrix_wrap(src_matrix);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
       clusters src_clusters;

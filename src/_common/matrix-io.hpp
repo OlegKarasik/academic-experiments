@@ -7,7 +7,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
-#include "matrix-wrap.hpp"
+#include "matrix-abstract.hpp"
 
 namespace utilz {
 namespace matrices {
@@ -16,27 +16,27 @@ namespace io {
 template<typename T, typename A>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format   format,
-  std::istream&                     is,
-  matrix_wrap<square_matrix<T, A>>& wrap);
+  utilz::graphs::io::graph_format       format,
+  std::istream&                         is,
+  matrix_abstract<square_matrix<T, A>>& abstract);
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
   utilz::graphs::io::graph_format                           format,
   std::istream&                                             is,
-  matrix_wrap<square_matrix<square_matrix<T, A>, U>>&       wrap,
+  matrix_abstract<square_matrix<square_matrix<T, A>, U>>&   abstract,
   typename square_matrix<square_matrix<T, A>, U>::size_type block_size);
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                   graph_format,
-  std::istream&                                     graph_is,
-  utilz::communities::io::communities_format        communities_format,
-  std::istream&                                     communities_is,
-  matrix_wrap<square_matrix<rect_matrix<T, A>, U>>& wrap,
-  clusters&                                         clusters);
+  utilz::graphs::io::graph_format                       graph_format,
+  std::istream&                                         graph_is,
+  utilz::communities::io::communities_format            communities_format,
+  std::istream&                                         communities_is,
+  matrix_abstract<square_matrix<rect_matrix<T, A>, U>>& abstract,
+  clusters&                                             clusters);
 
 template<typename T, typename A>
 void
@@ -55,37 +55,38 @@ class iterator;
 template<typename T, typename A>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format   format,
-  std::istream&                     is,
-  matrix_wrap<square_matrix<T, A>>& wrap)
+  utilz::graphs::io::graph_format       format,
+  std::istream&                         is,
+  matrix_abstract<square_matrix<T, A>>& abstract)
 {
   static_assert(traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices type");
 
-  using wrap_type      = matrix_wrap<square_matrix<T, A>>;
-  using size_type      = typename wrap_type::size_type;
-  using value_type     = typename wrap_type::value_type;
-  using matrix_set_all = procedures::matrix_set_all<wrap_type>;
+  using abstract_type = matrix_abstract<square_matrix<T, A>>;
+  using size_type     = typename abstract_type::size_type;
+  using value_type    = typename abstract_type::value_type;
 
-  matrix_set_all set_all;
+  using abstract_set_all = procedures::abstract_set_all<abstract_type>;
 
-  auto set_vc = std::function([&set_all](wrap_type& wrap, size_type vertex_count) -> void {
-    auto& matrix = wrap.matrix();
+  abstract_set_all set_all;
+
+  auto set_vc = std::function([&set_all](abstract_type& abstract, size_type vertex_count) -> void {
+    auto& matrix = abstract.matrix();
           matrix = square_matrix<T, A>(vertex_count, matrix.get_allocator());
 
-    wrap.rebind();
+    abstract.rebind();
 
-    set_all(wrap, utilz::constants::infinity<value_type>());
+    set_all(abstract, utilz::constants::infinity<value_type>());
   });
-  auto set_ec = std::function([](wrap_type& wrap, size_type edge_count) -> void {});
-  auto set_wv = std::function([](wrap_type& wrap, size_type f, size_type t, value_type w) -> void {
-    wrap.at(f, t) = w;
+  auto set_ec = std::function([](abstract_type& abstract, size_type edge_count) -> void {});
+  auto set_wv = std::function([](abstract_type& abstract, size_type f, size_type t, value_type w) -> void {
+    abstract.at(f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, wrap, set_vc, set_ec, set_wv);
+  utilz::graphs::io::scan_graph(format, is, abstract, set_vc, set_ec, set_wv);
 
-  auto dimensions = wrap.dimensions();
+  auto dimensions = abstract.dimensions();
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    wrap.at(i, i) = value_type(0);
+    abstract.at(i, i) = value_type(0);
 };
 
 template<typename T, typename A, typename U>
@@ -93,24 +94,25 @@ void
 scan_matrix(
   utilz::graphs::io::graph_format                           format,
   std::istream&                                             is,
-  matrix_wrap<square_matrix<square_matrix<T, A>, U>>&       wrap,
+  matrix_abstract<square_matrix<square_matrix<T, A>, U>>&   abstract,
   typename square_matrix<square_matrix<T, A>, U>::size_type block_size)
 {
   static_assert(traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices of matrices type");
 
-  using wrap_type      = matrix_wrap<square_matrix<square_matrix<T, A>, U>>;
-  using size_type      = typename wrap_type::size_type;
-  using value_type     = typename wrap_type::value_type;
-  using matrix_set_all = procedures::matrix_set_all<wrap_type>;
+  using abstract_type  = matrix_abstract<square_matrix<square_matrix<T, A>, U>>;
+  using size_type      = typename abstract_type::size_type;
+  using value_type     = typename abstract_type::value_type;
 
-  matrix_set_all set_all;
+  using abstract_set_all = procedures::abstract_set_all<abstract_type>;
 
-  auto set_vc = std::function([&set_all, &block_size](wrap_type& wrap, size_type vertex_count) -> void {
+  abstract_set_all set_all;
+
+  auto set_vc = std::function([&set_all, &block_size](abstract_type& abstract, size_type vertex_count) -> void {
     auto size = vertex_count / block_size;
     if (vertex_count % block_size != size_type(0))
       ++size;
 
-    auto& matrix = wrap.matrix();
+    auto& matrix = abstract.matrix();
           matrix = square_matrix<square_matrix<T, A>, U>(size, matrix.get_allocator());
 
     for (auto i = size_type(0); i < matrix.size(); ++i) {
@@ -121,41 +123,42 @@ scan_matrix(
       }
     }
 
-    wrap.rebind();
+    abstract.rebind();
 
-    set_all(wrap, utilz::constants::infinity<value_type>());
+    set_all(abstract, utilz::constants::infinity<value_type>());
   });
-  auto set_ec = std::function([](wrap_type& wrap, size_type edge_count) -> void {});
-  auto set_wv = std::function([](wrap_type& wrap, size_type f, size_type t, value_type w) -> void {
-    wrap.at(f, t) = w;
+  auto set_ec = std::function([](abstract_type& abstract, size_type edge_count) -> void {});
+  auto set_wv = std::function([](abstract_type& abstract, size_type f, size_type t, value_type w) -> void {
+    abstract.at(f, t) = w;
   });
 
-  utilz::graphs::io::scan_graph(format, is, wrap, set_vc, set_ec, set_wv);
+  utilz::graphs::io::scan_graph(format, is, abstract, set_vc, set_ec, set_wv);
 
-  auto dimensions = wrap.dimensions();
+  auto dimensions = abstract.dimensions();
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    wrap.at(i, i) = value_type(0);
+    abstract.at(i, i) = value_type(0);
 };
 
 template<typename T, typename A, typename U>
 void
 scan_matrix(
-  utilz::graphs::io::graph_format                   graph_format,
-  std::istream&                                     graph_is,
-  utilz::communities::io::communities_format        communities_format,
-  std::istream&                                     communities_is,
-  matrix_wrap<square_matrix<rect_matrix<T, A>, U>>& wrap,
-  clusters&                                         clusters)
+  utilz::graphs::io::graph_format                       graph_format,
+  std::istream&                                         graph_is,
+  utilz::communities::io::communities_format            communities_format,
+  std::istream&                                         communities_is,
+  matrix_abstract<square_matrix<rect_matrix<T, A>, U>>& abstract,
+  clusters&                                             clusters)
 {
   static_assert(traits::matrix_traits<T>::is_type::value, "erro: unexpected matrix of matrices or matrices type");
 
-  using wrap_type      = matrix_wrap<square_matrix<rect_matrix<T, A>, U>>;
-  using size_type      = typename wrap_type::size_type;
-  using value_type     = typename wrap_type::value_type;
+  using abstract_type  = matrix_abstract<square_matrix<rect_matrix<T, A>, U>>;
+  using size_type      = typename abstract_type::size_type;
+  using value_type     = typename abstract_type::value_type;
   using clusters_type  = utilz::matrices::clusters;
-  using matrix_set_all = procedures::matrix_set_all<wrap_type>;
 
-  matrix_set_all set_all;
+  using abstract_set_all = procedures::abstract_set_all<abstract_type>;
+
+  abstract_set_all set_all;
 
   auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
     c.insert_vertex(cluster_idx, vertex_idx);
@@ -166,7 +169,7 @@ scan_matrix(
   for (auto size : clusters.list() | std::views::transform([](auto& group) -> auto { return group.size(); }))
     item_sizes.push_back(size);
 
-  auto& matrix = wrap.matrix();
+  auto& matrix = abstract.matrix();
         matrix = square_matrix<rect_matrix<T, A>, U>(item_sizes.size(), matrix.get_allocator());
 
   for (auto i = size_type(0); i < matrix.size(); ++i) {
@@ -177,20 +180,20 @@ scan_matrix(
     }
   }
 
-  wrap.rebind();
+  abstract.rebind();
 
-  set_all(wrap, utilz::constants::infinity<value_type>());
+  set_all(abstract, utilz::constants::infinity<value_type>());
 
-  auto set_matrix_value = std::function([&clusters](wrap_type& wrap, size_type f, size_type t, value_type w) -> void {
+  auto set_matrix_value = std::function([&clusters](abstract_type& abstract, size_type f, size_type t, value_type w) -> void {
     clusters.insert_edge(f, t);
 
-    wrap.at(f, t) = w;
+    abstract.at(f, t) = w;
   });
-  utilz::graphs::io::scan_graph(graph_format, graph_is, wrap, set_matrix_value);
+  utilz::graphs::io::scan_graph(graph_format, graph_is, abstract, set_matrix_value);
 
-  auto dimensions = wrap.dimensions();
+  auto dimensions = abstract.dimensions();
   for (auto i = size_type(0); i < dimensions.s(); ++i)
-    wrap.at(i, i) = value_type(0);
+    abstract.at(i, i) = value_type(0);
 };
 
 template<typename T, typename A>

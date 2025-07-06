@@ -18,6 +18,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
+#include "matrix-abstract.hpp"
 #include "memory.hpp"
 
 // local includes
@@ -68,11 +69,11 @@ using g_allocator_type = typename std::allocator<K>;
 
   using size_type = typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
 
-  using source_matrix_wrap      = ::utilz::matrices::matrix_wrap<source_matrix>;
+  using source_matrix_abstract  = ::utilz::matrices::matrix_abstract<source_matrix>;
   using source_matrix_rearrange = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
 
-  using result_matrix      = ::utilz::matrices::square_matrix<T>;
-  using result_matrix_wrap = ::utilz::matrices::matrix_wrap<result_matrix>;
+  using result_matrix          = ::utilz::matrices::square_matrix<T>;
+  using result_matrix_abstract = ::utilz::matrices::matrix_abstract<result_matrix>;
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -133,8 +134,8 @@ public:
     if (!res_fs.is_open())
       throw std::logic_error("erro: the file '" + res_path.generic_string() + "' doesn't exist.");
 
-    source_matrix_wrap src_wrap(this->m_src);
-    result_matrix_wrap res_wrap(this->m_res);
+    source_matrix_abstract src_wrap(this->m_src);
+    result_matrix_abstract res_wrap(this->m_res);
 
 #ifdef APSP_ALG_MATRIX
     ::utilz::matrices::io::scan_matrix(graph_format, src_fs, src_wrap);
@@ -155,7 +156,7 @@ public:
   void
   invoke()
   {
-    source_matrix_wrap src_wrap(this->m_src);
+    source_matrix_abstract src_wrap(this->m_src);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION

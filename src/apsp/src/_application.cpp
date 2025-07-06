@@ -51,6 +51,7 @@
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
 #include "matrix.hpp"
+#include "matrix-abstract.hpp"
 
 // local includes
 //
@@ -92,7 +93,7 @@ using extra_configuration = run_configuration<g_calculation_type, g_allocator_ty
 #endif
 #endif
 
-using matrix_wrap = ::utilz::matrices::matrix_wrap<matrix>;
+using matrix_abstract = ::utilz::matrices::matrix_abstract<matrix>;
 
 int
 main(int argc, char* argv[]) __hack_noexcept
@@ -328,7 +329,7 @@ main(int argc, char* argv[]) __hack_noexcept
   // Define matrix and execute algorithm specific overloads of methods
   //
   matrix      m(buffer_allocator);
-  matrix_wrap mw(m);
+  matrix_abstract mw(m);
 
 #ifdef APSP_ALG_MATRIX
   auto scan_ms = ::utilz::measure_milliseconds(
