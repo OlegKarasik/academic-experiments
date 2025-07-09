@@ -448,10 +448,12 @@ up(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
+  auto& matrix = blocks.matrix();
+
   // Set parameters
   //
-  run_config.tasks_count   = blocks.w();
-  run_config.threads_count = blocks.w() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : blocks.w();
+  run_config.tasks_count   = matrix.size();
+  run_config.threads_count = matrix.size() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : matrix.size();
 
   // Initialise "Heights" matrix
   //
@@ -466,7 +468,7 @@ up(
 
   // Prepare runtime configuration
   //
-  for (auto i = size_t(0); i < blocks.h(); ++i) {
+  for (auto i = size_t(0); i < matrix.size(); ++i) {
     run_config.nodes[i].rank = i;
     run_config.nodes[i].processors_count = run_config.threads_count;
     run_config.nodes[i].tasks = run_config.tasks;
@@ -518,8 +520,8 @@ up(
 
   // Initialise Heights
   //
-  for (auto i = size_t(0); i < blocks.h(); ++i) {
-    for (auto j = size_t(0); j < blocks.w(); ++j) {
+  for (auto i = size_t(0); i < matrix.size(); ++i) {
+    for (auto j = size_t(0); j < matrix.size(); ++j) {
       KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData;
       ::memset(&SyncblockInitData, 0, sizeof(KRCORE_SYNCBLOCK_INIT_DATA));
 
@@ -584,14 +586,16 @@ down(
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
+  auto& matrix = blocks.matrix();
+
   for (auto i = size_t(0); i < run_config.tasks_count; ++i)
     KRASSERT(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]));
 
   for (auto i = size_t(0); i < run_config.threads_count; ++i)
     KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
 
-  for (auto i = size_t(0); i < blocks.h(); ++i) {
-    for (auto j = size_t(0); j < blocks.w(); ++j) {
+  for (auto i = size_t(0); i < matrix.size(); ++i) {
+    for (auto j = size_t(0); j < matrix.size(); ++j) {
       KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.heights_sync.at(i, j)));
     }
   }
