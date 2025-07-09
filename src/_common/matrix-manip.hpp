@@ -10,12 +10,6 @@ namespace utilz {
 namespace matrices {
 namespace procedures {
 
-enum matrix_dimensions_variant
-{
-  matrix_dimensions_variant_rect   = 1,
-  matrix_dimensions_variant_square = 2
-};
-
 enum matrix_clusters_arrangement
 {
   matrix_clusters_arrangement_forward  = 1,
@@ -28,15 +22,6 @@ enum matrix_clusters_arrangement
 
 namespace impl {
 
-template<typename T>
-struct matrix_dimensions;
-
-template<typename S, class Enable = void>
-struct impl_get_dimensions;
-
-template<typename S, class Enable = void>
-struct impl_at;
-
 template<typename S>
 struct impl_set_all;
 
@@ -44,10 +29,7 @@ template<typename S>
 struct impl_set_diagonal;
 
 template<typename S>
-struct impl_replace_all;
-
-template<typename S>
-struct impl_matrix_arrange_clusters;
+struct impl_arrange;
 
 } // namespace impl
 
@@ -56,432 +38,15 @@ struct impl_matrix_arrange_clusters;
 // ---
 
 template<typename S>
-using matrix_get_dimensions = impl::impl_get_dimensions<S>;
-
-template<typename S>
-using matrix_at = impl::impl_at<S>;
-
-template<typename S>
 using abstract_set_all = impl::impl_set_all<S>;
 
 template<typename S>
 using abstract_set_diagonal = impl::impl_set_diagonal<S>;
 
 template<typename S>
-using matrix_replace_all = impl::impl_replace_all<S>;
-
-template<typename S>
-using matrix_arrange_clusters = impl::impl_matrix_arrange_clusters<S>;
-
-template<matrix_dimensions_variant TVariant, typename S>
-class matrix_dimensions
-{
-  static_assert(false, "The variant is not supported");
-};
-
-template<typename T>
-class matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, T>
-  : public impl::matrix_dimensions<T>
-{
-private:
-  using size_type = T;
-
-public:
-  matrix_dimensions()
-    : impl::matrix_dimensions<size_type>(size_type(0), size_type(0))
-  {
-  }
-
-  matrix_dimensions(size_type width, size_type height)
-    : impl::matrix_dimensions<size_type>(width, height)
-  {
-  }
-
-  template<matrix_dimensions_variant X, typename U>
-  matrix_dimensions(matrix_dimensions<X, U> dimensions)
-    : impl::matrix_dimensions<size_type>(dimensions.w(), dimensions.h())
-  {
-  }
-
-  matrix_dimensions
-  operator+(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->w() + x.w(), this->h() + x.h());
-  }
-
-  matrix_dimensions
-  operator-(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->w() - x.w(), this->h() - x.h());
-  }
-
-  matrix_dimensions
-  operator*(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->w() * x.w(), this->h() * x.h());
-  }
-
-  matrix_dimensions
-  operator/(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->w() / x.w(), this->h() / x.h());
-  }
-};
-
-template<typename T>
-class matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_square, T>
-  : public impl::matrix_dimensions<T>
-{
-private:
-  using size_type = T;
-
-public:
-  matrix_dimensions()
-    : impl::matrix_dimensions<size_type>(size_type(0), size_type(0))
-  {
-  }
-
-  matrix_dimensions(size_type size)
-    : impl::matrix_dimensions<size_type>(size, size)
-  {
-  }
-
-  template<typename U>
-  matrix_dimensions(matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_square, U> dimensions)
-    : impl::matrix_dimensions<size_type>(dimensions.s(), dimensions.s())
-  {
-  }
-
-  template<typename U>
-  matrix_dimensions(matrix_dimensions<matrix_dimensions_variant::matrix_dimensions_variant_rect, U> dimensions)
-    : impl::matrix_dimensions<size_type>(dimensions.w(), dimensions.h())
-  {
-    if (dimensions.w() != dimensions.h())
-      std::logic_error("erro: can't rebind non-square to square dimensions when width and height are different");
-  }
-
-  size_type
-  s() const
-  {
-    return this->w();
-  }
-
-  matrix_dimensions
-  operator+(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->s() + x.s());
-  }
-
-  matrix_dimensions
-  operator-(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->s() - x.s());
-  }
-
-  matrix_dimensions
-  operator*(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->s() * x.s());
-  }
-
-  matrix_dimensions
-  operator/(const matrix_dimensions& x) const
-  {
-    return matrix_dimensions(this->s() / x.s());
-  }
-};
+using matrix_arrange_clusters = impl::impl_arrange<S>;
 
 namespace impl {
-
-template<typename T>
-class matrix_dimensions
-{
-private:
-  T m_w;
-  T m_h;
-
-public:
-  matrix_dimensions(T width, T height)
-    : m_w(width)
-    , m_h(height)
-  {
-  }
-
-  T
-  w() const
-  {
-    return this->m_w;
-  }
-
-  T
-  h() const
-  {
-    return this->m_h;
-  }
-};
-
-template<typename T, class Enable>
-struct impl_get_dimensions
-{
-  static_assert(false, "erro: input type has to be a matrix");
-};
-
-template<typename T, typename A>
-struct impl_get_dimensions<utilz::matrices::rect_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_type::value>::type>
-{
-private:
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T, A>>::size_type;
-
-public:
-  using dimension_type = utilz::matrices::procedures::matrix_dimensions<matrix_dimensions_variant_rect, size_type>;
-
-public:
-  dimension_type
-  operator()(const utilz::matrices::rect_matrix<T, A>& s)
-  {
-    return dimension_type(s.width(), s.height());
-  }
-};
-
-template<typename T, typename A>
-struct impl_get_dimensions<utilz::matrices::square_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_type::value>::type>
-{
-private:
-  using size_type = typename utilz::matrices::square_matrix<T, A>::size_type;
-
-public:
-  using dimension_type = utilz::matrices::procedures::matrix_dimensions<matrix_dimensions_variant_square, size_type>;
-
-public:
-  dimension_type
-  operator()(const utilz::matrices::square_matrix<T, A>& s)
-  {
-    return dimension_type(s.size());
-  }
-};
-
-template<typename T, typename A>
-struct impl_get_dimensions<utilz::matrices::square_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_matrix::value>::type>
-{
-private:
-  using size_type = typename utilz::matrices::square_matrix<T, A>::size_type;
-
-public:
-  using dimension_type = utilz::matrices::procedures::matrix_dimensions<matrix_dimensions_variant_square, size_type>;
-
-public:
-  dimension_type
-  operator()(const utilz::matrices::square_matrix<T, A>& s)
-  {
-    impl_get_dimensions<T> get_dimensions;
-
-    typename impl_get_dimensions<T>::dimension_type dimensions;
-    for (auto i = size_type(0); i < s.size(); ++i)
-      dimensions = dimensions + get_dimensions(s.at(i, i));
-
-    return dimension_type(dimensions);
-  }
-};
-
-template<typename S, class Enable>
-struct impl_at
-{
-  static_assert(false, "erro: input type has to be a matrix");
-};
-
-template<template<typename, typename> typename S, typename T, typename A>
-struct impl_at<S<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_type::value>::type>
-{
-  static_assert(utilz::matrices::traits::matrix_traits<S<T, A>>::is_matrix::value, "erro: input type has to be a matrix");
-
-private:
-  using size_type       = typename utilz::matrices::traits::matrix_traits<S<T, A>>::size_type;
-  using reference       = typename utilz::matrices::traits::matrix_traits<S<T, A>>::reference;
-  using const_reference = typename utilz::matrices::traits::matrix_traits<S<T, A>>::const_reference;
-
-public:
-  struct bindable
-  {
-  public:
-    ~bindable()
-    {
-    }
-
-  public:
-    void
-    bind(utilz::matrices::square_matrix<T, A>& s)
-    {
-    }
-
-    reference
-    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
-    {
-      return s.at(i, j);
-    }
-
-    const_reference
-    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j) const
-    {
-      return s.at(i, j);
-    }
-  };
-
-public:
-  reference
-  operator()(S<T, A>& s, size_type i, size_type j)
-  {
-    return s.at(i, j);
-  }
-
-  const_reference
-  operator()(S<T, A>& s, size_type i, size_type j) const
-  {
-    return s.at(i, j);
-  }
-};
-
-template<typename T, typename A>
-struct impl_at<utilz::matrices::square_matrix<T, A>, typename std::enable_if<utilz::matrices::traits::matrix_traits<T>::is_matrix::value>::type>
-{
-private:
-  using matrix_type     = typename utilz::matrices::square_matrix<T, A>;
-  using size_type       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
-  using item_type       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::item_type;
-  using reference       = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::reference;
-  using const_reference = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::const_reference;
-
-public:
-  struct bindable
-  {
-  private:
-    using _value_type = int;
-    using _pointer    = _value_type*;
-
-  private:
-    _pointer m_v_cache;
-    _pointer m_h_cache;
-
-  public:
-    bindable()
-      : m_v_cache(nullptr)
-      , m_h_cache(nullptr)
-    {
-    }
-    ~bindable()
-    {
-      if (this->m_v_cache != nullptr)
-        ::free(this->m_v_cache);
-
-      if (this->m_h_cache != nullptr)
-        ::free(this->m_h_cache);
-    }
-
-  private:
-    reference
-    at(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
-    {
-      impl_at<item_type> get_at;
-
-      auto v_entry = this->m_v_cache[i];
-      auto h_entry = this->m_h_cache[j];
-
-      auto v       = v_entry & 0xFFFF;
-      auto v_delta = v_entry >> 16;
-
-      auto h       = h_entry & 0xFFFF;
-      auto h_delta = h_entry >> 16;
-
-      return get_at(s.at(v, h), i - v_delta, j - h_delta);
-    }
-
-  public:
-    void
-    bind(utilz::matrices::square_matrix<T, A>& s)
-    {
-      impl_get_dimensions<matrix_type> get_matrix_dimensions;
-      impl_get_dimensions<item_type>   get_item_dimensions;
-
-      auto matrix_dimensions = get_matrix_dimensions(s);
-
-      this->m_v_cache = static_cast<_pointer>(::malloc(matrix_dimensions.h() * sizeof(_value_type)));
-      this->m_h_cache = static_cast<_pointer>(::malloc(matrix_dimensions.w() * sizeof(_value_type)));
-
-      auto h       = size_type(0), v       = size_type(0);
-      auto h_delta = size_type(0), v_delta = size_type(0);
-
-      for (auto z = size_type(0); z < s.size(); ++z) {
-        auto item_dimensions = get_item_dimensions(s.at(z, z));
-
-        for (auto i = size_type(0); i < item_dimensions.h(); ++i, ++v)
-          this->m_v_cache[v] = _value_type(v_delta << 16 | z);
-
-        for (auto j = size_type(0); j < item_dimensions.w(); ++j, ++h)
-          this->m_h_cache[h] = _value_type(h_delta << 16 | z);
-
-        h_delta += item_dimensions.w();
-        v_delta += item_dimensions.h();
-      }
-    }
-
-    reference
-    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
-    {
-      return this->at(s, i, j);
-    }
-
-    const_reference
-    operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j) const
-    {
-      return this->at(s, i, j);
-    }
-  };
-
-private:
-  reference
-  at(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
-  {
-    impl_at<item_type>             get_at;
-    impl_get_dimensions<item_type> get_dimensions;
-
-    auto wf = false, hf = false;
-    auto x = size_type(0), y = size_type(0);
-    auto w = size_type(0), h = size_type(0);
-    for (auto z = size_type(0); z < s.size() && (!wf || !hf); ++z) {
-      auto dimensions = get_dimensions(s.at(z, z));
-      if (!hf) {
-        if (i < h + dimensions.h()) {
-          y  = z;
-          hf = true;
-        } else {
-          h = h + dimensions.h();
-        }
-      }
-      if (!wf) {
-        if (j < w + dimensions.w()) {
-          x  = z;
-          wf = true;
-        } else {
-          w = w + dimensions.w();
-        }
-      }
-    }
-
-    return get_at(s.at(y, x), i - h, j - w);
-  }
-
-public:
-  reference
-  operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j)
-  {
-    return this->at(s, i, j);
-  }
-
-  const_reference
-  operator()(utilz::matrices::square_matrix<T, A>& s, size_type i, size_type j) const
-  {
-    return this->at(s, i, j);
-  }
-};
 
 template<typename S>
 struct impl_set_all
@@ -517,61 +82,32 @@ public:
 };
 
 template<typename S>
-struct impl_replace_all
+struct impl_arrange
 {
-  static_assert(utilz::matrices::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
-
 private:
-  using size_type  = typename utilz::matrices::traits::matrix_traits<S>::size_type;
-  using value_type = typename utilz::matrices::traits::matrix_traits<S>::value_type;
-
-public:
-  void
-  operator()(S& s, value_type f, value_type t)
-  {
-    impl_at<S>             get_at;
-    impl_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(s);
-    for (auto i = size_type(0); i < dimensions.h(); ++i)
-      for (auto j = size_type(0); j < dimensions.w(); ++j)
-        if (get_at(s, i, j) == f)
-          get_at(s, i, j) = t;
-  }
-};
-
-template<typename S>
-struct impl_matrix_arrange_clusters
-{
-  static_assert(utilz::matrices::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a matrix");
-
-private:
-  using size_type = typename utilz::matrices::traits::matrix_traits<S>::size_type;
+  using size_type  = typename S::size_type;
+  using value_type = typename S::value_type;
 
 private:
   template<typename Iterator>
   void
-  matrix_arrange_clusters(S& matrix, Iterator begin, Iterator end)
+  matrix_arrange_clusters(S& s, Iterator begin, Iterator end)
   {
-    impl_at<S>             get_at;
-    impl_get_dimensions<S> get_dimensions;
-
-    auto dimensions = get_dimensions(matrix);
     for (auto it = begin; it != end; ++it) {
       if (it->first == it->second)
         continue;
 
-      for (auto j = size_type(0); j < dimensions.w(); ++j)
-        std::swap(get_at(matrix, it->first, j), get_at(matrix, it->second, j));
+      for (auto j = size_type(0); j < s.w(); ++j)
+        std::swap(s.at(it->first, j), s.at(it->second, j));
 
-      for (auto i = size_type(0); i < dimensions.h(); ++i)
-        std::swap(get_at(matrix, i, it->first), get_at(matrix, i, it->second));
+      for (auto i = size_type(0); i < s.h(); ++i)
+        std::swap(s.at(i, it->first), s.at(i, it->second));
     }
   }
 
 public:
   void
-  operator()(S& matrix, utilz::matrices::clusters& clusters, const matrix_clusters_arrangement arrangement)
+  operator()(S& s, utilz::matrices::clusters& clusters, const matrix_clusters_arrangement arrangement)
   {
     std::map<size_type, size_type> mapping;
 
@@ -604,10 +140,10 @@ public:
 
     switch (arrangement) {
       case matrix_clusters_arrangement_forward:
-        matrix_arrange_clusters(matrix, mapping.begin(), mapping.end());
+        matrix_arrange_clusters(s, mapping.begin(), mapping.end());
         break;
       case matrix_clusters_arrangement_backward:
-        matrix_arrange_clusters(matrix, mapping.rbegin(), mapping.rend());
+        matrix_arrange_clusters(s, mapping.rbegin(), mapping.rend());
         break;
       default:
         throw std::logic_error("erro: unsupported matrix clusters arrangement");

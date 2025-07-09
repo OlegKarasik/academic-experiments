@@ -41,9 +41,9 @@ scan_matrix(
 template<typename T, typename A>
 void
 print_matrix(
-  utilz::graphs::io::graph_format format,
-  std::ostream&                   os,
-  square_matrix<T, A>&            matrix);
+  utilz::graphs::io::graph_format       format,
+  std::ostream&                         os,
+  matrix_abstract<square_matrix<T, A>>& abstract);
 
 namespace impl {
 
@@ -201,22 +201,19 @@ void
 print_matrix(
   utilz::graphs::io::graph_format       format,
   std::ostream&                         os,
-  utilz::matrices::square_matrix<T, A>& matrix)
+  matrix_abstract<square_matrix<T, A>>& abstract)
 {
-  using iterator_type = typename utilz::matrices::io::impl::iterator<utilz::matrices::square_matrix<T, A>>;
-  using value_type    = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
+  using abstract_type = matrix_abstract<square_matrix<T, A>>;
+  using iterator_type = typename io::impl::iterator<abstract_type>;
+  using value_type    = typename abstract_type::value_type;
 
-  typename utilz::matrices::procedures::matrix_at<utilz::matrices::square_matrix<T, A>>::bindable get_at;
-
-  get_at.bind(matrix);
-
-  auto get_iterators = std::function([&get_at](utilz::matrices::square_matrix<T, A>& c) -> std::tuple<iterator_type, iterator_type> {
-    auto begin = iterator_type(c, get_at, utilz::constants::infinity<value_type>(), typename iterator_type::begin_iterator());
-    auto end   = iterator_type(c, utilz::constants::infinity<value_type>(), typename iterator_type::end_iterator());
+  auto get_iterators = std::function([](abstract_type& abstract) -> std::tuple<iterator_type, iterator_type> {
+    auto begin = iterator_type(abstract, utilz::constants::infinity<value_type>(), typename iterator_type::begin_iterator());
+    auto end   = iterator_type(abstract, utilz::constants::infinity<value_type>(), typename iterator_type::end_iterator());
     return std::make_tuple(begin, end);
   });
 
-  utilz::graphs::io::print_graph(format, os, matrix, get_iterators);
+  utilz::graphs::io::print_graph(format, os, abstract, get_iterators);
 };
 
 namespace impl {
@@ -224,14 +221,9 @@ namespace impl {
 template<typename S>
 class iterator
 {
-  static_assert(utilz::matrices::traits::matrix_traits<S>::is_matrix::value, "erro: input type has to be a square_matrix");
-
 private:
-  using _size_type   = typename utilz::matrices::traits::matrix_traits<S>::size_type;
-  using _value_type  = typename utilz::matrices::traits::matrix_traits<S>::value_type;
-
-  using _get_dimensions_type = typename utilz::matrices::procedures::matrix_get_dimensions<S>;
-  using _get_at_type         = typename utilz::matrices::procedures::matrix_at<S>::bindable;
+  using _size_type   = typename S::size_type;
+  using _value_type  = typename S::value_type;
 
 public:
   // Iterator definitions
@@ -243,17 +235,12 @@ public:
   using reference         = value_type&;
 
 private:
-  _size_type m_width;
-  _size_type m_height;
   _size_type m_i;
   _size_type m_j;
 
   _value_type m_infinity;
 
   S& m_s;
-
-  _get_dimensions_type m_get_dimensions;
-  _get_at_type         m_get_at;
 
 public:
   struct begin_iterator
@@ -264,32 +251,23 @@ public:
   };
 
 public:
-  iterator(S& s, _get_at_type& get_at, _value_type infinity, begin_iterator)
+  iterator(S& s, _value_type infinity, begin_iterator)
     : m_s(s)
-    , m_get_at(get_at)
   {
-    auto dimensions = this->m_get_dimensions(s);
-
-    this->m_width  = dimensions.w();
-    this->m_height = dimensions.h();
-    this->m_i      = _size_type(0);
-    this->m_j      = _size_type(0);
+    this->m_i = _size_type(0);
+    this->m_j = _size_type(0);
 
     this->m_infinity = infinity;
 
-    if (!s.empty())
+    if (s.w() != _size_type(0) && s.h() != _size_type(0))
       ++(*this);
   }
 
   iterator(S& s, _value_type infinity, end_iterator)
     : m_s(s)
   {
-    auto dimensions = this->m_get_dimensions(s);
-
-    this->m_width  = dimensions.w();
-    this->m_height = dimensions.h();
-    this->m_i      = _size_type(this->m_height);
-    this->m_j      = _size_type(this->m_width);
+    this->m_i = _size_type(s.h());
+    this->m_j = _size_type(s.w());
 
     this->m_infinity = infinity;
   }
@@ -297,23 +275,23 @@ public:
   value_type
   operator*()
   {
-    return std::make_tuple(this->m_i, this->m_j, this->m_get_at(this->m_s, this->m_i, this->m_j));
+    return std::make_tuple(this->m_i, this->m_j, this->m_s.at(this->m_i, this->m_j));
   }
 
   iterator&
   operator++()
   {
     do {
-      if (++this->m_j == this->m_width) {
+      if (++this->m_j == this->m_s.w()) {
         this->m_j = _size_type(0);
-        if (++this->m_i == this->m_height) {
-          this->m_i = this->m_height;
-          this->m_j = this->m_width;
+        if (++this->m_i == this->m_s.h()) {
+          this->m_i = this->m_s.h();
+          this->m_j = this->m_s.w();
 
           break;
         }
       }
-    } while (this->m_i == this->m_j || this->m_get_at(this->m_s, this->m_i, this->m_j) == this->m_infinity);
+    } while (this->m_i == this->m_j || this->m_s.at(this->m_i, this->m_j) == this->m_infinity);
 
     return *this;
   }
@@ -331,7 +309,7 @@ public:
   friend bool
   operator==(const iterator& a, const iterator& b)
   {
-    return a.m_s == b.m_s && a.m_infinity == b.m_infinity && a.m_i == b.m_i && a.m_j == b.m_j && a.m_width == b.m_width && a.m_height == b.m_height;
+    return a.m_infinity == b.m_infinity && a.m_i == b.m_i && a.m_j == b.m_j;
   };
 
   friend bool

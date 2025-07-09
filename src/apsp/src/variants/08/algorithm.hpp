@@ -16,10 +16,12 @@
 
 #include <thread>
 
+namespace utzmx = ::utilz::matrices;
+
 template<typename T, typename A, typename U>
 struct run_configuration
 {
-  using pointer = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T, A>>::pointer;
+  using pointer = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -33,13 +35,13 @@ struct run_configuration
 template<typename T, typename A, typename U>
 void
 calculate_diagonal(
-  ::utilz::matrices::rect_matrix<T, A>& mm,
+  utzmx::rect_matrix<T, A>& mm,
   run_configuration<T, A, U>& run_config)
 {
   SCOPE_MEASURE_MILLISECONDS("DIAG");
 
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T, A>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T, A>>::value_type;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::value_type;
 
   run_config.mm_array_prv_col[0] = ::utilz::constants::infinity<value_type>();
   run_config.mm_array_nxt_row[0] = mm.at(0, 1);
@@ -89,14 +91,14 @@ calculate_diagonal(
 template<typename T, typename A>
 void
 calculate_vertical(
-  ::utilz::matrices::rect_matrix<T, A>& ij,
-  ::utilz::matrices::rect_matrix<T, A>& ik,
-  ::utilz::matrices::rect_matrix<T, A>& kj,
+  utzmx::rect_matrix<T, A>& ij,
+  utzmx::rect_matrix<T, A>& ik,
+  utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
   SCOPE_MEASURE_MILLISECONDS("VERT");
 
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
@@ -111,14 +113,14 @@ calculate_vertical(
 template<typename T, typename A>
 void
 calculate_horizontal(
-  ::utilz::matrices::rect_matrix<T, A>& ij,
-  ::utilz::matrices::rect_matrix<T, A>& ik,
-  ::utilz::matrices::rect_matrix<T, A>& kj,
+  utzmx::rect_matrix<T, A>& ij,
+  utzmx::rect_matrix<T, A>& ik,
+  utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
   SCOPE_MEASURE_MILLISECONDS("HORZ");
 
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
@@ -133,14 +135,14 @@ calculate_horizontal(
 template<typename T, typename A>
 void
 calculate_peripheral(
-  ::utilz::matrices::rect_matrix<T, A>& ij,
-  ::utilz::matrices::rect_matrix<T, A>& ik,
-  ::utilz::matrices::rect_matrix<T, A>& kj,
+  utzmx::rect_matrix<T, A>& ij,
+  utzmx::rect_matrix<T, A>& ik,
+  utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
   SCOPE_MEASURE_MILLISECONDS("PERH");
 
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::rect_matrix<T>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
@@ -155,32 +157,32 @@ calculate_peripheral(
 __hack_noinline
 void
 up_clusters(
-  ::utilz::matrices::clusters& clusters)
+  utzmx::clusters& clusters)
 {
   for (auto& group : clusters.list()) {
     const auto input_count = std::ranges::count_if(
       group.list(),
       [](const auto& vertex) -> bool {
-        return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_input;
+        return std::get<utzmx::clusters_vertex_flag>(vertex) & utzmx::clusters_vertex_flag_input;
       });
     const auto output_count = std::ranges::count_if(
       group.list(),
       [](const auto& vertex) -> bool {
-        return std::get<::utilz::matrices::clusters_vertex_flag>(vertex) & ::utilz::matrices::clusters_vertex_flag_output;
+        return std::get<utzmx::clusters_vertex_flag>(vertex) & utzmx::clusters_vertex_flag_output;
       });
     if (input_count > output_count) {
       group.sort(
         {
-          ::utilz::matrices::clusters_vertex_flag_none,
-          ::utilz::matrices::clusters_vertex_flag_output,
-          ::utilz::matrices::clusters_vertex_flag_input
+          utzmx::clusters_vertex_flag_none,
+          utzmx::clusters_vertex_flag_output,
+          utzmx::clusters_vertex_flag_input
         });
     } else {
       group.sort(
         {
-          ::utilz::matrices::clusters_vertex_flag_none,
-          ::utilz::matrices::clusters_vertex_flag_input,
-          ::utilz::matrices::clusters_vertex_flag_output
+          utzmx::clusters_vertex_flag_none,
+          utzmx::clusters_vertex_flag_input,
+          utzmx::clusters_vertex_flag_output
         });
     }
   }
@@ -190,14 +192,12 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  ::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& blocks,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>>::value_type;
-
-  ::utilz::matrices::procedures::matrix_get_dimensions<::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>> sz;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>::value_type;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -205,7 +205,7 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = sz(blocks).h();
+  auto allocation_line = blocks.h();
   auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
 
   run_config.allocation_line = allocation_line;
@@ -227,7 +227,7 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  ::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& blocks,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
@@ -243,11 +243,11 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  ::utilz::matrices::square_matrix<utilz::matrices::rect_matrix<T, A>, U>& blocks,
+  utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>& blocks,
   run_configuration<T, A, U>& run_config,
-  ::utilz::matrices::clusters& clusters)
+  utzmx::clusters& clusters)
 {
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
 
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks, run_config, clusters)

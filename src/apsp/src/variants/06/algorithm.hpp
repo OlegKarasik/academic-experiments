@@ -12,6 +12,8 @@
 
 #include "metal-cpp/Metal.hpp"
 
+namespace utzmx = ::utilz::matrices;
+
 template<typename T, typename A>
 struct run_configuration
 {
@@ -24,7 +26,7 @@ template<typename T, typename A>
 __hack_noinline
 void
 up(
-  utilz::matrices::square_matrix<T, A>& m,
+  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
   utilz::memory::buffer& b,
   run_configuration<T>& run_config)
 {
@@ -61,7 +63,7 @@ template<typename T, typename A>
 __hack_noinline
 void
 down(
-  utilz::matrices::square_matrix<T, A>& m,
+  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
   utilz::memory::buffer& b,
   run_configuration<T>& run_config)
 {
@@ -74,10 +76,10 @@ template<typename T, typename A>
 __hack_noinline
 void
 run(
-  ::utilz::matrices::square_matrix<T, A>& m,
+  utzmx::square_matrix<T, A>& m,
   run_configuration<T>& run_config)
 {
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
 
   const auto sz = m.size();
 

@@ -10,10 +10,12 @@
 #include "matrix.hpp"
 #include "constants.hpp"
 
+namespace utzmx = ::utilz::matrices;
+
 template<typename T, typename A>
 struct run_configuration
 {
-  using pointer = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::pointer;
+  using pointer = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -25,22 +27,22 @@ template<typename T, typename A>
 __hack_noinline
 void
 up(
-  ::utilz::matrices::square_matrix<T, A>& m,
+  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
   ::utilz::memory::buffer& b,
   run_configuration<T, A>& run_config)
 {
-  using pointer    = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::pointer;
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<T, A>>::value_type;
+  using pointer    = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::pointer;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
 
-  auto allocation_size = m.size() * sizeof(value_type);
+  auto allocation_size = m.w() * sizeof(value_type);
 
   run_config.mm_array_cur_row = reinterpret_cast<pointer>(b.allocate(allocation_size));
   run_config.mm_array_prv_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
   run_config.mm_array_cur_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
   run_config.mm_array_nxt_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
 
-  for (auto i = size_type(0); i < m.size(); ++i) {
+  for (auto i = size_type(0); i < m.w(); ++i) {
     run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
@@ -52,15 +54,15 @@ template<typename T, typename A>
 __hack_noinline
 void
 down(
-  ::utilz::matrices::square_matrix<T, A>& m,
+  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
   ::utilz::memory::buffer& b,
   run_configuration<T, A>& run_config)
 {
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
 
   using alptr_type = typename ::utilz::memory::buffer::pointer;
 
-  auto allocation_size = m.size() * sizeof(value_type);
+  auto allocation_size = m.w() * sizeof(value_type);
 
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_row), allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_prv_col), allocation_size);
@@ -72,11 +74,11 @@ template<typename T, typename A>
 __hack_noinline
 void
 run(
-  ::utilz::matrices::square_matrix<T, A>& m,
+  utzmx::square_matrix<T, A>& m,
   run_configuration<T, A>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
 
   run_config.mm_array_prv_col[0] = ::utilz::constants::infinity<value_type>();
   run_config.mm_array_nxt_col[0] = m.at(0, 1);

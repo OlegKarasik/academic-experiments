@@ -20,8 +20,10 @@
 #include <thread>
 #include <cassert>
 
-using heights_matrix      = ::utilz::matrices::square_matrix<size_t, ::utilz::memory::buffer_allocator<size_t>>;
-using heights_sync_matrix = ::utilz::matrices::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>;
+namespace utzmx = ::utilz::matrices;
+
+using heights_matrix      = utzmx::square_matrix<size_t, ::utilz::memory::buffer_allocator<size_t>>;
+using heights_sync_matrix = utzmx::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>;
 
 struct stream_node_wait_condition
 {
@@ -32,7 +34,7 @@ struct stream_node_wait_condition
 template<typename T, typename A, typename U>
 struct stream_node
 {
-  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>* blocks;
+  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>* blocks;
 
   size_t rank;
   size_t processors_count;
@@ -106,11 +108,11 @@ notify_block(
 template<typename T, typename A>
 void
 calculate_block(
-  ::utilz::matrices::square_matrix<T, A>& ij,
-  ::utilz::matrices::square_matrix<T, A>& ik,
-  ::utilz::matrices::square_matrix<T, A>& kj)
+  utzmx::square_matrix<T, A>& ij,
+  utzmx::square_matrix<T, A>& ik,
+  utzmx::square_matrix<T, A>& kj)
 {
-  using size_type = typename ::utilz::matrices::square_matrix<T, A>::size_type;
+  using size_type = typename utzmx::square_matrix<T, A>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -442,14 +444,14 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& blocks,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
   // Set parameters
   //
-  run_config.tasks_count   = blocks.size();
-  run_config.threads_count = blocks.size() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : blocks.size();
+  run_config.tasks_count   = blocks.w();
+  run_config.threads_count = blocks.w() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : blocks.w();
 
   // Initialise "Heights" matrix
   //
@@ -464,12 +466,12 @@ up(
 
   // Prepare runtime configuration
   //
-  for (auto i = size_t(0); i < blocks.size(); ++i) {
+  for (auto i = size_t(0); i < blocks.h(); ++i) {
     run_config.nodes[i].rank = i;
     run_config.nodes[i].processors_count = run_config.threads_count;
     run_config.nodes[i].tasks = run_config.tasks;
 
-    run_config.nodes[i].blocks = &blocks;
+    run_config.nodes[i].blocks = &blocks.matrix();
     run_config.nodes[i].heights = &run_config.heights;
     run_config.nodes[i].heights_sync = &run_config.heights_sync;
 
@@ -516,8 +518,8 @@ up(
 
   // Initialise Heights
   //
-  for (auto i = size_t(0); i < blocks.size(); ++i) {
-    for (auto j = size_t(0); j < blocks.size(); ++j) {
+  for (auto i = size_t(0); i < blocks.h(); ++i) {
+    for (auto j = size_t(0); j < blocks.w(); ++j) {
       KRCORE_SYNCBLOCK_INIT_DATA SyncblockInitData;
       ::memset(&SyncblockInitData, 0, sizeof(KRCORE_SYNCBLOCK_INIT_DATA));
 
@@ -578,7 +580,7 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& blocks,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
@@ -588,8 +590,8 @@ down(
   for (auto i = size_t(0); i < run_config.threads_count; ++i)
     KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
 
-  for (auto i = size_t(0); i < blocks.size(); ++i) {
-    for (auto j = size_t(0); j < blocks.size(); ++j) {
+  for (auto i = size_t(0); i < blocks.h(); ++i) {
+    for (auto j = size_t(0); j < blocks.w(); ++j) {
       KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.heights_sync.at(i, j)));
     }
   }
@@ -601,7 +603,7 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>& blocks,
   run_configuration<T, A, U>& run_config)
 {
   // Unblock all previously initialised Tasks

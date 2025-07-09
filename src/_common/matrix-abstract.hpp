@@ -62,10 +62,18 @@ public:
   void
   rebind()
   {
-    // Updating "inherited width and height values"
-    //
-    this->m_w = this->m_matrix.size();
-    this->m_h = this->m_matrix.size();
+  }
+
+  size_type
+  w() const
+  {
+    return this->m_matrix.size();
+  }
+
+  size_type
+  h() const
+  {
+    return this->m_matrix.size();
   }
 };
 
@@ -86,6 +94,8 @@ private:
 private:
   std::vector<int> m_cache;
 
+  size_type m_s;
+
 protected:
   reference
   translate_at(size_type i, size_type j) override
@@ -101,6 +111,7 @@ protected:
 public:
   matrix_abstract(matrix_reference matrix)
     : impl::impl_matrix_abstract<square_matrix<square_matrix<T, A>, U>>(matrix)
+    , m_s(size_type(0))
   {
     this->rebind();
   }
@@ -112,10 +123,7 @@ public:
     for (auto z = size_type(0); z < this->m_matrix.size(); ++z)
       s += this->m_matrix.at(z, z).size();
 
-    // Updating "inherited width and height values"
-    //
-    this->m_w = s;
-    this->m_h = s;
+    this->m_s = s;
 
     this->m_cache.clear();
     this->m_cache.reserve(s);
@@ -129,6 +137,18 @@ public:
 
       delta += size;
     }
+  }
+
+  size_type
+  w() const
+  {
+    return this->m_s;
+  }
+
+  size_type
+  h() const
+  {
+    return this->m_s;
   }
 };
 
@@ -150,6 +170,9 @@ private:
   std::vector<int> m_row_cache;
   std::vector<int> m_col_cache;
 
+  size_type m_w;
+  size_type m_h;
+
 protected:
   reference
   translate_at(size_type i, size_type j) override
@@ -165,6 +188,8 @@ protected:
 public:
   matrix_abstract(matrix_reference matrix)
     : impl::impl_matrix_abstract<square_matrix<rect_matrix<T, A>, U>>(matrix)
+    , m_w(size_type(0))
+    , m_h(size_type(0))
   {
     this->rebind();
   }
@@ -180,8 +205,6 @@ public:
       col_size += block.width();
     }
 
-    // Updating "inherited width and height values"
-    //
     this->m_w = col_size;
     this->m_h = row_size;
 
@@ -206,6 +229,18 @@ public:
       col_delta += block.width();
     }
   }
+
+  size_type
+  w() const
+  {
+    return this->m_w;
+  }
+
+  size_type
+  h() const
+  {
+    return this->m_h;
+  }
 };
 
 namespace impl {
@@ -222,9 +257,6 @@ private:
 
 protected:
   const matrix_reference m_matrix;
-
-  size_type m_w;
-  size_type m_h;
 
 protected:
   std::tuple<size_type, size_type>
@@ -247,8 +279,6 @@ protected:
 protected:
   impl_matrix_abstract(matrix_reference matrix)
     : m_matrix(matrix)
-    , m_w(size_type(0))
-    , m_h(size_type(0))
   {
   }
 
@@ -257,18 +287,6 @@ public:
   matrix()
   {
     return this->m_matrix;
-  }
-
-  size_type
-  w() const
-  {
-    return this->m_w;
-  }
-
-  size_type
-  h() const
-  {
-    return this->m_h;
   }
 
   reference

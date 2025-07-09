@@ -13,10 +13,12 @@
 #include <thread>
 #include <omp.h>
 
+namespace utzmx = ::utilz::matrices;
+
 template<typename T, typename A, typename U>
 struct run_configuration
 {
-  using pointer = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T>>::pointer;
+  using pointer = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T>>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -34,11 +36,11 @@ struct run_configuration
 template<typename T, typename A, typename U>
 void
 calculate_diagonal(
-  ::utilz::matrices::square_matrix<T, A>& mm,
+  utzmx::square_matrix<T, A>& mm,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
 
   run_config.mm_array_prv_col[0] = ::utilz::constants::infinity<value_type>();
   run_config.mm_array_nxt_row[0] = mm.at(0, 1);
@@ -88,13 +90,13 @@ calculate_diagonal(
 template<typename T, typename A, typename U>
 void
 calculate_vertical(
-  ::utilz::matrices::square_matrix<T, A>& im,
-  ::utilz::matrices::square_matrix<T, A>& mm,
+  utzmx::square_matrix<T, A>& im,
+  utzmx::square_matrix<T, A>& mm,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
-  using value_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::value_type;
-  using pointer    = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::pointer;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
+  using pointer    = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
@@ -153,12 +155,12 @@ calculate_vertical(
 template<typename T, typename A, typename U>
 void
 calculate_horizontal(
-  ::utilz::matrices::square_matrix<T, A>& mi,
-  ::utilz::matrices::square_matrix<T, A>& mm,
+  utzmx::square_matrix<T, A>& mi,
+  utzmx::square_matrix<T, A>& mm,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
-  using pointer    = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::pointer;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using pointer    = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
@@ -201,11 +203,11 @@ calculate_horizontal(
 template<typename T, typename A>
 void
 calculate_peripheral(
-  ::utilz::matrices::square_matrix<T, A>& ij,
-  ::utilz::matrices::square_matrix<T, A>& ik,
-  ::utilz::matrices::square_matrix<T, A>& kj)
+  utzmx::square_matrix<T, A>& ij,
+  utzmx::square_matrix<T, A>& ik,
+  utzmx::square_matrix<T, A>& kj)
 {
-  using size_type = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<T, A>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
 
   const auto x = ij.size();
   for (auto i = size_type(0); i < x; ++i)
@@ -220,14 +222,12 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& blocks,
   utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
-  using value_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::value_type;
-
-  ::utilz::matrices::procedures::matrix_get_dimensions<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>> sz;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::value_type;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -235,7 +235,7 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = sz(blocks).s();
+  auto allocation_line = blocks.w();
   auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
 
   run_config.allocation_line = allocation_line;
@@ -265,7 +265,7 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  ::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& blocks,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
@@ -285,10 +285,10 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  ::utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>& blocks,
+  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>& blocks,
   run_configuration<T, A, U>& run_config)
 {
-  using size_type  = typename ::utilz::matrices::traits::matrix_traits<::utilz::matrices::square_matrix<::utilz::matrices::square_matrix<T, A>, U>>::size_type;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks, run_config)
 #endif

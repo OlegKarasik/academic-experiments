@@ -70,7 +70,7 @@ using g_allocator_type = typename std::allocator<K>;
   using size_type = typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
 
   using source_matrix_abstract  = ::utilz::matrices::matrix_abstract<source_matrix>;
-  using source_matrix_rearrange = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix>;
+  using source_matrix_rearrange = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix_abstract>;
 
   using result_matrix          = ::utilz::matrices::square_matrix<T>;
   using result_matrix_abstract = ::utilz::matrices::matrix_abstract<result_matrix>;
@@ -168,13 +168,16 @@ public:
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
     source_matrix_rearrange src_rearrange;
 
-    src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    src_rearrange(
+      src_abstract,
+      this->m_src_clusters,
+      ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
     extra_configuration run_config;
-    up(this->m_src, this->m_buf, run_config);
+    up(src_abstract, this->m_buf, run_config);
 #endif
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -192,12 +195,15 @@ public:
 #endif
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-    down(this->m_src, this->m_buf, run_config);
+    down(src_abstract, this->m_buf, run_config);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-    src_rearrange(this->m_src, this->m_src_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+    src_rearrange(
+      src_abstract,
+      this->m_src_clusters,
+      ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif
 #endif
 

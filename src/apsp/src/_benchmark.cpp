@@ -85,14 +85,14 @@ using g_allocator_type = typename std::allocator<K>;
   using matrix_block            = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
   using matrix                  = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
   using clusters                = ::utilz::matrices::clusters;
-  using matrix_arrange_clusters = ::utilz::matrices::procedures::matrix_arrange_clusters<matrix>;
 
   #ifdef APSP_ALG_EXTRA_CONFIGURATION
   using extra_configuration     = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
   #endif
-#endif
+  #endif
 
   using matrix_abstract = ::utilz::matrices::matrix_abstract<matrix>;
+  using matrix_arrange_clusters = ::utilz::matrices::procedures::matrix_arrange_clusters<matrix_abstract>;
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -134,23 +134,23 @@ public:
         throw std::logic_error("erro: the file '" + src_communities_path.generic_string() + "' doesn't exist.");
 #endif
 
-      matrix      src_matrix;
-      matrix_abstract src_matrix_wrap(src_matrix);
+      matrix          src_matrix;
+      matrix_abstract src_matrix_abstract(src_matrix);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
       clusters src_clusters;
 #endif
 
 #ifdef APSP_ALG_MATRIX
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix_wrap);
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix_abstract);
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix_wrap, std::get<1>(params));
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, src_matrix_abstract, std::get<1>(params));
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix_wrap, src_clusters);
+      ::utilz::matrices::io::scan_matrix(graph_format, src_graph_fs, communities_format, src_communities_fs, src_matrix_abstract, src_clusters);
 #endif
 
       this->m_src.push_back(std::move(src_matrix));
@@ -171,6 +171,8 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
   for (auto _ : state) {
     auto src_index = state.range(0);
 
+    matrix_abstract src_matrix_abstract(this->m_src[src_index]);
+
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
     up_clusters(this->m_src_clusters[src_index]);
@@ -181,12 +183,15 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
     matrix_arrange_clusters src_rearrange;
 
-    src_rearrange(this->m_src[src_index], this->m_src_clusters[src_index], ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    src_rearrange(
+      src_matrix_abstract,
+      this->m_src_clusters[src_index],
+      ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   #endif
 #endif
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-    up(this->m_src[src_index], this->m_buf, this->m_run_config);
+    up(src_matrix_abstract, this->m_buf, this->m_run_config);
 #endif
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -211,13 +216,13 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
     state.SetIterationTime(elapsed_seconds.count());
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-    down(this->m_src[src_index], this->m_buf, this->m_run_config);
+    down(src_matrix_abstract, this->m_buf, this->m_run_config);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
     src_rearrange(
-      this->m_src[src_index],
+      src_matrix_abstract,
       this->m_src_clusters[src_index],
       ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   #endif

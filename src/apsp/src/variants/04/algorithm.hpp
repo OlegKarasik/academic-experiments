@@ -9,15 +9,17 @@
 #include "matrix.hpp"
 #include "matrix-traits.hpp"
 
+namespace utzmx = ::utilz::matrices;
+
 template<typename T, typename A>
 void
 calculate_block(
-  utilz::matrices::rect_matrix<T, A>& ij,
-  utilz::matrices::rect_matrix<T, A>& ik,
-  utilz::matrices::rect_matrix<T, A>& kj,
+  utzmx::rect_matrix<T, A>& ij,
+  utzmx::rect_matrix<T, A>& ik,
+  utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
@@ -32,11 +34,11 @@ calculate_block(
 template<typename T, typename A>
 void
 calculate_block(
-  utilz::matrices::rect_matrix<T, A>& ij,
-  utilz::matrices::rect_matrix<T, A>& ik,
-  utilz::matrices::rect_matrix<T, A>& kj)
+  utzmx::rect_matrix<T, A>& ij,
+  utzmx::rect_matrix<T, A>& ik,
+  utzmx::rect_matrix<T, A>& kj)
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::rect_matrix<T>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto kj_size = kj.height();
   const auto ij_w    = ij.width();
@@ -53,10 +55,10 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  ::utilz::matrices::square_matrix<::utilz::matrices::rect_matrix<T, A>, U>& blocks,
-  ::utilz::matrices::clusters& clusters)
+  utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>& blocks,
+  utzmx::clusters& clusters)
 {
-  using size_type = typename utilz::matrices::traits::matrix_traits<utilz::matrices::square_matrix<utilz::matrices::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
 
 #ifdef _OPENMP
   #pragma omp parallel default(none) shared(blocks, clusters)
