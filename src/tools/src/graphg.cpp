@@ -31,6 +31,7 @@
 #include "matrix-manip.hpp"
 #include "matrix.hpp"
 
+namespace utzmx = ::utilz::matrices;
 
 // This is a tiny program which generates random graphs
 //
@@ -212,7 +213,7 @@ main(int argc, char* argv[])
 
   // All graph generators do fill adjacency matrix with edges information
   //
-  utilz::matrices::square_matrix<bool> adjacency_matrix;
+  utzmx::square_matrix<bool> adjacency_matrix;
 
   try {
     switch (opt_algorithm) {
@@ -265,12 +266,13 @@ main(int argc, char* argv[])
 
   // Weight matrix
   //
-  utilz::matrices::square_matrix<int> weight_matrix(adjacency_matrix.size());
+  utzmx::square_matrix<int>                       weight_matrix(adjacency_matrix.size());
+  utzmx::matrix_abstract<decltype(weight_matrix)> weight_matrix_abstract(weight_matrix);
 
   // Initialise weight matrix with infinity values before updateding it with data
   //
-  utilz::matrices::procedures::matrix_replace_all<utilz::matrices::square_matrix<int>> replace_all;
-  replace_all(weight_matrix, int(), utilz::constants::infinity<int>());
+  utzmx::procedures::abstract_set_all<decltype(weight_matrix_abstract)> set_all;
+  set_all(weight_matrix_abstract, utilz::constants::infinity<int>());
 
   // Update adjacency matrix with weight values, effectively transforming
   // it to representation of directed, weighted graph
@@ -278,14 +280,14 @@ main(int argc, char* argv[])
   for (auto i = 0; i < adjacency_matrix.size(); ++i)
     for (auto j = 0; j < adjacency_matrix.size(); ++j)
       if (adjacency_matrix.at(i, j))
-        weight_matrix.at(i, j) = weight_distribution(weight_distribution_engine);
+        weight_matrix_abstract.at(i, j) = weight_distribution(weight_distribution_engine);
 
   // Save
   //
-  utilz::matrices::io::print_matrix(
+  utzmx::io::print_matrix(
     opt_output_format,
     output_stream,
-    weight_matrix);
+    weight_matrix_abstract);
 
   // Flush output stream
   //

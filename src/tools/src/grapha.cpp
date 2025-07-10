@@ -33,6 +33,9 @@
 #include "matrix-io.hpp"
 #include "matrix.hpp"
 
+namespace utzmx  = ::utilz::matrices;
+namespace utzgio = ::utilz::graphs::io;
+namespace utzcio = ::utilz::communities::io;
 
 using Index = long;
 using Value = long;
@@ -44,17 +47,17 @@ enum analysis_options
 
 void
 analyse_communities_intersections(
-  std::ostream&                          os,
-  utilz::matrices::square_matrix<Index>& graph_matrix,
-  std::map<Index, std::set<Index>>&      communities_map);
+  std::ostream&                     os,
+  utzmx::square_matrix<Index>&      graph_matrix,
+  std::map<Index, std::set<Index>>& communities_map);
 
 // This is a tiny program which performs an analysis of graphs
 //
 int
 main(int argc, char* argv[])
 {
-  utilz::graphs::io::graph_format            opt_graph_format       = utilz::graphs::io::graph_format::graph_fmt_none;
-  utilz::communities::io::communities_format opt_communities_format = utilz::communities::io::communities_format::communities_fmt_none;
+  utzgio::graph_format       opt_graph_format       = utzgio::graph_format::graph_fmt_none;
+  utzcio::communities_format opt_communities_format = utzcio::communities_format::communities_fmt_none;
 
   std::string opt_input_graph;
   std::string opt_input_communities;
@@ -100,10 +103,10 @@ main(int argc, char* argv[])
         std::cerr << "erro: unexpected '-c' option detected" << '\n';
         return 1;
       case 'G':
-        if (opt_graph_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_graph_format == utzgio::graph_format::graph_fmt_none) {
           std::cerr << "-G: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_graph_format)) {
+          if (!utzgio::parse_graph_format(optarg, opt_graph_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
             return 1;
           }
@@ -112,10 +115,10 @@ main(int argc, char* argv[])
         std::cerr << "erro: unexpected '-G' option detected" << '\n';
         return 1;
       case 'C':
-        if (opt_communities_format == utilz::communities::io::communities_format::communities_fmt_none) {
+        if (opt_communities_format == utzcio::communities_format::communities_fmt_none) {
           std::cerr << "-C: " << optarg << "\n";
 
-          if (!utilz::communities::io::parse_communities_format(optarg, opt_communities_format)) {
+          if (!utzcio::parse_communities_format(optarg, opt_communities_format)) {
             std::cerr << "erro: invalid communities format has been detected in '-C' option" << '\n';
             return 1;
           }
@@ -135,13 +138,13 @@ main(int argc, char* argv[])
     }
   }
 
-  if (!opt_input_graph.empty() && opt_graph_format == utilz::graphs::io::graph_fmt_none ||
-       opt_input_graph.empty() && opt_graph_format != utilz::graphs::io::graph_fmt_none) {
+  if (!opt_input_graph.empty() && opt_graph_format == utzgio::graph_fmt_none ||
+       opt_input_graph.empty() && opt_graph_format != utzgio::graph_fmt_none) {
     std::cerr << "erro: the -g and -G parameters must be both set";
     return 1;
   }
-  if (!opt_input_communities.empty() && opt_communities_format == utilz::communities::io::communities_fmt_none ||
-       opt_input_communities.empty() && opt_communities_format != utilz::communities::io::communities_fmt_none) {
+  if (!opt_input_communities.empty() && opt_communities_format == utzcio::communities_fmt_none ||
+       opt_input_communities.empty() && opt_communities_format != utzcio::communities_fmt_none) {
     std::cerr << "erro: the -c and -C parameters must be both set";
     return 1;
   }
@@ -150,8 +153,10 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  utilz::matrices::square_matrix<Index> graph_matrix;
-  std::map<Index, std::set<Index>>      communities_map;
+  utzmx::square_matrix<Index> graph_matrix;
+  utzmx::matrix_abstract<utzmx::square_matrix<Index>> graph_matrix_abstract(graph_matrix);
+
+  std::map<Index, std::set<Index>> communities_map;
 
   if (!opt_input_graph.empty()) {
     std::ifstream graph_stream(opt_input_graph);
@@ -160,10 +165,10 @@ main(int argc, char* argv[])
       return 1;
     }
 
-    utilz::matrices::io::scan_matrix(
+    utzmx::io::scan_matrix(
       opt_graph_format,
       graph_stream,
-      graph_matrix);
+      graph_matrix_abstract);
   }
   if (!opt_input_communities.empty()) {
     auto set_v = std::function([](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
@@ -181,7 +186,7 @@ main(int argc, char* argv[])
       return 1;
     }
 
-    utilz::communities::io::scan_communities(
+    utzcio::scan_communities(
       opt_communities_format,
       communities_stream,
       communities_map,
@@ -200,7 +205,7 @@ main(int argc, char* argv[])
 void
 analyse_communities_intersections(
   std::ostream&                          os,
-  utilz::matrices::square_matrix<Index>& graph_matrix,
+  utzmx::square_matrix<Index>& graph_matrix,
   std::map<Index, std::set<Index>>&      communities_map)
 {
   auto total_bv  = size_t(0);
@@ -259,7 +264,7 @@ analyse_communities_intersections(
     for (auto i : community.second) {
       auto edges = graph_matrix.at(i);
 
-      for (auto j = utilz::matrices::square_matrix<Index>::size_type(0); j < graph_matrix.size(); ++j) {
+      for (auto j = utzmx::square_matrix<Index>::size_type(0); j < graph_matrix.size(); ++j) {
         // If there is an edge between vertices (because we load adjucency matrix we treat all infities as none)
         //
         if (edges[j] != utilz::constants::infinity<Index>()) {

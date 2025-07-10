@@ -26,6 +26,8 @@
 
 #include "graphs-io.hpp"
 
+namespace utzgio = ::utilz::graphs::io;
+
 // Major type definitions
 //
 using Index = long;
@@ -37,8 +39,8 @@ using Tuple = std::tuple<Index, Index, Value>;
 int
 main(int argc, char* argv[])
 {
-  utilz::graphs::io::graph_format opt_input_format  = utilz::graphs::io::graph_format::graph_fmt_none;
-  utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
+  utzgio::graph_format opt_input_format  = utzgio::graph_format::graph_fmt_none;
+  utzgio::graph_format opt_output_format = utzgio::graph_format::graph_fmt_none;
 
   std::string opt_input;
   std::string opt_output;
@@ -76,10 +78,10 @@ main(int argc, char* argv[])
         std::cerr << "erro: unexpected '-g' option detected" << '\n';
         return 1;
       case 'G':
-        if (opt_input_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_input_format == utzgio::graph_format::graph_fmt_none) {
           std::cerr << "-G: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_input_format)) {
+          if (!utzgio::parse_graph_format(optarg, opt_input_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-G' option" << '\n';
             return 1;
           }
@@ -97,10 +99,10 @@ main(int argc, char* argv[])
         std::cerr << "erro: unexpected '-o' option detected" << '\n';
         return 1;
       case 'O':
-        if (opt_output_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_output_format == utzgio::graph_format::graph_fmt_none) {
           std::cerr << "-O: " << optarg << "\n";
 
-          if (!utilz::graphs::io::parse_graph_format(optarg, opt_output_format)) {
+          if (!utzgio::parse_graph_format(optarg, opt_output_format)) {
             std::cerr << "erro: invalid graph format has been detected in '-O' option" << '\n';
             return 1;
           }
@@ -118,11 +120,11 @@ main(int argc, char* argv[])
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
-  if (opt_input_format == utilz::graphs::io::graph_fmt_none) {
+  if (opt_input_format == utzgio::graph_fmt_none) {
     std::cerr << "erro: the -G parameter is required";
     return 1;
   }
-  if (opt_output_format == utilz::graphs::io::graph_fmt_none) {
+  if (opt_output_format == utzgio::graph_fmt_none) {
     std::cerr << "erro: the -O parameter is required";
     return 1;
   }
@@ -181,7 +183,7 @@ main(int argc, char* argv[])
 
   // Scan graph and capture `vertex count` and `edge count` information if provided
   //
-  utilz::graphs::io::scan_graph(
+  utzgio::scan_graph(
     opt_input_format,
     input_stream,
     graph_edges,
@@ -191,7 +193,7 @@ main(int argc, char* argv[])
 
   // Print graph and reuse `vertex count` and `edge count` information if provided
   //
-  utilz::graphs::io::print_graph(
+  utzgio::print_graph(
     opt_output_format,
     output_stream,
     graph_edges,
