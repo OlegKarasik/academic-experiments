@@ -19,11 +19,11 @@ run(
   const auto x = m.size();
   for (auto k = size_type(0); k < x; ++k)
 #ifdef _OPENMP
-    #pragma omp parallel for default(none) shared(m) firstprivate(x, k)
+  #pragma omp parallel for default(none) shared(m) firstprivate(x, k)
 #endif
     for (auto i = size_type(0); i < x; ++i)
 #ifdef _OPENMP
-      #pragma omp simd
+  #pragma omp simd
 #else
       __hack_ivdep
 #endif

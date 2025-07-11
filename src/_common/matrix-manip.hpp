@@ -44,7 +44,7 @@ template<typename S>
 using abstract_set_diagonal = impl::impl_set_diagonal<S>;
 
 template<typename S>
-using matrix_arrange_clusters = impl::impl_arrange<S>;
+using abstract_arrange = impl::impl_arrange<S>;
 
 namespace impl {
 
@@ -91,7 +91,7 @@ private:
 private:
   template<typename Iterator>
   void
-  matrix_arrange_clusters(S& s, Iterator begin, Iterator end)
+  abstract_arrange(S& s, Iterator begin, Iterator end)
   {
     for (auto it = begin; it != end; ++it) {
       if (it->first == it->second)
@@ -140,10 +140,10 @@ public:
 
     switch (arrangement) {
       case matrix_clusters_arrangement_forward:
-        matrix_arrange_clusters(s, mapping.begin(), mapping.end());
+        abstract_arrange(s, mapping.begin(), mapping.end());
         break;
       case matrix_clusters_arrangement_backward:
-        matrix_arrange_clusters(s, mapping.rbegin(), mapping.rend());
+        abstract_arrange(s, mapping.rbegin(), mapping.rend());
         break;
       default:
         throw std::logic_error("erro: unsupported matrix clusters arrangement");

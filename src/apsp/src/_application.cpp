@@ -328,20 +328,20 @@ main(int argc, char* argv[]) __hack_noexcept
 
   // Define matrix and execute algorithm specific overloads of methods
   //
-  matrix      m(buffer_allocator);
-  matrix_abstract mw(m);
+  matrix          m(buffer_allocator);
+  matrix_abstract abstract(m);
 
 #ifdef APSP_ALG_MATRIX
   auto scan_ms = ::utilz::measure_milliseconds(
-    [&mw, &input_graph_stream, opt_input_graph_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, mw);
+    [&abstract, &input_graph_stream, opt_input_graph_format]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, abstract);
     });
 #endif
 
 #ifdef APSP_ALG_MATRIX_BLOCKS
   auto scan_ms = ::utilz::measure_milliseconds(
-    [&mw, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, mw, opt_block_size);
+    [&abstract, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, abstract, opt_block_size);
     });
 #endif
 
@@ -351,8 +351,8 @@ main(int argc, char* argv[]) __hack_noexcept
   clusters c;
 
   auto scan_ms = ::utilz::measure_milliseconds(
-    [&mw, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, mw, c);
+    [&abstract, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
+      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, abstract, c);
     });
 #endif
 
@@ -370,10 +370,10 @@ main(int argc, char* argv[]) __hack_noexcept
   std::cerr << "U/CO: " << op_clusters_ms << "ms" << std::endl;
 
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-  ::utilz::matrices::procedures::matrix_arrange_clusters<matrix_abstract> arrange_matrix;
+  ::utilz::matrices::procedures::abstract_arrange<matrix_abstract> arrange_matrix;
 
-  auto up_arrange_ms = ::utilz::measure_milliseconds([&mw, &c, &arrange_matrix]() -> void {
-    arrange_matrix(mw, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+  auto up_arrange_ms = ::utilz::measure_milliseconds([&abstract, &c, &arrange_matrix]() -> void {
+    arrange_matrix(abstract, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   });
 
   std::cerr << "U/AR: " << up_arrange_ms << "ms" << std::endl;
@@ -388,7 +388,7 @@ main(int argc, char* argv[]) __hack_noexcept
   // matrix has been allocated.
   //
   extra_configuration run_config;
-  auto up_ms = ::utilz::measure_milliseconds([&run_config, &mw, &buffer_fx]() -> void { up(mw, buffer_fx, run_config); });
+  auto up_ms = ::utilz::measure_milliseconds([&run_config, &abstract, &buffer_fx]() -> void { up(abstract, buffer_fx, run_config); });
 
   std::cerr << "U/CF: " << up_ms << "ms" << std::endl;
 #endif
@@ -437,23 +437,23 @@ main(int argc, char* argv[]) __hack_noexcept
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
-  auto down_ms = utilz::measure_milliseconds([&mw, &buffer_fx, &run_config]() -> void { down(mw, buffer_fx, run_config); });
+  auto down_ms = utilz::measure_milliseconds([&abstract, &buffer_fx, &run_config]() -> void { down(abstract, buffer_fx, run_config); });
 
   std::cerr << "D/CF: " << down_ms << "ms" << std::endl;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-  auto down_arrange_ms = ::utilz::measure_milliseconds([&mw, &c, &arrange_matrix]() -> void {
-    arrange_matrix(mw, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+  auto down_arrange_ms = ::utilz::measure_milliseconds([&abstract, &c, &arrange_matrix]() -> void {
+    arrange_matrix(abstract, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   });
 
   std::cerr << "D/AR: " << down_arrange_ms << "ms" << std::endl;
   #endif
 #endif
 
-  auto prnt_ms = ::utilz::measure_milliseconds([&mw, &output_stream, opt_output_format]() -> void {
-    ::utilz::matrices::io::print_matrix(opt_output_format, output_stream, mw);
+  auto prnt_ms = ::utilz::measure_milliseconds([&abstract, &output_stream, opt_output_format]() -> void {
+    ::utilz::matrices::io::print_matrix(opt_output_format, output_stream, abstract);
   });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 

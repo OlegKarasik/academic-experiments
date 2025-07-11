@@ -69,8 +69,8 @@ using g_allocator_type = typename std::allocator<K>;
 
   using size_type = typename ::utilz::matrices::traits::matrix_traits<source_matrix>::size_type;
 
-  using source_matrix_abstract  = ::utilz::matrices::matrix_abstract<source_matrix>;
-  using source_matrix_rearrange = ::utilz::matrices::procedures::matrix_arrange_clusters<source_matrix_abstract>;
+  using source_matrix_abstract = ::utilz::matrices::matrix_abstract<source_matrix>;
+  using source_matrix_arrange  = ::utilz::matrices::procedures::abstract_arrange<source_matrix_abstract>;
 
   using result_matrix          = ::utilz::matrices::square_matrix<T>;
   using result_matrix_abstract = ::utilz::matrices::matrix_abstract<result_matrix>;
@@ -166,7 +166,7 @@ public:
   this->m_src_clusters.optimise();
 
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-    source_matrix_rearrange src_rearrange;
+    source_matrix_arrange src_rearrange;
 
     src_rearrange(
       src_abstract,

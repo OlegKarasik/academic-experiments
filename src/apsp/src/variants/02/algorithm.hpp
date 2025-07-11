@@ -27,7 +27,7 @@ template<typename T, typename A>
 __hack_noinline
 void
 up(
-  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
+  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& abstract,
   ::utilz::memory::buffer& b,
   run_configuration<T, A>& run_config)
 {
@@ -35,14 +35,14 @@ up(
   using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
   using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
 
-  auto allocation_size = m.w() * sizeof(value_type);
+  auto allocation_size = abstract.w() * sizeof(value_type);
 
   run_config.mm_array_cur_row = reinterpret_cast<pointer>(b.allocate(allocation_size));
   run_config.mm_array_prv_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
   run_config.mm_array_cur_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
   run_config.mm_array_nxt_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
 
-  for (auto i = size_type(0); i < m.w(); ++i) {
+  for (auto i = size_type(0); i < abstract.w(); ++i) {
     run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
@@ -54,7 +54,7 @@ template<typename T, typename A>
 __hack_noinline
 void
 down(
-  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
+  utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& abstract,
   ::utilz::memory::buffer& b,
   run_configuration<T, A>& run_config)
 {
@@ -62,7 +62,7 @@ down(
 
   using alptr_type = typename ::utilz::memory::buffer::pointer;
 
-  auto allocation_size = m.w() * sizeof(value_type);
+  auto allocation_size = abstract.w() * sizeof(value_type);
 
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_row), allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_prv_col), allocation_size);

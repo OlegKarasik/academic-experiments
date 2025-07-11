@@ -92,7 +92,7 @@ using g_allocator_type = typename std::allocator<K>;
   #endif
 
   using matrix_abstract = ::utilz::matrices::matrix_abstract<matrix>;
-  using matrix_arrange_clusters = ::utilz::matrices::procedures::matrix_arrange_clusters<matrix_abstract>;
+  using matrix_arrange  = ::utilz::matrices::procedures::abstract_arrange<matrix_abstract>;
 
 public:
 #ifdef APSP_ALG_EXTRA_CONFIGURATION
@@ -181,7 +181,7 @@ BENCHMARK_TEMPLATE_DEFINE_F(Fixture, ExecuteInt, int)
     this->m_src_clusters[src_index].optimise();
 
   #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-    matrix_arrange_clusters src_rearrange;
+    matrix_arrange src_rearrange;
 
     src_rearrange(
       src_matrix_abstract,
