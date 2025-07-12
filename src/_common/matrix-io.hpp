@@ -71,20 +71,17 @@ scan_matrix(
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
 
-  auto set_vc = std::function([&set_all](abstract_type& abstract, size_type vertex_count) -> void {
-    auto& matrix = abstract.matrix();
-          matrix = square_matrix<T, A>(vertex_count, matrix.get_allocator());
+  auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(format, is);
 
-    abstract.rebind();
+  auto& matrix = abstract.matrix();
+        matrix = square_matrix<T, A>(vc, matrix.get_allocator());
 
-    set_all(abstract, utilz::constants::infinity<value_type>());
-  });
-  auto set_ec = std::function([](abstract_type& abstract, size_type edge_count) -> void {});
-  auto set_wv = std::function([](abstract_type& abstract, size_type f, size_type t, value_type w) -> void {
+  abstract.rebind();
+
+  set_all(abstract, utilz::constants::infinity<value_type>());
+
+  for (auto [f, t, w] : edges)
     abstract.at(f, t) = w;
-  });
-
-  utilz::graphs::io::scan_graph(format, is, abstract, set_vc, set_ec, set_wv);
 
   set_diagonal(abstract, value_type(0));
 };
@@ -109,32 +106,29 @@ scan_matrix(
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
 
-  auto set_vc = std::function([&set_all, &block_size](abstract_type& abstract, size_type vertex_count) -> void {
-    auto size = vertex_count / block_size;
-    if (vertex_count % block_size != size_type(0))
-      ++size;
+  auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(format, is);
 
-    auto& matrix = abstract.matrix();
-          matrix = square_matrix<square_matrix<T, A>, U>(size, matrix.get_allocator());
+  auto size = vc / block_size;
+  if (vc % block_size != size_type(0))
+    ++size;
 
-    for (auto i = size_type(0); i < matrix.size(); ++i) {
-      for (auto j = size_type(0); j < matrix.size(); ++j) {
-        typename std::allocator_traits<U>::template rebind_alloc<A> allocator(matrix.get_allocator());
+  auto& matrix = abstract.matrix();
+        matrix = square_matrix<square_matrix<T, A>, U>(size, matrix.get_allocator());
 
-        matrix.at(i, j) = square_matrix<T, A>(block_size, allocator);
-      }
+  for (auto i = size_type(0); i < matrix.size(); ++i) {
+    for (auto j = size_type(0); j < matrix.size(); ++j) {
+      typename std::allocator_traits<U>::template rebind_alloc<A> allocator(matrix.get_allocator());
+
+      matrix.at(i, j) = square_matrix<T, A>(block_size, allocator);
     }
+  }
 
-    abstract.rebind();
+  abstract.rebind();
 
-    set_all(abstract, utilz::constants::infinity<value_type>());
-  });
-  auto set_ec = std::function([](abstract_type& abstract, size_type edge_count) -> void {});
-  auto set_wv = std::function([](abstract_type& abstract, size_type f, size_type t, value_type w) -> void {
+  set_all(abstract, utilz::constants::infinity<value_type>());
+
+  for (auto [f, t, w] : edges)
     abstract.at(f, t) = w;
-  });
-
-  utilz::graphs::io::scan_graph(format, is, abstract, set_vc, set_ec, set_wv);
 
   set_diagonal(abstract, value_type(0));
 };
@@ -162,6 +156,8 @@ scan_matrix(
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
 
+  auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(graph_format, graph_is);
+
   auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
     c.insert_vertex(cluster_idx, vertex_idx);
   });
@@ -186,12 +182,10 @@ scan_matrix(
 
   set_all(abstract, utilz::constants::infinity<value_type>());
 
-  auto set_matrix_value = std::function([&clusters](abstract_type& abstract, size_type f, size_type t, value_type w) -> void {
+  for (auto [f, t, w] : edges) {
     clusters.insert_edge(f, t);
-
     abstract.at(f, t) = w;
-  });
-  utilz::graphs::io::scan_graph(graph_format, graph_is, abstract, set_matrix_value);
+  }
 
   set_diagonal(abstract, value_type(0));
 };
