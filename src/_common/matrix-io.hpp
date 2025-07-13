@@ -158,10 +158,12 @@ scan_matrix(
 
   auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(graph_format, graph_is);
 
-  auto set_cluster_value = std::function([](clusters_type& c, size_type cluster_idx, size_type vertex_idx) -> void {
-    c.insert_vertex(cluster_idx, vertex_idx);
-  });
-  utilz::communities::io::scan_communities(communities_format, communities_is, clusters, set_cluster_value);
+  auto communities = utilz::communities::io::scan_communities<size_type>(communities_format, communities_is);
+  for (auto [c, v] : communities) {
+    for (auto i : v) {
+      clusters.insert_vertex(c, i);
+    }
+  }
 
   std::vector<size_type> item_sizes;
   for (auto size : clusters.list() | std::views::transform([](auto& group) -> auto { return group.size(); }))

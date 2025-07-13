@@ -34,20 +34,16 @@ class communities_preamble;
 template<typename TIndex>
 class communities_items;
 
-template<communities_format F, typename C, typename I, typename SV>
-void
+template<typename I>
+std::map<I, std::vector<I>>
 scan_communities(
   std::istream& is,
-  C&            communities,
-  SV&           set_v,
   std::integral_constant<communities_preamble_format, communities_preamble_format::communities_preamble_fmt_index>);
 
-template<communities_format F, typename C, typename I, typename SV>
-void
+template<communities_format F, typename I>
+std::map<I, std::vector<I>>
 scan_communities(
-  std::istream& is,
-  C&            communities,
-  SV&           set_v);
+  std::istream& is);
 
 } // namespace impl
 
@@ -215,20 +211,15 @@ parse_communities_format(
   return false;
 };
 
-template<typename C, typename I>
-void
+template<typename I>
+std::map<I, std::vector<I>>
 scan_communities(
-  communities_format             format,
-  std::istream&                  is,
-  C&                             communities,
-  std::function<void(C&, I, I)>& set_v)
+  communities_format format,
+  std::istream&      is)
 {
-  using SV = typename std::function<void(C&, I, I)>;
-
   switch (format) {
     case communities_format::communities_fmt_rlang:
-      impl::scan_communities<communities_format::communities_fmt_rlang, C, I, SV>(is, communities, set_v);
-      break;
+      return impl::scan_communities<communities_format::communities_fmt_rlang, I>(is);
     default:
       throw std::logic_error("erro: The format is not supported");
   }
@@ -283,14 +274,13 @@ public:
   }
 };
 
-template<communities_format F, typename C, typename I, typename SV>
-void
+template<communities_format F, typename I>
+std::map<I, std::vector<I>>
 scan_communities(
   std::istream& is,
-  C&            communities,
-  SV&           set_v,
   std::integral_constant<communities_preamble_format, communities_preamble_format::communities_preamble_fmt_index>)
 {
+  std::map<I, std::vector<I>> communities;
   for (;;) {
     io::communities_preamble<F, I> preamble;
     if (!(is >> preamble)) {
@@ -298,7 +288,7 @@ scan_communities(
       // read a preamble.
       //
       if (is.eof())
-        return;
+        break;
 
       // Otherwise, we throw an exception to ensure the issue is propagated
       //
@@ -309,22 +299,18 @@ scan_communities(
     if (!(is >> items))
       throw std::logic_error("erro: can't scan 'communities_items' because of invalid format or IO problem");
 
-    for (auto index : items.items())
-      set_v(communities, preamble.index(), index);
+    communities.emplace(preamble.index(), items.items());
   }
+  return communities;
 };
 
-template<communities_format F, typename C, typename I, typename SV>
-void
+template<communities_format F, typename I>
+std::map<I, std::vector<I>>
 scan_communities(
-  std::istream& is,
-  C&            communities,
-  SV&           set_v)
+  std::istream& is)
 {
-  scan_communities<F, C, I, SV>(
+  return scan_communities<F, I>(
     is,
-    communities,
-    set_v,
     typename communities_traits<F>::preamble_format());
 };
 
