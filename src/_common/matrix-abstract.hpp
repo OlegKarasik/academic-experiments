@@ -100,10 +100,8 @@ protected:
   reference
   translate_at(size_type i, size_type j) override
   {
-    size_type r, ro, c, co;
-
-    std::tie(r, ro) = this->translation_entry_unpack(this->m_cache[i]);
-    std::tie(c, co) = this->translation_entry_unpack(this->m_cache[j]);
+    auto [r, ro] = this->translation_entry_unpack(this->m_cache[i]);
+    auto [c, co] = this->translation_entry_unpack(this->m_cache[j]);
 
     return this->m_matrix.at(r, c).at(i - ro, j - co);
   }
@@ -177,10 +175,8 @@ protected:
   reference
   translate_at(size_type i, size_type j) override
   {
-    size_type r, ro, c, co;
-
-    std::tie(r, ro) = this->translation_entry_unpack(this->m_row_cache[i]);
-    std::tie(c, co) = this->translation_entry_unpack(this->m_col_cache[j]);
+    auto [r, ro] = this->translation_entry_unpack(this->m_row_cache[i]);
+    auto [c, co] = this->translation_entry_unpack(this->m_col_cache[j]);
 
     return this->m_matrix.at(r, c).at(i - ro, j - co);
   }
