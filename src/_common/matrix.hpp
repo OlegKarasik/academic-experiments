@@ -434,23 +434,6 @@ public:
     }
   };
 
-  void
-  resize(size_type w, size_type h)
-  {
-    this->destroy_resources();
-    this->free_resources();
-
-    this->m_m      = nullptr;
-    this->m_width  = w;
-    this->m_height = h;
-    this->m_msize  = w * h;
-
-    if ((w * h) > 0) {
-      this->allocate_resources();
-      this->construct_default();
-    }
-  }
-
   allocator_type
   get_allocator() const noexcept
   {
@@ -716,22 +699,6 @@ public:
       o.m_m     = nullptr;
     }
   };
-
-  void
-  resize(size_type s)
-  {
-    this->destroy_resources();
-    this->free_resources();
-
-    this->m_m     = nullptr;
-    this->m_size  = s;
-    this->m_msize = s * s;
-
-    if (s > 0) {
-      this->allocate_resources();
-      this->construct_default();
-    }
-  }
 
   allocator_type
   get_allocator() const noexcept
