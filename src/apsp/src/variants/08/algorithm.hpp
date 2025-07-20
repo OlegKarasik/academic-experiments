@@ -7,6 +7,10 @@
 #define APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
 #define APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
 
+#include <constants.hpp>
+#include <matrix-manip.hpp>
+#include <matrix-traits.hpp>
+
 #include "portables/hacks/defines.h"
 
 #include "measure.hpp"
@@ -90,6 +94,46 @@ calculate_diagonal(
 
 template<typename T, typename A>
 void
+calculate_vertical_fast(
+  utzmx::rect_matrix<T, A>& im,
+  utzmx::rect_matrix<T, A>& mm,
+  auto bridges)
+{
+  SCOPE_MEASURE_MILLISECONDS("VERT");
+
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
+
+  const auto w = im.width();
+  const auto h = im.height();
+  const auto x = bridges[0];
+
+  for (auto k = x + size_type(1); k < w; ++k) {
+    const auto z = k - size_type(1);
+    for (auto i = size_type(0); i < h; ++i) {
+      const auto iz = im.at(i, z);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < x; ++j)
+        im.at(i, j) = (std::min)(im.at(i, j), iz + mm.at(z, j));
+
+      __hack_ivdep
+      for (auto j = x; j < k; ++j) {
+        im.at(i, j) = (std::min)(im.at(i, j), iz + mm.at(z, j));
+        im.at(i, k) = (std::min)(im.at(i, k), im.at(i, j) + mm.at(j, k));
+      }
+    }
+  }
+
+  const auto z = w - size_type(1);
+  for (auto i = size_type(0); i < h; ++i) {
+    __hack_ivdep
+    for (auto j = size_type(0); j < z; ++j)
+      im.at(i, j) = (std::min)(im.at(i, j), im.at(i, z) + mm.at(z, j));
+  }
+};
+
+template<typename T, typename A>
+void
 calculate_vertical(
   utzmx::rect_matrix<T, A>& ij,
   utzmx::rect_matrix<T, A>& ik,
@@ -108,6 +152,52 @@ calculate_vertical(
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
+};
+
+template<typename T, typename A>
+void
+calculate_horizontal_fast(
+  utzmx::rect_matrix<T, A>& mi,
+  utzmx::rect_matrix<T, A>& mm,
+  auto bridges)
+{
+  SCOPE_MEASURE_MILLISECONDS("HORZ");
+
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
+
+  const auto w = mi.width();
+  const auto h = mm.height();
+  const auto x = bridges[0];
+
+  for (auto k = x + size_type(1); k < h; ++k) {
+    auto const z = k - size_type(1);
+    for (auto i = size_type(0); i < x; ++i) {
+      const auto iz = mm.at(i, z);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < w; ++j)
+        mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+    }
+    for (auto i = x; i < k; ++i) {
+      const auto iz = mm.at(i, z);
+      const auto ki = mm.at(k, i);
+
+      __hack_ivdep
+      for (auto j = size_type(0); j < w; ++j) {
+        mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+        mi.at(k, j) = (std::min)(mi.at(k, j), ki + mi.at(i, j));
+      }
+    }
+  }
+
+  const auto z = h - size_type(1);
+  for (auto i = size_type(0); i < z; ++i) {
+    const auto iz = mm.at(i, z);
+
+    __hack_ivdep
+    for (auto j = size_type(0); j < w; ++j)
+      mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
+  }
 };
 
 template<typename T, typename A>
@@ -270,15 +360,31 @@ run(
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
+            if (input_positions.size() > output_positions.size()) {
+              if (!input_positions.empty()) {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, input_positions)
 #endif
-            calculate_vertical(im, im, mm, input_positions);
+                calculate_vertical_fast(im, mm, input_positions);
+              }
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, output_positions)
 #endif
-            calculate_horizontal(mi, mm, mi, output_positions);
+              calculate_horizontal(mi, mm, mi, output_positions);
+            } else {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(im, mm, input_positions)
+#endif
+              calculate_vertical(im, im, mm, input_positions);
+
+              if (!output_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(mi, mm, output_positions)
+#endif
+                calculate_horizontal_fast(mi, mm, output_positions);
+              }
+            }
           }
         }
 #ifdef _OPENMP
