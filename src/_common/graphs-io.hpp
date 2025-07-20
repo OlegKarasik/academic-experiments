@@ -150,36 +150,38 @@ template<typename TIndex, typename TWeight>
 class graph_edge;
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph_edges(
-  std::istream& is);
+  std::istream& is,
+  I expected_vc,
+  I expected_ec);
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>);
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>);
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>);
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>);
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is);
 
@@ -636,7 +638,7 @@ parse_graph_format(
 };
 
 template<typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   graph_format  format,
   std::istream& is)
@@ -831,41 +833,53 @@ public:
 };
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph_edges(
-  std::istream& is)
+  std::istream& is,
+  I expected_vc,
+  I expected_ec)
 {
-  I vmax = I(0), vc = I(0), ec = I(0);
+  I vmax = I(0), vc = I(0);
 
   std::vector<std::tuple<I, I, W>> edges;
+  if (expected_ec != I(0))
+    edges.reserve(expected_ec);
 
   io::graph_edge<F, I, W> edge;
   while (is >> edge) {
     edges.push_back(std::make_tuple(edge.from(), edge.to(), edge.weight()));
 
     vmax = std::max({ vmax, edge.from(), edge.to() });
-
-    ec++;
   }
   vc = vmax + I(1);
 
+  if (expected_vc != I(0) && expected_vc != vc)
+    throw std::logic_error(
+      "erro: the expected number of vertices (" + std::to_string(expected_vc)
+        + ") don't match the scanned one (" + std::to_string(vc) + ")");
+
+  if (expected_ec != I(0) && expected_ec != vc)
+    throw std::logic_error(
+      "erro: the expected number of edges (" + std::to_string(expected_ec)
+        + ") don't match the scanned one (" + std::to_string(edges.size()) + ")");
+
   if (is.eof())
-    return std::make_tuple(vc, ec, edges);
+    return std::make_tuple(vc, edges);
 
   throw std::logic_error("erro: can't scan 'graph_edge' because of invalid format or IO problem");
 };
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>)
 {
-  return scan_graph_edges<F, I, W>(is);
+  return scan_graph_edges<F, I, W>(is, I(0), I(0));
 };
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_vertex_count>)
@@ -874,13 +888,11 @@ scan_graph(
   if (!(is >> preamble))
     throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
 
-  return scan_graph<F, I, W>(
-    is,
-    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>());
+  return scan_graph_edges<F, I, W>(is, preamble.vertex_count(), I(0));
 };
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_edge_count>)
@@ -889,13 +901,11 @@ scan_graph(
   if (!(is >> preamble))
     throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
 
-  return scan_graph<F, I, W>(
-    is,
-    std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_none>());
+  return scan_graph_edges<F, I, W>(is, I(0), preamble.edge_count());
 };
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is,
   std::integral_constant<graph_preamble_format, graph_preamble_format::graph_preamble_fmt_full>)
@@ -904,11 +914,11 @@ scan_graph(
   if (!(is >> preamble))
     throw std::logic_error("erro: can't scan 'graph_preamble' because of invalid format or IO problem");
 
-  return scan_graph_edges<F, I, W>(is);
+  return scan_graph_edges<F, I, W>(is, preamble.vertex_count(), preamble.edge_count());
 };
 
 template<graph_format F, typename I, typename W>
-std::tuple<I, I, std::vector<std::tuple<I, I, W>>>
+std::tuple<I, std::vector<std::tuple<I, I, W>>>
 scan_graph(
   std::istream& is)
 {
