@@ -71,7 +71,7 @@ scan_matrix(
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
 
-  auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(format, is);
+  auto [vc, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(format, is);
 
   auto& matrix = abstract.matrix();
         matrix = square_matrix<T, A>(vc, matrix.get_allocator());
@@ -106,7 +106,7 @@ scan_matrix(
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
 
-  auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(format, is);
+  auto [vc, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(format, is);
 
   auto size = vc / block_size;
   if (vc % block_size != size_type(0))
@@ -156,7 +156,7 @@ scan_matrix(
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
 
-  auto [vc, ec, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(graph_format, graph_is);
+  auto [vc, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(graph_format, graph_is);
 
   auto communities = utilz::communities::io::scan_communities<size_type>(communities_format, communities_is);
   for (auto [c, v] : communities) {

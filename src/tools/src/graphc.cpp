@@ -147,7 +147,7 @@ main(int argc, char* argv[])
 
   // Scan graph and capture `vertex count` and `edge count` information if provided
   //
-  auto [vc, ec, edges] = utzgio::scan_graph<Index, Value>(opt_input_format, input_stream);
+  auto [vc, edges] = utzgio::scan_graph<Index, Value>(opt_input_format, input_stream);
 
   // Initialise functors to print graph data (`get_vc` and `get_ec` are called depending
   // on the graph format)
@@ -155,8 +155,8 @@ main(int argc, char* argv[])
   auto get_vc = std::function([&vc](std::vector<Tuple>& c) -> std::tuple<bool, Index> {
     return std::make_tuple(vc != Index(0), vc);
   });
-  auto get_ec = std::function([&ec](std::vector<Tuple>& c) -> std::tuple<bool, Index> {
-    return std::make_tuple(ec != Index(0), ec);
+  auto get_ec = std::function([&edges](std::vector<Tuple>& c) -> std::tuple<bool, Index> {
+    return std::make_tuple(edges.size() != Index(0), edges.size());
   });
   auto get_it = std::function([](std::vector<Tuple>& c) -> std::tuple<std::vector<Tuple>::iterator, std::vector<Tuple>::iterator> {
     return std::make_tuple(c.begin(), c.end());
