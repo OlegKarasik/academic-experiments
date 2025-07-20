@@ -17,6 +17,9 @@ include_directories(${INC_LIST})
 
 # Include global compile options
 #
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options("-fno-diagnostics-color")
+endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options("-g" "-march=native" "-mtune=native")

@@ -145,24 +145,9 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  // Initialise containers for `vertex count` and `edge count` data. Capturing
-  // `vertex count` and `edge count` information can optimise convertion
-  // in case input and output formats have same requirements for metadata
+  // Scan graph and capture `vertex count` and `edge count` information if provided
   //
-  Index vc = Index(0), ec = Index(0);
-
-  // Initialise functors to scan graph data (`set_vc` and `set_ec` are called depending
-  // on the graph format)
-  //
-  auto set_vc = std::function([&vc](std::vector<Tuple>& c, Index vertex_count) -> void {
-    vc = vertex_count;
-  });
-  auto set_ec = std::function([&ec](std::vector<Tuple>& c, Index edge_count) -> void {
-    ec = edge_count;
-  });
-  auto set_w  = std::function([](std::vector<Tuple>& c, Index f, Index t, Value w) -> void {
-    c.push_back(std::make_tuple(f, t, w));
-  });
+  auto [vc, ec, edges] = utzgio::scan_graph<Index, Value>(opt_input_format, input_stream);
 
   // Initialise functors to print graph data (`get_vc` and `get_ec` are called depending
   // on the graph format)
@@ -177,26 +162,12 @@ main(int argc, char* argv[])
     return std::make_tuple(c.begin(), c.end());
   });
 
-  // Initialise a container for graph edges
-  //
-  std::vector<Tuple> graph_edges;
-
-  // Scan graph and capture `vertex count` and `edge count` information if provided
-  //
-  utzgio::scan_graph(
-    opt_input_format,
-    input_stream,
-    graph_edges,
-    set_vc,
-    set_ec,
-    set_w);
-
   // Print graph and reuse `vertex count` and `edge count` information if provided
   //
   utzgio::print_graph(
     opt_output_format,
     output_stream,
-    graph_edges,
+    edges,
     get_vc,
     get_ec,
     get_it);

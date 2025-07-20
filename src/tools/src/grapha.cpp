@@ -49,7 +49,7 @@ void
 analyse_communities_intersections(
   std::ostream&                     os,
   utzmx::square_matrix<Index>&      graph_matrix,
-  std::map<Index, std::set<Index>>& communities_map);
+  std::map<Index, std::vector<Index>>& communities_map);
 
 // This is a tiny program which performs an analysis of graphs
 //
@@ -156,7 +156,7 @@ main(int argc, char* argv[])
   utzmx::square_matrix<Index> graph_matrix;
   utzmx::matrix_abstract<utzmx::square_matrix<Index>> graph_matrix_abstract(graph_matrix);
 
-  std::map<Index, std::set<Index>> communities_map;
+  std::map<Index, std::vector<Index>> communities_map;
 
   if (!opt_input_graph.empty()) {
     std::ifstream graph_stream(opt_input_graph);
@@ -171,26 +171,13 @@ main(int argc, char* argv[])
       graph_matrix_abstract);
   }
   if (!opt_input_communities.empty()) {
-    auto set_v = std::function([](std::map<Index, std::set<Index>>& c, Index ci, Index vi) -> void {
-      auto set = c.find(ci);
-      if (set == c.end()) {
-        c.emplace(ci, std::set<Index>({ vi }));
-      } else {
-        set->second.insert(vi);
-      }
-    });
-
     std::ifstream communities_stream(opt_input_communities);
     if (!communities_stream.is_open()) {
       std::cerr << "erro: can't open communities file (denoted by -c option)";
       return 1;
     }
 
-    utzcio::scan_communities(
-      opt_communities_format,
-      communities_stream,
-      communities_map,
-      set_v);
+    communities_map = utzcio::scan_communities<Index>(opt_communities_format, communities_stream);
   }
 
   std::ofstream output_stream(opt_output);
@@ -204,9 +191,9 @@ main(int argc, char* argv[])
 
 void
 analyse_communities_intersections(
-  std::ostream&                          os,
-  utzmx::square_matrix<Index>& graph_matrix,
-  std::map<Index, std::set<Index>>&      communities_map)
+  std::ostream&                        os,
+  utzmx::square_matrix<Index>&         graph_matrix,
+  std::map<Index, std::vector<Index>>& communities_map)
 {
   auto total_bv  = size_t(0);
   auto total_be  = size_t(0);
@@ -274,12 +261,12 @@ analyse_communities_intersections(
 
           // If edge is within community, then we skip communities check and continue
           //
-          if (community.second.find(j) != community.second.end())
+          if (std::find(community.second.begin(), community.second.end(), j) != community.second.end())
             continue;
 
           auto sanity_edges = false;
           for (auto c : communities_map) {
-            if (community.first != c.first && c.second.find(j) != c.second.end()) {
+            if (community.first != c.first && std::find(c.second.begin(), c.second.end(), j) != c.second.end()) {
               auto reverse_bv  = communities_bv.find(c.first);
               auto reverse_bvi = communities_bvi.find(c.first);
               // Increment bridge edges count
