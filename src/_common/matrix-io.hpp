@@ -38,12 +38,12 @@ scan_matrix(
   matrix_abstract<square_matrix<rect_matrix<T, A>, U>>& abstract,
   clusters&                                             clusters);
 
-template<typename T, typename A>
+template<typename abstract_type>
 void
 print_matrix(
-  utilz::graphs::io::graph_format       format,
-  std::ostream&                         os,
-  matrix_abstract<square_matrix<T, A>>& abstract);
+  utilz::graphs::io::graph_format format,
+  std::ostream&                   os,
+  abstract_type&                  abstract);
 
 template<typename T, typename A>
 void
@@ -185,26 +185,28 @@ scan_matrix(
   set_diagonal(abstract, value_type(0));
 };
 
-template<typename T, typename A>
+template<typename abstract_type>
 void
 print_matrix(
-  utilz::graphs::io::graph_format       format,
-  std::ostream&                         os,
-  matrix_abstract<square_matrix<T, A>>& abstract)
+  utilz::graphs::io::graph_format format,
+  std::ostream&                   os,
+  abstract_type&                  abstract)
 {
-  using abstract_type = matrix_abstract<square_matrix<T, A>>;
-  using size_type     = typename abstract_type::size_type;
-  using value_type    = typename abstract_type::value_type;
+  using size_type  = typename abstract_type::size_type;
+  using value_type = typename abstract_type::value_type;
+
+  auto size = abstract.size();
 
   std::vector<std::tuple<size_type, size_type, value_type>> edges;
-  for (auto i = size_type(0); i < abstract.h(); ++i) {
-    for (auto j = size_type(0); j < abstract.w(); ++j) {
-      if (abstract.at(i, j) != utilz::constants::infinity<value_type>())
-        edges.push_back(std::make_tuple(i, j, abstract.at(i, j)));
+  for (auto i = size_type(0); i < size; ++i) {
+    for (auto j = size_type(0); j < size; ++j) {
+      auto value = abstract.at(i, j);
+      if (value != utilz::constants::infinity<value_type>())
+        edges.push_back(std::make_tuple(i, j, value));
     }
   }
 
-  utilz::graphs::io::print_graph(format, os, edges);
+  utilz::graphs::io::print_graph(format, os, size, edges);
 };
 
 } // namespace io
