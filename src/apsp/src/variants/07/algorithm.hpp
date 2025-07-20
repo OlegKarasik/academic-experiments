@@ -157,7 +157,7 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
@@ -170,7 +170,7 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = blocks.h();
+  auto allocation_line = abstract.size();
   auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
 
   run_config.allocation_line = allocation_line;
@@ -192,7 +192,7 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {

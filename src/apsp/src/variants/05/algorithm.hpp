@@ -444,11 +444,11 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  auto& matrix = blocks.matrix();
+  auto& matrix = abstract.matrix();
 
   // Set parameters
   //
@@ -473,7 +473,7 @@ up(
     run_config.nodes[i].processors_count = run_config.threads_count;
     run_config.nodes[i].tasks = run_config.tasks;
 
-    run_config.nodes[i].blocks = &blocks.matrix();
+    run_config.nodes[i].blocks = &matrix;
     run_config.nodes[i].heights = &run_config.heights;
     run_config.nodes[i].heights_sync = &run_config.heights_sync;
 
@@ -582,11 +582,11 @@ template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& blocks,
+  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
   run_configuration<T, A, U>& run_config)
 {
-  auto& matrix = blocks.matrix();
+  auto& matrix = abstract.matrix();
 
   for (auto i = size_t(0); i < run_config.tasks_count; ++i)
     KRASSERT(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]));

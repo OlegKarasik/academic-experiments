@@ -59,8 +59,8 @@ public:
   void
   operator()(S& s, value_type v)
   {
-    for (auto i = size_type(0); i < s.h(); ++i)
-      for (auto j = size_type(0); j < s.w(); ++j)
+    for (auto i = size_type(0); i < s.size(); ++i)
+      for (auto j = size_type(0); j < s.size(); ++j)
         s.at(i, j) = v;
   }
 };
@@ -76,7 +76,7 @@ public:
   void
   operator()(S& s, value_type v)
   {
-    for (auto i = size_type(0); i < s.h() && i < s.w(); ++i)
+    for (auto i = size_type(0); i < s.size(); ++i)
       s.at(i, i) = v;
   }
 };
@@ -97,10 +97,10 @@ private:
       if (it->first == it->second)
         continue;
 
-      for (auto j = size_type(0); j < s.w(); ++j)
+      for (auto j = size_type(0); j < s.size(); ++j)
         std::swap(s.at(it->first, j), s.at(it->second, j));
 
-      for (auto i = size_type(0); i < s.h(); ++i)
+      for (auto i = size_type(0); i < s.size(); ++i)
         std::swap(s.at(i, it->first), s.at(i, it->second));
     }
   }

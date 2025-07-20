@@ -207,8 +207,8 @@ public:
   #endif
 #endif
 
-    for (auto i = size_type(0); i < src_abstract.h() && i < this->m_res.size(); ++i)
-      for (auto j = size_type(0); j < src_abstract.w() && j < this->m_res.size(); ++j)
+    for (auto i = size_type(0); i < src_abstract.size() && i < this->m_res.size(); ++i)
+      for (auto j = size_type(0); j < src_abstract.size() && j < this->m_res.size(); ++j)
         ASSERT_EQ(src_abstract.at(i, j), this->m_res.at(i, j)) << "  indexes are: [" << i << "," << j << "]";
   }
 };

@@ -36,9 +36,9 @@ class matrix_abstract<square_matrix<T, A>, typename std::enable_if<traits::matri
   : public impl::impl_matrix_abstract<square_matrix<T, A>>
 {
 public:
-  using matrix_type     = square_matrix<T, A>;
-  using size_type       = typename traits::matrix_traits<matrix_type>::size_type;
-  using value_type      = typename traits::matrix_traits<matrix_type>::value_type;
+  using matrix_type = square_matrix<T, A>;
+  using size_type   = typename traits::matrix_traits<matrix_type>::size_type;
+  using value_type  = typename traits::matrix_traits<matrix_type>::value_type;
 
 private:
   using reference        = typename traits::matrix_traits<matrix_type>::reference;
@@ -69,18 +69,6 @@ public:
   {
     return this->m_matrix.size();
   }
-
-  size_type
-  w() const
-  {
-    return this->m_matrix.size();
-  }
-
-  size_type
-  h() const
-  {
-    return this->m_matrix.size();
-  }
 };
 
 template<typename T, typename A, typename U>
@@ -88,14 +76,14 @@ class matrix_abstract<square_matrix<square_matrix<T, A>, U>, typename std::enabl
   : public impl::impl_matrix_abstract<square_matrix<square_matrix<T, A>, U>>
 {
 public:
-  using matrix_type     = square_matrix<square_matrix<T, A>, U>;
-  using size_type       = typename traits::matrix_traits<matrix_type>::size_type;
-  using value_type      = typename traits::matrix_traits<matrix_type>::value_type;
+  using matrix_type = square_matrix<square_matrix<T, A>, U>;
+  using size_type   = typename traits::matrix_traits<matrix_type>::size_type;
+  using value_type  = typename traits::matrix_traits<matrix_type>::value_type;
 
 private:
-  using reference         = typename traits::matrix_traits<matrix_type>::reference;
-  using const_reference   = typename traits::matrix_traits<matrix_type>::const_reference;
-  using matrix_reference  = matrix_type&;
+  using reference        = typename traits::matrix_traits<matrix_type>::reference;
+  using const_reference  = typename traits::matrix_traits<matrix_type>::const_reference;
+  using matrix_reference = matrix_type&;
 
 private:
   std::vector<int> m_cache;
@@ -130,7 +118,7 @@ public:
     this->m_s = s;
 
     this->m_cache.clear();
-    this->m_cache.reserve(s);
+    this->m_cache.reserve(this->m_s);
 
     auto delta = size_type(0);
     for (auto z = size_type(0); z < this->m_matrix.size(); ++z) {
@@ -148,18 +136,6 @@ public:
   {
     return this->m_s;
   }
-
-  size_type
-  w() const
-  {
-    return this->m_s;
-  }
-
-  size_type
-  h() const
-  {
-    return this->m_s;
-  }
 };
 
 template<typename T, typename A, typename U>
@@ -167,21 +143,20 @@ class matrix_abstract<square_matrix<rect_matrix<T, A>, U>, typename std::enable_
   : public impl::impl_matrix_abstract<square_matrix<rect_matrix<T, A>, U>>
 {
 public:
-  using matrix_type     = square_matrix<rect_matrix<T, A>, U>;
-  using size_type       = typename traits::matrix_traits<matrix_type>::size_type;
-  using value_type      = typename traits::matrix_traits<matrix_type>::value_type;
+  using matrix_type = square_matrix<rect_matrix<T, A>, U>;
+  using size_type   = typename traits::matrix_traits<matrix_type>::size_type;
+  using value_type  = typename traits::matrix_traits<matrix_type>::value_type;
 
 private:
-  using reference         = typename traits::matrix_traits<matrix_type>::reference;
-  using const_reference   = typename traits::matrix_traits<matrix_type>::const_reference;
-  using matrix_reference  = matrix_type&;
+  using reference        = typename traits::matrix_traits<matrix_type>::reference;
+  using const_reference  = typename traits::matrix_traits<matrix_type>::const_reference;
+  using matrix_reference = matrix_type&;
 
 private:
   std::vector<int> m_row_cache;
   std::vector<int> m_col_cache;
 
-  size_type m_w;
-  size_type m_h;
+  size_type m_s;
 
 protected:
   reference
@@ -196,8 +171,7 @@ protected:
 public:
   matrix_abstract(matrix_reference matrix)
     : impl::impl_matrix_abstract<square_matrix<rect_matrix<T, A>, U>>(matrix)
-    , m_w(size_type(0))
-    , m_h(size_type(0))
+    , m_s(size_type(0))
   {
     this->rebind();
   }
@@ -213,13 +187,15 @@ public:
       col_size += block.width();
     }
 
-    this->m_w = col_size;
-    this->m_h = row_size;
+    if (row_size != col_size)
+      std::logic_error("The abstract must represent a square matrix");
+
+    this->m_s = col_size;
 
     this->m_row_cache.clear();
     this->m_col_cache.clear();
-    this->m_row_cache.reserve(row_size);
-    this->m_col_cache.reserve(col_size);
+    this->m_row_cache.reserve(this->m_s);
+    this->m_col_cache.reserve(this->m_s);
 
     auto col       = size_type(0), row       = size_type(0);
     auto col_delta = size_type(0), row_delta = size_type(0);
@@ -241,19 +217,7 @@ public:
   size_type
   size() const
   {
-    return this->m_w;
-  }
-
-  size_type
-  w() const
-  {
-    return this->m_w;
-  }
-
-  size_type
-  h() const
-  {
-    return this->m_h;
+    return this->m_s;
   }
 };
 
