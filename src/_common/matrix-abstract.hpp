@@ -65,6 +65,12 @@ public:
   }
 
   size_type
+  size() const
+  {
+    return this->m_matrix.size();
+  }
+
+  size_type
   w() const
   {
     return this->m_matrix.size();
@@ -135,6 +141,12 @@ public:
 
       delta += size;
     }
+  }
+
+  size_type
+  size() const
+  {
+    return this->m_s;
   }
 
   size_type
@@ -224,6 +236,12 @@ public:
       row_delta += block.height();
       col_delta += block.width();
     }
+  }
+
+  size_type
+  size() const
+  {
+    return this->m_w;
   }
 
   size_type
