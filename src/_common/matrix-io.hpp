@@ -141,15 +141,12 @@ scan_matrix(
   using abstract_type  = matrix_abstract<square_matrix<rect_matrix<T, A>, U>>;
   using size_type      = typename abstract_type::size_type;
   using value_type     = typename abstract_type::value_type;
-  using clusters_type  = utilz::matrices::clusters;
 
   using abstract_set_all      = procedures::abstract_set_all<abstract_type>;
   using abstract_set_diagonal = procedures::abstract_set_diagonal<abstract_type>;
 
   abstract_set_all      set_all;
   abstract_set_diagonal set_diagonal;
-
-  auto [vc, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(graph_format, graph_is);
 
   auto communities = utilz::communities::io::scan_communities<size_type>(communities_format, communities_is);
   for (auto [c, v] : communities) {
@@ -163,7 +160,7 @@ scan_matrix(
     item_sizes.push_back(size);
 
   auto& matrix = abstract.matrix();
-        matrix = square_matrix<rect_matrix<T, A>, U>(item_sizes.size(), matrix.get_allocator());
+  matrix = square_matrix<rect_matrix<T, A>, U>(item_sizes.size(), matrix.get_allocator());
 
   for (auto i = size_type(0); i < matrix.size(); ++i) {
     for (auto j = size_type(0); j < matrix.size(); ++j) {
@@ -176,6 +173,8 @@ scan_matrix(
   abstract.rebind();
 
   set_all(abstract, utilz::constants::infinity<value_type>());
+
+  auto [vc, edges] = utilz::graphs::io::scan_graph<size_type, value_type>(graph_format, graph_is);
 
   for (auto [f, t, w] : edges) {
     clusters.insert_edge(f, t);
