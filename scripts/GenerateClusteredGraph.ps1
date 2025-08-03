@@ -79,107 +79,170 @@ $ClustersConfig | ForEach-Object {
   $ClustersIndex += $_.Size;
 };
 
-# Generate cluster.* files based on the input information and
-# read all edges into global edges array
-#
-$Index = 0;
-$Edges = @();
+$Index      = 0;
+$EdgesCount = 0;
+
+$VertexConnectionCounts = [int[]]::new($ClustersIndex);
+$VertexConnections      = [System.Collections.Generic.Dictionary[int,System.Collections.Generic.List[int]]]::new($ClustersIndex);
 
 $MeasureClustersGeneration = Measure-Command {
+
+  # Generate cluster.* files based on the input information
+  #
   $ClustersConfig | ForEach-Object {
     $C = $_;
 
-    # Save the current length of vertices array
-    # as 'zero' index of the cluster' edges (in the global array).
-    #
-    $C.StartIndex = $Edges.Length;
+    $Graph = "$($OutputDirectory)\intermediate.$($C.Code).g";
 
     & $GraphGeneratorsExecutable `
-      -o "$($OutputDirectory)\intermediate.$($C.Code).g" `
+      -o $Graph `
       -O edgelist `
       -a "$($C.Type)" `
       -v "$($C.Size)" `
       2> $null 1> $null;
 
-    $ClusterEdges = Get-Content -Path "$($OutputDirectory)\intermediate.$($C.Code).g" | ForEach-Object {
-      $Success = $_ -match '(?<X>\d+)\s(?<Y>\d+)';
-      if ($Success -eq $false) {
-        throw 'There is a mistake in the generated graph, the format doesn''t match edgelist';
-      }
+    $LinesCount = 0;
+    switch -File $Graph { default { ++$LinesCount } }
 
-      $X = [int]::Parse($Matches['X']) + $Index;
-      $Y = [int]::Parse($Matches['Y']) + $Index;
-
-      return @{ X = $X; Y = $Y; };
-    }
-    $Edges = $Edges + $ClusterEdges;
-
-    $Index = $Index + $C.Size;
-
-    # Save the current length of edges array
-    # as the end index of cluster's edges (in the global array)
+    # Set start boundry
     #
-    $C.EndIndex = $Edges.Length;
-  };
-};
-Write-Verbose "[Clusters Generation Completed] $($MeasureClustersGeneration.TotalSeconds)";
+    $C.StartIndex = $EdgesCount;
 
-$EdgesIntegrity = $Edges | ForEach-Object { return $_.X } | Sort-Object | Get-Unique;
-if ($EdgesIntegrity.Length -ne $Index) {
-  Write-Verbose "$($EdgesIntegrity.Length) -> $Index"
+    $EdgesCount = $EdgesCount + $LinesCount;
 
-  throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
-}
-Write-Verbose "[State Verified]";
+    # Set end boundry
+    #
+    $C.EndIndex = $EdgesCount;
+  }
 
-# Generate a random connected graph to represent
-# connections between clusters (by generating the connected graph)
-#
-$MeasureConnectionGeneration = Measure-Command {
+  # Generate a random connected graph to represent
+  # connections between clusters (by generating the connected graph)
+  #
+  $GraphConnections = "$($OutputDirectory)\intermediate.connections.g";
+
   & $GraphGeneratorsExecutable `
-    -o "$($OutputDirectory)\intermediate.connections.g" `
+    -o $GraphConnections `
     -O edgelist `
     -a 2 `
     -v "$($ClustersConfig.Length)" `
     -e $ConnectionEdgePercentage `
     2> $null 1> $null;
 
+    $LinesCount = 0;
+    switch -File $GraphConnections { default { ++$LinesCount } }
+
+    $EdgesCount = $EdgesCount + $LinesCount;
+}
+Write-Verbose "[Clusters Generation Completed] $($MeasureClustersGeneration.TotalSeconds)";
+
+$EdgesX     = [int[]]::new($EdgesCount);
+$EdgesY     = [int[]]::new($EdgesCount);
+$EdgesPrint = [string[]]::new($EdgesCount);
+
+$EdgesLineIndex  = 0;
+
+$MeasureClustersDeserialisation = Measure-Command {
+  $ClustersConfig | ForEach-Object {
+    $C = $_;
+    $G = "$($OutputDirectory)\intermediate.$($C.Code).g";
+
+    $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
+    while (!$Reader.EndOfStream) {
+        $Items = $Reader.ReadLine().Split();
+
+        $X = [int]::Parse($Items[0]) + $Index;
+        $Y = [int]::Parse($Items[1]) + $Index;
+
+        $EdgesX[$EdgesLineIndex] = $X;
+        $EdgesY[$EdgesLineIndex] = $Y;
+
+        $EdgesLineIndex = $EdgesLineIndex + 1;
+
+        $VertexConnectionCounts[$X] = $VertexConnectionCounts[$X] + 1;
+        $VertexConnectionCounts[$Y] = $VertexConnectionCounts[$Y] + 1;
+    }
+    $Reader.Close()
+
+    $Index = $Index + $C.Size;
+  };
+};
+Write-Verbose "[Clusters Deserialisation Completed] $($MeasureClustersDeserialisation.TotalSeconds)";
+
+$MeasureStateVerification = Measure-Command {
+  $EdgesIntegrityX = [System.Collections.Generic.HashSet[int]]::new($EdgesX)
+  $EdgesIntegrityY = [System.Collections.Generic.HashSet[int]]::new($EdgesY)
+
+  if (($EdgesIntegrityX.Count -ne $Index) -or ($EdgesIntegrityY.Count -ne $Index)) {
+    Write-Verbose "$($EdgesIntegrityX.Length) -> $Index"
+    Write-Verbose "$($EdgesIntegrityY.Length) -> $Index"
+
+    throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
+  }
+}
+Write-Verbose "[State Verified] $($MeasureStateVerification.TotalSeconds)";
+
+$MeasureConnectionDeserialisation = Measure-Command {
+  $G = "$($OutputDirectory)\intermediate.connections.g"
+
   # Read connections information and generate additional edges
   # to represents connections between clusters to add them
-  # to global edges array
+  # to global edges arrays
   #
 
-  $ConnectionEdges = Get-Content -Path "$($OutputDirectory)\intermediate.connections.g" | ForEach-Object {
-    $Success = $_ -match '(?<X>\d+)\s(?<Y>\d+)';
-    if ($Success -eq $false) {
-      throw 'There is a mistake in the generated connections graph, the format doesn''t match edgelist';
-    }
+  $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
+  while (!$Reader.EndOfStream) {
+      $Items = $Reader.ReadLine().Split();
 
-    $X = $ClustersConfig[[int]::Parse($Matches['X'])];
-    $Y = $ClustersConfig[[int]::Parse($Matches['Y'])];
+      $X = $ClustersConfig[$Items[0]];
+      $Y = $ClustersConfig[$Items[1]];
 
-    $XO = [System.Random]::Shared.NextInt64(0, $X.Size) + $X.IndexShift;
-    $YI = [System.Random]::Shared.NextInt64(0, $Y.Size) + $Y.IndexShift;
+      $XO = [System.Random]::Shared.NextInt64(0, $X.Size) + $X.IndexShift;
+      $YI = [System.Random]::Shared.NextInt64(0, $Y.Size) + $Y.IndexShift;
 
-    return @{ X = $XO; Y = $YI; }
+      $EdgesX[$EdgesLineIndex] = $XO;
+      $EdgesY[$EdgesLineIndex] = $YI;
+
+      $EdgesLineIndex = $EdgesLineIndex + 1;
+
+      $VertexConnectionCounts[$XO] = $VertexConnectionCounts[$XO] + 1;
+      $VertexConnectionCounts[$YI] = $VertexConnectionCounts[$YI] + 1;
   }
-  $Edges = $Edges + $ConnectionEdges;
+  $Reader.Close()
 };
-Write-Verbose "[Connection Generation Completed] $($MeasureConnectionGeneration.TotalSeconds)";
+Write-Verbose "[Connection Deserialization Completed] $($MeasureConnectionDeserialisation.TotalSeconds)";
 
-$EdgesIntegrity = $Edges | ForEach-Object { return $_.X } | Sort-Object | Get-Unique;
-if ($EdgesIntegrity.Length -ne $Index) {
-  Write-Verbose "$($EdgesIntegrity.Length) -> $Index"
+$MeasureStateVerification = Measure-Command {
+  $EdgesIntegrityX = [System.Collections.Generic.HashSet[int]]::new($EdgesX)
+  $EdgesIntegrityY = [System.Collections.Generic.HashSet[int]]::new($EdgesY)
 
-  throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
+  if (($EdgesIntegrityX.Count -ne $Index) -or ($EdgesIntegrityY.Count -ne $Index)) {
+    Write-Verbose "$($EdgesIntegrityX.Length) -> $Index"
+    Write-Verbose "$($EdgesIntegrityY.Length) -> $Index"
+
+    throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
+  }
 }
-Write-Verbose "[State Verified]";
+Write-Verbose "[State Verified] $($MeasureStateVerification.TotalSeconds)";
+
+$MeasureCacheEdgePositions = Measure-Command {
+  for ($i = 0; $i -lt $VertexConnectionCounts.Length; ++$i) {
+    $VertexConnections[$i] = [System.Collections.Generic.List[int]]::new($VertexConnectionCounts[$i]);
+  }
+  for ($i = 0; $i -lt $EdgesX.Length -and $i -lt $EdgesY.Length; ++$i) {
+    $X = $EdgesX[$i];
+    $Y = $EdgesY[$i];
+
+    $VertexConnections[$X].Add($i);
+    $VertexConnections[$Y].Add($i);
+  }
+}
+Write-Verbose "[Edges Cache Generated] $($MeasureCacheEdgePositions.TotalSeconds)";
 
 # Randomise vertex values by performing random replacements
 #
 $MeasureShuffle = Measure-Command {
   $ShuffleSet = New-Object System.Collections.Generic.HashSet[int];
-  $RandomIterations = [System.Random]::Shared.NextInt64(($Index / $ClustersConfig.Length), $Index);
+  $RandomIterations = [System.Random]::Shared.NextInt64(($Index * 0.20), ($Index * 0.60));
   for ($i = 0; $i -lt $RandomIterations; ++$i) {
     $O = [System.Random]::Shared.NextInt64(0, $Index);
     $R = [System.Random]::Shared.NextInt64(0, $Index);
@@ -199,29 +262,35 @@ $MeasureShuffle = Measure-Command {
       continue;
     }
 
-    for ($j = $X.StartIndex; $j -lt $X.EndIndex; ++$j) {
-      if ($Edges[$j].X -eq $O) { $Edges[$j].X = $R; } elseif ($Edges[$j].X -eq $R) { $Edges[$j].X = $O; }
-      if ($Edges[$j].Y -eq $O) { $Edges[$j].Y = $R; } elseif ($Edges[$j].Y -eq $R) { $Edges[$j].Y = $O; }
+    $ListX = $VertexConnections[$O];
+    $ListY = $VertexConnections[$R];
+
+    for ($j = 0; $j -lt $ListX.Count; ++$j) {
+      $c  = $ListX[$j];
+      if ($EdgesX[$c] -eq $O) { $EdgesX[$c] = $R; } elseif ($EdgesX[$c] -eq $R) { $EdgesX[$c] = $O; }
+      if ($EdgesY[$c] -eq $O) { $EdgesY[$c] = $R; } elseif ($EdgesY[$c] -eq $R) { $EdgesY[$c] = $O; }
     }
-    for ($j = $Y.StartIndex; $j -lt $Y.EndIndex; ++$j) {
-      if ($Edges[$j].X -eq $O) { $Edges[$j].X = $R; } elseif ($Edges[$j].X -eq $R) { $Edges[$j].X = $O; }
-      if ($Edges[$j].Y -eq $O) { $Edges[$j].Y = $R; } elseif ($Edges[$j].Y -eq $R) { $Edges[$j].Y = $O; }
-    }
-    for ($j = ($Edges.Length - $ConnectionEdges.Length); $j -lt $Edges.Length; ++$j) {
-      if ($Edges[$j].X -eq $O) { $Edges[$j].X = $R; } elseif ($Edges[$j].X -eq $R) { $Edges[$j].X = $O; }
-      if ($Edges[$j].Y -eq $O) { $Edges[$j].Y = $R; } elseif ($Edges[$j].Y -eq $R) { $Edges[$j].Y = $O; }
+    for ($j = 0; $j -lt $ListY.Count; ++$j) {
+      $c  = $ListY[$j];
+      if ($EdgesX[$c] -eq $O) { $EdgesX[$c] = $R; } elseif ($EdgesX[$c] -eq $R) { $EdgesX[$c] = $O; }
+      if ($EdgesY[$c] -eq $O) { $EdgesY[$c] = $R; } elseif ($EdgesY[$c] -eq $R) { $EdgesY[$c] = $O; }
     }
   }
 }
 Write-Verbose "[Shuffle Completed] $($MeasureShuffle.TotalSeconds)";
 
-$EdgesIntegrity = $Edges | ForEach-Object { return $_.X } | Sort-Object | Get-Unique;
-if ($EdgesIntegrity.Length -ne $Index) {
-  Write-Verbose "$($EdgesIntegrity.Length) -> $Index"
+$MeasureStateVerification = Measure-Command {
+  $EdgesIntegrityX = [System.Collections.Generic.HashSet[int]]::new($EdgesX)
+  $EdgesIntegrityY = [System.Collections.Generic.HashSet[int]]::new($EdgesY)
 
-  throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
+  if (($EdgesIntegrityX.Count -ne $Index) -or ($EdgesIntegrityY.Count -ne $Index)) {
+    Write-Verbose "$($EdgesIntegrityX.Length) -> $Index"
+    Write-Verbose "$($EdgesIntegrityY.Length) -> $Index"
+
+    throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
+  }
 }
-Write-Verbose "[State Verified]";
+Write-Verbose "[State Verified] $($MeasureStateVerification.TotalSeconds)";
 
 # Collect clusters information
 #
@@ -229,10 +298,15 @@ $ClustersConfig | ForEach-Object {
   # Iterate over the cluster's edges (from start to end)
   # and collect 'from' vertices into the array
   #
-  $Vertices = $_.StartIndex .. ($_.EndIndex - 1)
-            | ForEach-Object { return $Edges[$_].X; }
-            | Sort-Object
-            | Get-Unique;
+  $Vertices = [System.Collections.Generic.HashSet[int]]::new();
+  for ($i = $_.StartIndex; $i -lt $_.EndIndex; ++$i) {
+    $Vertices.Add($EdgesX[$i]) | Out-Null;
+  }
+
+  $intermediate = [int[]]::new($Vertices.Count);
+  $Vertices.CopyTo($intermediate);
+
+  $Vertices = $intermediate;
 
   if ($Vertices.Length -ne $_.Size) {
     throw 'There is a mistake in the collecting information about cluster''s edges';
@@ -243,11 +317,14 @@ $ClustersConfig | ForEach-Object {
 
 # Print Edges
 #
-$EdgesOutput = $Edges | ForEach-Object {
+for ($i = 0; $i -lt $EdgesX.Length -and $i -lt $EdgesY.Length; ++$i) {
+  $X = $EdgesX[$i];
+  $Y = $EdgesY[$i];
+
   $W = [System.Random]::Shared.NextInt64($MinWeight, $MaxWeight);
-  return "$($_.X) $($_.Y) $W"
-};
-Set-Content -Path "$($OutputDirectory)\output.g" -Value $EdgesOutput;
+  $EdgesPrint[$i] = "$($X) $($Y) $W"
+}
+Set-Content -Path "$($OutputDirectory)\output.g" -Value $EdgesPrint;
 
 # Print Clusters
 #
