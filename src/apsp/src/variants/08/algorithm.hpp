@@ -42,8 +42,6 @@ calculate_diagonal(
   utzmx::rect_matrix<T, A>& mm,
   run_configuration<T, A, U>& run_config)
 {
-  SCOPE_MEASURE_MILLISECONDS("DIAG");
-
   using size_type  = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::size_type;
   using value_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::value_type;
 
@@ -99,8 +97,6 @@ calculate_vertical_fast(
   utzmx::rect_matrix<T, A>& mm,
   auto bridges)
 {
-  SCOPE_MEASURE_MILLISECONDS("VERT");
-
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto w = im.width();
@@ -140,8 +136,6 @@ calculate_vertical(
   utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
-  SCOPE_MEASURE_MILLISECONDS("VERT");
-
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
@@ -161,8 +155,6 @@ calculate_horizontal_fast(
   utzmx::rect_matrix<T, A>& mm,
   auto bridges)
 {
-  SCOPE_MEASURE_MILLISECONDS("HORZ");
-
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto w = mi.width();
@@ -208,8 +200,6 @@ calculate_horizontal(
   utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
-  SCOPE_MEASURE_MILLISECONDS("HORZ");
-
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
@@ -230,8 +220,6 @@ calculate_peripheral(
   utzmx::rect_matrix<T, A>& kj,
   auto bridges)
 {
-  SCOPE_MEASURE_MILLISECONDS("PERH");
-
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
 
   const auto ij_w = ij.width();
@@ -350,7 +338,10 @@ run(
       for (auto m = size_type(0); m < blocks.size(); ++m) {
         auto& mm = blocks.at(m, m);
 
-        calculate_diagonal(mm, run_config);
+        {
+          SCOPE_MEASURE_MILLISECONDS("DIAG");
+          calculate_diagonal(mm, run_config);
+        }
 
         auto input_positions  = clusters.get_input_bridges_positions(m);
         auto output_positions = clusters.get_output_bridges_positions(m);
@@ -365,24 +356,36 @@ run(
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, input_positions)
 #endif
-                calculate_vertical_fast(im, mm, input_positions);
+                {
+                  SCOPE_MEASURE_MILLISECONDS("VERT");
+                  calculate_vertical_fast(im, mm, input_positions);
+                }
               }
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, output_positions)
 #endif
-              calculate_horizontal(mi, mm, mi, output_positions);
+              {
+                SCOPE_MEASURE_MILLISECONDS("HORZ");
+                calculate_horizontal(mi, mm, mi, output_positions);
+              }
             } else {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, input_positions)
 #endif
-              calculate_vertical(im, im, mm, input_positions);
+              {
+                SCOPE_MEASURE_MILLISECONDS("VERT");
+                calculate_vertical(im, im, mm, input_positions);
+              }
 
               if (!output_positions.empty()) {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, output_positions)
 #endif
-                calculate_horizontal_fast(mi, mm, output_positions);
+                {
+                  SCOPE_MEASURE_MILLISECONDS("HORZ");
+                  calculate_horizontal_fast(mi, mm, output_positions);
+                }
               }
             }
           }
@@ -408,7 +411,10 @@ run(
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(ij, im, mj, min_positions)
 #endif
-                calculate_peripheral(ij, im, mj, min_positions);
+                {
+                  SCOPE_MEASURE_MILLISECONDS("PERH");
+                  calculate_peripheral(ij, im, mj, min_positions);
+                }
               }
             }
           }

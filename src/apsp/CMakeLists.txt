@@ -245,6 +245,7 @@ list(APPEND targets_names "08")
 
 # Initialise algorithms stats targets
 #
+list(APPEND stats_targets "01-stats")
 list(APPEND stats_targets "07-stats")
 list(APPEND stats_targets "08-stats")
 

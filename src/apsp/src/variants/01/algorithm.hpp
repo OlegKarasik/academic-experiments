@@ -4,6 +4,8 @@
 
 #include "portables/hacks/defines.h"
 
+#include "measure.hpp"
+
 #include "matrix.hpp"
 
 namespace utzmx = ::utilz::matrices;
@@ -44,7 +46,10 @@ run(
       for (auto m = size_type(0); m < blocks.size(); ++m) {
         auto& mm = blocks.at(m, m);
 
-        calculate_block(mm, mm, mm);
+        {
+          SCOPE_MEASURE_MILLISECONDS("DIAG");
+          calculate_block(mm, mm, mm);
+        }
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
           if (i != m) {
@@ -54,12 +59,18 @@ run(
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm)
 #endif
-            calculate_block(im, im, mm);
+            {
+              SCOPE_MEASURE_MILLISECONDS("VERT");
+              calculate_block(im, im, mm);
+            }
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm)
 #endif
-            calculate_block(mi, mm, mi);
+            {
+              SCOPE_MEASURE_MILLISECONDS("HORZ");
+              calculate_block(mi, mm, mi);
+            }
           }
         }
 #ifdef _OPENMP
@@ -76,7 +87,10 @@ run(
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(ij, im, mj)
 #endif
-                calculate_block(ij, im, mj);
+                {
+                  SCOPE_MEASURE_MILLISECONDS("PERH");
+                  calculate_block(ij, im, mj);
+                }
               }
             }
           }
