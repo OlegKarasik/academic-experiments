@@ -467,7 +467,7 @@ analyse_communities_intersections(
 
     os << "  All    : ";
     if (bv->second.empty())
-      os << "No bridge vertices" << "\n";
+      os << "No bridge vertices";
     else {
       for (auto c : bv->second)
         os << c << " ";
@@ -476,7 +476,7 @@ analyse_communities_intersections(
 
     os << "  Input  : ";
     if (bvi->second.empty())
-      os << "No input bridge vertices" << "\n";
+      os << "No input bridge vertices";
     else {
       for (auto c : bvi->second)
         os << c << " ";
@@ -485,7 +485,7 @@ analyse_communities_intersections(
 
     os << "  Output : ";
     if (bvo->second.empty())
-      os << "No output bridge vertices" << "\n";
+      os << "No output bridge vertices";
     else {
       for (auto c : bvo->second)
         os << c << " ";
