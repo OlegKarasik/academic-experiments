@@ -92,17 +92,15 @@ $MeasureClustersGeneration = Measure-Command {
   $ClustersConfig | ForEach-Object {
     $C = $_;
 
-    $Graph = "$($OutputDirectory)\intermediate.$($C.Code).g";
-
     & $GraphGeneratorsExecutable `
-      -o $Graph `
+      -o "$($OutputDirectory)\intermediate.$($C.Code).g" `
       -O edgelist `
       -a "$($C.Type)" `
       -v "$($C.Size)" `
       2> $null 1> $null;
 
     $LinesCount = 0;
-    switch -File $Graph { default { ++$LinesCount } }
+    switch -File "$($OutputDirectory)\intermediate.$($C.Code).g" { default { ++$LinesCount } }
 
     # Set start boundry
     #
@@ -118,10 +116,8 @@ $MeasureClustersGeneration = Measure-Command {
   # Generate a random connected graph to represent
   # connections between clusters (by generating the connected graph)
   #
-  $GraphConnections = "$($OutputDirectory)\intermediate.connections.g";
-
   & $GraphGeneratorsExecutable `
-    -o $GraphConnections `
+    -o "$($OutputDirectory)\intermediate.connections.g" `
     -O edgelist `
     -a 2 `
     -v "$($ClustersConfig.Length)" `
@@ -129,7 +125,7 @@ $MeasureClustersGeneration = Measure-Command {
     2> $null 1> $null;
 
     $LinesCount = 0;
-    switch -File $GraphConnections { default { ++$LinesCount } }
+    switch -File "$($OutputDirectory)\intermediate.connections.g" { default { ++$LinesCount } }
 
     $EdgesCount = $EdgesCount + $LinesCount;
 }
@@ -315,6 +311,10 @@ $ClustersConfig | ForEach-Object {
   $_.Vertices = $Vertices;
 };
 
+# Output Code
+#
+$OutputCode = "$($OutputDirectory)\$($ClustersIndex)-$($ClustersConfig.Length)-$($ConnectionEdgePercentage)";
+
 # Print Edges
 #
 for ($i = 0; $i -lt $EdgesX.Length -and $i -lt $EdgesY.Length; ++$i) {
@@ -324,7 +324,7 @@ for ($i = 0; $i -lt $EdgesX.Length -and $i -lt $EdgesY.Length; ++$i) {
   $W = [System.Random]::Shared.NextInt64($MinWeight, $MaxWeight);
   $EdgesPrint[$i] = "$($X) $($Y) $W"
 }
-Set-Content -Path "$($OutputDirectory)\output.g" -Value $EdgesPrint;
+Set-Content -Path "$($OutputDirectory)\$($OutputCode).g" -Value $EdgesPrint;
 
 # Print Clusters
 #
@@ -347,16 +347,16 @@ $ClustersConfig | ForEach-Object {
 
   $ClustersOutputIndex++;
 };
-Set-Content -Path "$($OutputDirectory)\output.communities.g" -Value $ClustersOutput;
+Set-Content -Path "$($OutputDirectory)\$($OutputCode).communities.g" -Value $ClustersOutput;
 
 # Perform analysis
 #
 $MeasureAnalysis = Measure-Command {
   & $GraphAnalysersExecutable `
-    -o "$($OutputDirectory)\output.analysis.g" `
-    -g "$($OutputDirectory)\output.g" `
+    -o "$($OutputDirectory)\$($OutputCode).analysis.g" `
+    -g "$($OutputDirectory)\$($OutputCode).g" `
     -G weightlist `
-    -c "$($OutputDirectory)\output.communities.g" `
+    -c "$($OutputDirectory)\$($OutputCode).communities.g" `
     -C rlang `
     2> $null 1> $null;
 }
