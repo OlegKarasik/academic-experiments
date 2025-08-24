@@ -102,6 +102,10 @@ $MeasureClustersGeneration = Measure-Command {
     $LinesCount = 0;
     switch -File "$($OutputDirectory)\intermediate.$($C.Code).g" { default { ++$LinesCount } }
 
+    if ($LinesCount -ne ($C.Size * ($C.Size - 1))) {
+      throw '';
+    }
+
     # Set start boundry
     #
     $C.StartIndex = $EdgesCount;
@@ -113,6 +117,21 @@ $MeasureClustersGeneration = Measure-Command {
     $C.EndIndex = $EdgesCount;
   }
 
+  # Calculate possible maximums in the connected graph
+  #
+  $TotalVertices = $($ClustersConfig | Measure-Object -Property Size -Sum).Sum;
+  $TotalEdges    = ($TotalVertices * ($TotalVertices - 1)) / 2;
+
+  # Calculate possible maximums in the clusters
+  #
+  [int]   $AllEdges              = $($ClustersConfig | ForEach-Object { return $_.Size * ($_.Size - 1) } | Measure-Object -Sum).Sum;
+  [int]   $AllRequiredEdges      = ($AllEdges * $ConnectionEdgePercentage) / 100
+  [double]$AllRequiredPercentage = $AllRequiredEdges * 100 / $TotalEdges
+
+  Write-Verbose "$AllEdges"
+  Write-Verbose "$AllRequiredEdges"
+  Write-Verbose "$AllRequiredPercentage"
+
   # Generate a random connected graph to represent
   # connections between clusters (by generating the connected graph)
   #
@@ -120,14 +139,16 @@ $MeasureClustersGeneration = Measure-Command {
     -o "$($OutputDirectory)\intermediate.connections.g" `
     -O edgelist `
     -a 2 `
-    -v "$($ClustersConfig.Length)" `
-    -e $ConnectionEdgePercentage `
+    -v $TotalVertices `
+    -e $AllRequiredPercentage `
     2> $null 1> $null;
 
-    $LinesCount = 0;
-    switch -File "$($OutputDirectory)\intermediate.connections.g" { default { ++$LinesCount } }
+  $LinesCount = 0;
+  switch -File "$($OutputDirectory)\intermediate.connections.g" { default { ++$LinesCount } }
 
-    $EdgesCount = $EdgesCount + $LinesCount;
+  Write-Verbose "-- Connections $LinesCount of $TotalVertices / $AllRequiredPercentage"
+
+  $EdgesCount = $EdgesCount + $LinesCount;
 }
 Write-Verbose "[Clusters Generation Completed] $($MeasureClustersGeneration.TotalSeconds)";
 
@@ -184,25 +205,43 @@ $MeasureConnectionDeserialisation = Measure-Command {
   # to represents connections between clusters to add them
   # to global edges arrays
   #
+  $Length = $ClustersConfig.Length;
+
+  $UniqueKeys = [System.Collections.Generic.HashSet[string]]::new();
 
   $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
   while (!$Reader.EndOfStream) {
       $Items = $Reader.ReadLine().Split();
 
-      $X = $ClustersConfig[$Items[0]];
-      $Y = $ClustersConfig[$Items[1]];
+      $X = $ClustersConfig[[int]::Parse($Items[0]) % $Length];
+      $Y = $ClustersConfig[[int]::Parse($Items[1]) % $Length];
 
-      $XO = [System.Random]::Shared.NextInt64(0, $X.Size) + $X.IndexShift;
-      $YI = [System.Random]::Shared.NextInt64(0, $Y.Size) + $Y.IndexShift;
+      $Found = $false;
+
+      for ($i = 0; $i -lt $X.Size; ++$i) {
+        $XO = [System.Random]::Shared.NextInt64(0, $X.Size) + $X.IndexShift;
+        $YI = [System.Random]::Shared.NextInt64(0, $Y.Size) + $Y.IndexShift;
+
+        $UniqueKey = "$XO/$YI";
+        if (($UniqueKeys.Add($UniqueKey) -eq $false)) {
+          continue;
+        }
+
+        $Found = $true;
+        break;
+      }
+
+      if ($Found -eq $false) {
+        throw 'Unable to generate stable connections'
+      }
 
       $EdgesX[$EdgesLineIndex] = $XO;
       $EdgesY[$EdgesLineIndex] = $YI;
 
       $EdgesLineIndex = $EdgesLineIndex + 1;
-
-      $VertexConnectionCounts[$XO] = $VertexConnectionCounts[$XO] + 1;
-      $VertexConnectionCounts[$YI] = $VertexConnectionCounts[$YI] + 1;
   }
+
+  Write-Verbose "---- $($UniqueKeys.Count)"
   $Reader.Close()
 };
 Write-Verbose "[Connection Deserialization Completed] $($MeasureConnectionDeserialisation.TotalSeconds)";
@@ -313,7 +352,7 @@ $ClustersConfig | ForEach-Object {
 
 # Output Code
 #
-$OutputCode = "$($OutputDirectory)\$($ClustersIndex)-$($ClustersConfig.Length)-$($ConnectionEdgePercentage)";
+$OutputCode = "$($ClustersIndex)-$($ClustersConfig.Length)-$($ConnectionEdgePercentage)";
 
 # Print Edges
 #
