@@ -1,19 +1,22 @@
 [CmdletBinding()]
 param(
   [ValidateNotNullOrEmpty()]
-  [string] $ClustersConfigPath       = $(throw './clusters.clusters-config'),
+  [string] $ClustersConfigPath         = $(throw './clusters.clusters-config'),
   [ValidateNotNullOrEmpty()]
-  [string] $ConnectionEdgePercentage = $(throw '-ConnectionEdgePercentage parameter is required'),
+  [string] $ConnectionEdgePercentage   = $(throw '-ConnectionEdgePercentage parameter is required'),
   [ValidateNotNullOrEmpty()]
-  [string] $OutputDirectory          = $(throw '-OutputDirectory parameter is required'),
-  [string] $ToolsDirectory           = '',
-  [int]    $MinWeight                = 1,
-  [int]    $MaxWeight                = 100
+  [string] $ConnectionVertexPercentage = $(throw '-ConnectionVertexPercentage parameter is required'),
+  [ValidateNotNullOrEmpty()]
+  [string] $OutputDirectory            = $(throw '-OutputDirectory parameter is required'),
+  [string] $ToolsDirectory             = '',
+  [int]    $MinWeight                  = 1,
+  [int]    $MaxWeight                  = 100
 )
 
 Write-Verbose -Message "CLUSTERS CONFIG PATH         : $ClustersConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "OUTPUT DIRECTORY             : $OutputDirectory" -ErrorAction Stop;
 Write-Verbose -Message "CONNECTION EDGE PERCENTAGE   : $ConnectionEdgePercentage" -ErrorAction Stop;
+Write-Verbose -Message "CONNECTION VERTEX PERCENTAGE : $ConnectionVertexPercentage" -ErrorAction Stop;
 Write-Verbose -Message "MIN WEIGHT                   : $MinWeight" -ErrorAction Stop;
 Write-Verbose -Message "MAX WEIGHT                   : $MaxWeight" -ErrorAction Stop;
 
@@ -64,7 +67,8 @@ if (-not (Test-Path -Path $GraphAnalysersExecutable -PathType Leaf -ErrorAction 
 
 Write-Verbose -Message "TOOLS DIRECTORY              : $ToolsDirectory" -ErrorAction Stop;
 
-$ClustersConfig = Get-Content -Path $ClustersConfigPath -ErrorAction Stop -Raw | ConvertFrom-Json -ErrorAction Stop -AsHashtable;
+$ClustersConfig = Get-Content -Path $ClustersConfigPath -ErrorAction Stop -Raw `
+                | ConvertFrom-Json -ErrorAction Stop -AsHashtable;
 
 # Pre-prcoess the input by generating random codes
 # and assigning start and end indexes
@@ -79,6 +83,11 @@ $ClustersConfig | ForEach-Object {
   $ClustersIndex += $_.Size;
 };
 
+# Prepare connection vertices
+#
+[int] $MinimumClustersVertices       = $($ClustersConfig | Measure-Object -Property Size -Minimum).Minimum;
+[int] $MinimumClustersBridgeVertices = $MinimumClustersVertices / $ConnectionVertexPercentage;
+
 $Index      = 0;
 $EdgesCount = 0;
 
@@ -86,7 +95,6 @@ $VertexConnectionCounts = [int[]]::new($ClustersIndex);
 $VertexConnections      = [System.Collections.Generic.Dictionary[int,System.Collections.Generic.List[int]]]::new($ClustersIndex);
 
 $MeasureClustersGeneration = Measure-Command {
-
   # Generate cluster.* files based on the input information
   #
   $ClustersConfig | ForEach-Object {
@@ -102,10 +110,6 @@ $MeasureClustersGeneration = Measure-Command {
     $LinesCount = 0;
     switch -File "$($OutputDirectory)\intermediate.$($C.Code).g" { default { ++$LinesCount } }
 
-    if ($LinesCount -ne ($C.Size * ($C.Size - 1))) {
-      throw '';
-    }
-
     # Set start boundry
     #
     $C.StartIndex = $EdgesCount;
@@ -117,21 +121,6 @@ $MeasureClustersGeneration = Measure-Command {
     $C.EndIndex = $EdgesCount;
   }
 
-  # Calculate possible maximums in the connected graph
-  #
-  $TotalVertices = $($ClustersConfig | Measure-Object -Property Size -Sum).Sum;
-  $TotalEdges    = ($TotalVertices * ($TotalVertices - 1)) / 2;
-
-  # Calculate possible maximums in the clusters
-  #
-  [int]   $AllEdges              = $($ClustersConfig | ForEach-Object { return $_.Size * ($_.Size - 1) } | Measure-Object -Sum).Sum;
-  [int]   $AllRequiredEdges      = ($AllEdges * $ConnectionEdgePercentage) / 100
-  [double]$AllRequiredPercentage = $AllRequiredEdges * 100 / $TotalEdges
-
-  Write-Verbose "$AllEdges"
-  Write-Verbose "$AllRequiredEdges"
-  Write-Verbose "$AllRequiredPercentage"
-
   # Generate a random connected graph to represent
   # connections between clusters (by generating the connected graph)
   #
@@ -139,16 +128,11 @@ $MeasureClustersGeneration = Measure-Command {
     -o "$($OutputDirectory)\intermediate.connections.g" `
     -O edgelist `
     -a 2 `
-    -v $TotalVertices `
-    -e $AllRequiredPercentage `
+    -v $ClustersConfig.Length `
+    -e $ConnectionEdgePercentage `
     2> $null 1> $null;
 
-  $LinesCount = 0;
-  switch -File "$($OutputDirectory)\intermediate.connections.g" { default { ++$LinesCount } }
-
-  Write-Verbose "-- Connections $LinesCount of $TotalVertices / $AllRequiredPercentage"
-
-  $EdgesCount = $EdgesCount + $LinesCount;
+  $EdgesCount = $EdgesCount + ($MinimumClustersBridgeVertices * 2) * $(1..($ClustersConfig.Length - 1) | Measure-Object -Sum).Sum;
 }
 Write-Verbose "[Clusters Generation Completed] $($MeasureClustersGeneration.TotalSeconds)";
 
@@ -165,18 +149,18 @@ $MeasureClustersDeserialisation = Measure-Command {
 
     $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
     while (!$Reader.EndOfStream) {
-        $Items = $Reader.ReadLine().Split();
+        $__Items = $Reader.ReadLine().Split();
 
-        $X = [int]::Parse($Items[0]) + $Index;
-        $Y = [int]::Parse($Items[1]) + $Index;
+        $__X = [int]::Parse($__Items[0]) + $Index;
+        $__Y = [int]::Parse($__Items[1]) + $Index;
 
-        $EdgesX[$EdgesLineIndex] = $X;
-        $EdgesY[$EdgesLineIndex] = $Y;
+        $EdgesX[$EdgesLineIndex] = $__X;
+        $EdgesY[$EdgesLineIndex] = $__Y;
 
         $EdgesLineIndex = $EdgesLineIndex + 1;
 
-        $VertexConnectionCounts[$X] = $VertexConnectionCounts[$X] + 1;
-        $VertexConnectionCounts[$Y] = $VertexConnectionCounts[$Y] + 1;
+        $VertexConnectionCounts[$__X] = $VertexConnectionCounts[$__X] + 1;
+        $VertexConnectionCounts[$__Y] = $VertexConnectionCounts[$__Y] + 1;
     }
     $Reader.Close()
 
@@ -201,48 +185,72 @@ Write-Verbose "[State Verified] $($MeasureStateVerification.TotalSeconds)";
 $MeasureConnectionDeserialisation = Measure-Command {
   $G = "$($OutputDirectory)\intermediate.connections.g"
 
-  # Read connections information and generate additional edges
-  # to represents connections between clusters to add them
-  # to global edges arrays
+  # Randomly select vertices from each cluster as 'bridge' vertices to
+  # later generate edges between them depending on connections information
+  # from the file
   #
-  $Length = $ClustersConfig.Length;
-
-  $UniqueKeys = [System.Collections.Generic.HashSet[string]]::new();
-
-  $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
-  while (!$Reader.EndOfStream) {
-      $Items = $Reader.ReadLine().Split();
-
-      $X = $ClustersConfig[[int]::Parse($Items[0]) % $Length];
-      $Y = $ClustersConfig[[int]::Parse($Items[1]) % $Length];
-
-      $Found = $false;
-
-      for ($i = 0; $i -lt $X.Size; ++$i) {
-        $XO = [System.Random]::Shared.NextInt64(0, $X.Size) + $X.IndexShift;
-        $YI = [System.Random]::Shared.NextInt64(0, $Y.Size) + $Y.IndexShift;
-
-        $UniqueKey = "$XO/$YI";
-        if (($UniqueKeys.Add($UniqueKey) -eq $false)) {
-          continue;
-        }
-
-        $Found = $true;
-        break;
-      }
-
-      if ($Found -eq $false) {
-        throw 'Unable to generate stable connections'
-      }
-
-      $EdgesX[$EdgesLineIndex] = $XO;
-      $EdgesY[$EdgesLineIndex] = $YI;
-
-      $EdgesLineIndex = $EdgesLineIndex + 1;
+  $ClustersBridgeVertices = [int[][]]::new($ClustersConfig.Length);
+  for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
+    $ClustersBridgeVertices[$i] = [int[]]::new($MinimumClustersBridgeVertices);
   }
 
-  Write-Verbose "---- $($UniqueKeys.Count)"
-  $Reader.Close()
+  for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
+    $__ClustersConfig = $ClustersConfig[$i];
+    $__ClustersBridgeVerticesHashSet = [System.Collections.Generic.HashSet[int]]::new($MinimumClustersBridgeVertices);
+
+    while ($__ClustersBridgeVerticesHashSet.Count -ne $MinimumClustersBridgeVertices) {
+      $__Random_Vertex = [System.Random]::Shared.NextInt64(0, $__ClustersConfig.Size);
+
+      $__ClustersBridgeVerticesHashSet.Add($__Random_Vertex);
+    }
+
+    $__ClustersBridgeVerticesHashSet.CopyTo($ClustersBridgeVertices[$i]);
+  }
+
+  $LinesCount = 0;
+  switch -File $G { default { ++$LinesCount } }
+
+  $XConnections = [int[]]::new($LinesCount);
+  $YConnections = [int[]]::new($LinesCount);
+
+  $ReaderIndex = 0;
+  $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
+  while (!$Reader.EndOfStream) {
+      $__Items = $Reader.ReadLine().Split();
+
+      $XConnections[$ReaderIndex] = [int]::Parse($__Items[0]);
+      $YConnections[$ReaderIndex] = [int]::Parse($__Items[1]);
+
+      $ReaderIndex++;
+  }
+  $Reader.Close();
+
+  for ($i = 0; $i -lt $LinesCount; ++$i) {
+    $__X_ClustersIndex = $XConnections[$i];
+    $__Y_ClustersIndex = $YConnections[$i];
+
+    $__X__ClustersConfig = $ClustersConfig[$__X_ClustersIndex];
+    $__Y__ClustersConfig = $ClustersConfig[$__Y_ClustersIndex];
+
+    $__X_ClustersBridgeVertex = $ClustersBridgeVertices[$__X_ClustersIndex];
+    $__Y_ClustersBridgeVertex = $ClustersBridgeVertices[$__Y_ClustersIndex];
+
+    for ($j = 0; $j -lt $MinimumClustersBridgeVertices; ++$j) {
+      $__X_Vertex = $__X_ClustersBridgeVertex[$j];
+      $__Y_Vertex = $__Y_ClustersBridgeVertex[$j];
+
+      $EdgesX[$EdgesLineIndex] = $__X_Vertex + $__X__ClustersConfig.IndexShift;
+      $EdgesY[$EdgesLineIndex] = $__Y_Vertex + $__Y__ClustersConfig.IndexShift;
+
+      $EdgesX[$EdgesLineIndex] = $__Y_Vertex + $__Y__ClustersConfig.IndexShift;
+      $EdgesY[$EdgesLineIndex] = $__X_Vertex + $__X__ClustersConfig.IndexShift;
+
+      $EdgesLineIndex = $EdgesLineIndex + 2;
+
+      $VertexConnectionCounts[$__X_Vertex] = $VertexConnectionCounts[$__X_Vertex] + 2;
+      $VertexConnectionCounts[$__Y_Vertex] = $VertexConnectionCounts[$__Y_Vertex] + 2;
+    }
+  }
 };
 Write-Verbose "[Connection Deserialization Completed] $($MeasureConnectionDeserialisation.TotalSeconds)";
 
@@ -263,7 +271,7 @@ $MeasureCacheEdgePositions = Measure-Command {
   for ($i = 0; $i -lt $VertexConnectionCounts.Length; ++$i) {
     $VertexConnections[$i] = [System.Collections.Generic.List[int]]::new($VertexConnectionCounts[$i]);
   }
-  for ($i = 0; $i -lt $EdgesX.Length -and $i -lt $EdgesY.Length; ++$i) {
+  for ($i = 0; $i -lt $EdgesLineIndex; ++$i) {
     $X = $EdgesX[$i];
     $Y = $EdgesY[$i];
 
@@ -352,11 +360,11 @@ $ClustersConfig | ForEach-Object {
 
 # Output Code
 #
-$OutputCode = "$($ClustersIndex)-$($ClustersConfig.Length)-$($ConnectionEdgePercentage)";
+$OutputCode = "$($ClustersIndex)-$($ClustersConfig.Length)-$($ConnectionEdgePercentage)-$($ConnectionVertexPercentage)";
 
 # Print Edges
 #
-for ($i = 0; $i -lt $EdgesX.Length -and $i -lt $EdgesY.Length; ++$i) {
+for ($i = 0; $i -lt $EdgesLineIndex; ++$i) {
   $X = $EdgesX[$i];
   $Y = $EdgesY[$i];
 
