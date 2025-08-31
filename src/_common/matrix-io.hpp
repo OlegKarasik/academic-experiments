@@ -199,6 +199,10 @@ print_matrix(
   std::vector<std::tuple<size_type, size_type, value_type>> edges;
   for (auto i = size_type(0); i < size; ++i) {
     for (auto j = size_type(0); j < size; ++j) {
+      if (i == j) {
+        continue;
+      }
+
       auto value = abstract.at(i, j);
       if (value != utilz::constants::infinity<value_type>())
         edges.push_back(std::make_tuple(i, j, value));
