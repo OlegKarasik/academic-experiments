@@ -267,11 +267,16 @@ analyse_communities_intersections(
           auto sanity_edges = false;
           for (auto c : communities_map) {
             if (community.first != c.first && std::find(c.second.begin(), c.second.end(), j) != c.second.end()) {
+              auto reverse_be  = communities_be.find(c.first);
               auto reverse_bv  = communities_bv.find(c.first);
               auto reverse_bvi = communities_bvi.find(c.first);
-              // Increment bridge edges count
+              // Increment bridge edges count (for `community`)
               //
               be->second++;
+
+              // Increment bridge edges count (for `c`)
+              //
+              reverse_be->second++;
 
               // Save the connection between two communities (from `community` to `c`)
               //
@@ -368,6 +373,10 @@ analyse_communities_intersections(
      << " "
      << std::setw(8) << "BV"
      << " "
+     << std::setw(8) << "BVI"
+     << " "
+     << std::setw(8) << "BVO"
+     << " "
      << std::setw(8) << "BE"
      << " "
      << std::setw(8) << "C"
@@ -385,6 +394,10 @@ analyse_communities_intersections(
        << std::setw(8) << std::setprecision(2) << std::fixed << communities_pet[community.first]
        << " "
        << std::setw(8) << communities_bv[community.first].size()
+       << " "
+       << std::setw(8) << communities_bvi[community.first].size()
+       << " "
+       << std::setw(8) << communities_bvo[community.first].size()
        << " "
        << std::setw(8) << communities_be[community.first]
        << " "
