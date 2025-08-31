@@ -38,20 +38,20 @@ namespace utzmx = ::utilz::matrices;
 int
 main(int argc, char* argv[])
 {
-  const int OPT_ALGORITHM_NONE      = -1;
-  const int OPT_ALGORITHM_DAG       = 0;
-  const int OPT_ALGORITHM_COMPLETE  = 1;
-  const int OPT_ALGORITHM_CONNECTED = 2;
+  const int    OPT_ALGORITHM_NONE      = -1;
+  const int    OPT_ALGORITHM_DAG       = 0;
+  const int    OPT_ALGORITHM_COMPLETE  = 1;
+  const int    OPT_ALGORITHM_CONNECTED = 2;
 
-  const int OPT_VERTEX_COUNT_NONE = -1;
-  const int OPT_EDGE_PERCENT_NONE = -1;
+  const int    OPT_VERTEX_COUNT_NONE = -1;
+  const double OPT_EDGE_PERCENT_NONE = -1;
 
   utilz::graphs::io::graph_format opt_output_format = utilz::graphs::io::graph_format::graph_fmt_none;
 
   std::string opt_output;
   int         opt_algorithm    = -1;
   int         opt_vertex_count = -1;
-  int         opt_edge_percent = -1;
+  double      opt_edge_percent = -1;
   int         opt_low_weight   = 1;
   int         opt_high_weight  = 20;
 
@@ -142,9 +142,9 @@ main(int argc, char* argv[])
         if (opt_edge_percent == OPT_EDGE_PERCENT_NONE) {
           std::cerr << "-e: " << optarg << "\n";
 
-          opt_edge_percent = atoi(optarg);
+          opt_edge_percent = atof(optarg);
 
-          if (opt_edge_percent < 1 || opt_edge_percent > 100) {
+          if (opt_edge_percent < 0 || opt_edge_percent > 100) {
             std::cerr << "erro: unsupported percent of edges specified in '-e' option";
             return 1;
           }
@@ -220,7 +220,7 @@ main(int argc, char* argv[])
       case 0: {
         // Calculate edge count based on requested edge percent
         //
-        size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
+        size_t edge_count = size_t((((opt_vertex_count * (opt_vertex_count - 1)) / 2) * opt_edge_percent) / 100);
 
         // Random Directed Acyclic Graph (DAG / S)
         //
@@ -240,7 +240,7 @@ main(int argc, char* argv[])
       case 2: {
         // Calculate edge count based on requested edge percent
         //
-        size_t edge_count = size_t(((opt_vertex_count * (opt_vertex_count - 1)) / 2) * ((float)opt_edge_percent / 100));
+        size_t edge_count = size_t((((opt_vertex_count * (opt_vertex_count - 1))) * opt_edge_percent) / 100);
 
         // Random Connected Graph
         //
