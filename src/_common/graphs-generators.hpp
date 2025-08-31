@@ -151,9 +151,9 @@ random_graph(
     throw std::logic_error(
       "erro: edge count can't be zero or negative.");
 
-  if (e >= (v * (v - size_type(1)) / size_type(2)))
+  if (e >= (v * (v - size_type(1))))
     throw std::logic_error(
-      "erro: edge count in connected graph can't exceed: `((v) * (v - 1) / 2)`, where `v` is a vertex count.");
+      "erro: edge count in connected graph can't exceed: `((v) * (v - 1))`, where `v` is a vertex count.");
 
   // Initialise vertex distribution
   //
@@ -264,11 +264,7 @@ random_graph(
   //
   for (auto i = size_type(0); i < v; ++i) {
     for (auto j = size_type(0); j < v; ++j) {
-      if (i == j) {
-        // We aren't generating self-loops in complete graph
-        //
-        adjacency_matrix.at(i, j) = false;
-      } else {
+      if (i != j) {
         adjacency_matrix.at(i, j) = true;
       }
     }
