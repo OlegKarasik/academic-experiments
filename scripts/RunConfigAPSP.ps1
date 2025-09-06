@@ -20,8 +20,9 @@ $GenConfig | ForEach-Object {
 
   $GraphObjects = [System.Collections.Generic.List[string]]::new();
   $Graphs | ForEach-Object {
-    $Code = $_.Code;
-    $Path = $_.Path;
+    $Code           = $_.Code;
+    $Path           = $_.Path;
+    $VariableGroups = @( @{ Key = 'default'; Parameters = @{  } } );
 
     $Groups = [System.Collections.Generic.Dictionary[string,System.Collections.Generic.List[string]]]::new();
     Get-ChildItem -Path $Path -File `
@@ -42,7 +43,8 @@ $GenConfig | ForEach-Object {
 
     $TemplateContent = Get-Content -Path $Template -Raw -ErrorAction Stop;
 
-    $TemplateContentArray = [System.Collections.Generic.List[string]]::new();
+    $TemplateContentArrayKeys = [System.Collections.Generic.List[string]]::new();
+    $TemplateContentArray     = [System.Collections.Generic.List[string]]::new();
     $Groups.Keys | ForEach-Object {
       $key     = $_;
       $values  = $Groups[$key];
@@ -54,16 +56,32 @@ $GenConfig | ForEach-Object {
         $replacement_value = $(Join-Path -Path $Path -ChildPath $value | ConvertTo-Json).Trim('"');
         $content           = $content -replace $replacement_key,$replacement_value;
       }
-      $content = $content -replace '%key%',$key;
 
-      $TemplateContentArray.Add($content);
+      $VariableGroups | ForEach-Object {
+        $group     = $_;
+        $group_key = $group.Key;
+
+        $content = $content -replace '%key%',$group_key;
+
+        $TemplateContentArrayKeys.Add($key);
+        $TemplateContentArray.Add($content);
+      }
     }
 
-    $GraphObject = "{
-      `"Code`": `"$Code`",
-      `"Args`": [ $($TemplateContentArray -join ',') ]
-    }";
-    $GraphObjects.Add($GraphObject);
+    if ($Code -eq '*') {
+      for ($i = 0; $i -lt $Groups.Keys.Count; ++$i) {
+        $GraphObject = "{
+          `"Code`": `"$($TemplateContentArrayKeys[$i])`",
+          `"Args`": [ $($TemplateContentArray[$i]) ]
+        }";
+        $GraphObjects.Add($GraphObject);
+      }
+    } else {
+      if ($Groups.Keys.Count -ne 1) {
+        throw 'Invalid configuration. The arguments cannot be applied to different graphs';
+      }
+      throw 'Not implemented';
+    }
   }
 
   $ExperimentVersions = $Versions | ForEach-Object { return "`"$_`"" };
