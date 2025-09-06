@@ -62,8 +62,8 @@ Write-Host "Reading run configuration..." -ErrorAction Stop;
 $RunConfig = Get-Content -Path $RunConfigPath -ErrorAction Stop -Raw | ConvertFrom-Json -ErrorAction Stop;
 
 Write-Host "Generating collection groups and data patterns..." -ErrorAction Stop;
-$CollectionGroups = $EventConfig | % { return $_ -split ':' | Select-Object -first 1 };
-$CollectionPatterns = $CollectionGroups | % { return "$_\s+(\d+)" };
+$CollectionGroups = $EventConfig | ForEach-Object { return $_ -split ':' | Select-Object -first 1 };
+$CollectionPatterns = $CollectionGroups | ForEach-Object { return "$_\s+(\d+)" };
 
 Write-Host "Configuring execution environment..."
 Set-Variable `
@@ -91,7 +91,7 @@ $RunConfig | ForEach-Object {
 
         # Resolve arguments
         #
-        $Arguments = $Arguments | % { return $_ -replace '%SOURCE_DIRECTORY%',$SourceDirectory };
+        $Arguments = $Arguments | ForEach-Object { return $_ -replace '%SOURCE_DIRECTORY%',$SourceDirectory };
 
         Write-Host "Experiment code: $ExperimentCode" -ErrorAction Stop;
 
@@ -118,7 +118,7 @@ $RunConfig | ForEach-Object {
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
             Write-Verbose -Message "Arguments  :" -ErrorAction Stop;
-            $Arguments | % {
+            $Arguments | ForEach-Object {
               Write-Verbose -Message "  : $_" -ErrorAction Stop;
             };
 
@@ -219,7 +219,7 @@ $RunConfig | ForEach-Object {
             Write-Verbose -Message "Output     : $ExperimentOutputFile" -ErrorAction Stop;
             Write-Verbose -Message "Results    : $ExperimentResultsFile" -ErrorAction Stop;
             Write-Verbose -Message "Arguments  :" -ErrorAction Stop;
-            $Arguments | % {
+            $Arguments | ForEach-Object {
               Write-Verbose -Message "  : $_" -ErrorAction Stop;
             };
 
@@ -286,7 +286,7 @@ $RunConfig | ForEach-Object {
 }
 
 Write-Host "Starting verification..." -ErrorAction Stop;
-$OutputHashTable.Keys | % {
+$OutputHashTable.Keys | ForEach-Object {
   $OutputHash = $OutputHashTable[$_];
 
   Write-Host "Comparing $($OutputHash.Count) file hashes..."
@@ -295,9 +295,9 @@ $OutputHashTable.Keys | % {
     Write-Host "Verification completed. No failures detected."
   } else {
     Write-Host "Verification completed. Detected multiple hash origins:"
-    $UniqueHash.Keys | % {
+    $UniqueHash.Keys | ForEach-Object {
       Write-Host $_
-      $UniqueHash[$_] | % {
+      $UniqueHash[$_] | ForEach-Object {
         Write-Host $_.Path
       }
     }
