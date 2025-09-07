@@ -6,6 +6,7 @@ param(
   [string] $ConnectionEdgePercentage   = $(throw '-ConnectionEdgePercentage parameter is required'),
   [ValidateNotNullOrEmpty()]
   [string] $ConnectionVertexPercentage = $(throw '-ConnectionVertexPercentage parameter is required'),
+  [string] $ConnectionVertexBalance    = '',
   [ValidateNotNullOrEmpty()]
   [string] $OutputDirectory            = $(throw '-OutputDirectory parameter is required'),
   [string] $ToolsDirectory             = '',
@@ -67,6 +68,30 @@ if (-not (Test-Path -Path $GraphAnalysersExecutable -PathType Leaf -ErrorAction 
 
 Write-Verbose -Message "TOOLS DIRECTORY              : $ToolsDirectory" -ErrorAction Stop;
 
+[int] $ConnectionVertexInputPercentage  = 100;
+[int] $ConnectionVertexOutputPercentage = 100;
+
+# Here we are parsing the balance value
+#
+if ($ConnectionVertexBalance -ne '') {
+  $balance_values = $ConnectionVertexBalance -split '/';
+  if ($balance_values.Length -ne 2) {
+    throw "The '$ConnectionVertexBalance' value is invalid and must be either '' or '<in>/<out>' format"
+  }
+
+  $ConnectionVertexInputPercentage  = [int]::Parse($balance_values[0]);
+  $ConnectionVertexOutputPercentage = [int]::Parse($balance_values[1]);
+}
+if ($ConnectionVertexInputPercentage -gt 100) {
+  throw "It is impossible to generate more than $($ConnectionVertexInputPercentage)% of input vertices";
+}
+if ($ConnectionVertexOutputPercentage -gt 100) {
+  throw "It is impossible to generate more than $($ConnectionVertexOutputPercentage)% of output vertices";
+}
+
+Write-Verbose -Message "CONNECTION VERTEX BALANCE    : $ConnectionVertexInputPercentage / $ConnectionVertexOutputPercentage" `
+              -ErrorAction Stop;
+
 $ClustersConfig = Get-Content -Path $ClustersConfigPath -ErrorAction Stop -Raw `
                 | ConvertFrom-Json -ErrorAction Stop -AsHashtable;
 
@@ -85,11 +110,13 @@ $ClustersConfig | ForEach-Object {
 
 # Prepare connection vertices
 #
-[int] $MinimumClustersVertices       = $($ClustersConfig | Measure-Object -Property Size -Minimum).Minimum;
-[int] $MinimumClustersBridgeVertices = $MinimumClustersVertices / $ConnectionVertexPercentage;
+[int] $MinimumClustersVertices             = $($ClustersConfig | Measure-Object -Property Size -Minimum).Minimum;
+[int] $MinimumClustersBridgeVertices       = ($MinimumClustersVertices * $ConnectionVertexPercentage) / 100;
+[int] $MinimumClustersInputBridgeVertices  = ($MinimumClustersBridgeVertices * $ConnectionVertexInputPercentage) / 100;
+[int] $MinimumClustersOutputBridgeVertices = ($MinimumClustersBridgeVertices * $ConnectionVertexOutputPercentage) / 100;
 
-$Index      = 0;
-$EdgesCount = 0;
+[int] $Index      = 0;
+[int] $EdgesCount = 0;
 
 $VertexConnectionCounts = [int[]]::new($ClustersIndex);
 $VertexConnections      = [System.Collections.Generic.Dictionary[int,System.Collections.Generic.List[int]]]::new($ClustersIndex);
@@ -107,14 +134,14 @@ $MeasureClustersGeneration = Measure-Command {
       -v "$($C.Size)" `
       2> $null 1> $null;
 
-    $LinesCount = 0;
-    switch -File "$($OutputDirectory)\intermediate.$($C.Code).g" { default { ++$LinesCount } }
+    $lines_count = 0;
+    switch -File "$($OutputDirectory)\intermediate.$($C.Code).g" { default { ++$lines_count } }
 
     # Set start boundry
     #
     $C.StartIndex = $EdgesCount;
 
-    $EdgesCount = $EdgesCount + $LinesCount;
+    $EdgesCount = $EdgesCount + $lines_count;
 
     # Set end boundry
     #
@@ -132,7 +159,7 @@ $MeasureClustersGeneration = Measure-Command {
     -e $ConnectionEdgePercentage `
     2> $null 1> $null;
 
-  $EdgesCount = $EdgesCount + ($MinimumClustersBridgeVertices * 2) * $(1..($ClustersConfig.Length - 1) | Measure-Object -Sum).Sum;
+  $EdgesCount = $EdgesCount + ($MinimumClustersBridgeVertices * $MinimumClustersBridgeVertices * 2) * $(1..($ClustersConfig.Length - 1) | Measure-Object -Sum).Sum;
 }
 Write-Verbose "[Clusters Generation Completed] $($MeasureClustersGeneration.TotalSeconds)";
 
@@ -147,12 +174,12 @@ $MeasureClustersDeserialisation = Measure-Command {
     $C = $_;
     $G = "$($OutputDirectory)\intermediate.$($C.Code).g";
 
-    $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
-    while (!$Reader.EndOfStream) {
-        $__Items = $Reader.ReadLine().Split();
+    $stream = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
+    while (!$stream.EndOfStream) {
+        $split_items = $stream.ReadLine().Split();
 
-        $__X = [int]::Parse($__Items[0]) + $Index;
-        $__Y = [int]::Parse($__Items[1]) + $Index;
+        $__X = [int]::Parse($split_items[0]) + $Index;
+        $__Y = [int]::Parse($split_items[1]) + $Index;
 
         $EdgesX[$EdgesLineIndex] = $__X;
         $EdgesY[$EdgesLineIndex] = $__Y;
@@ -162,7 +189,7 @@ $MeasureClustersDeserialisation = Measure-Command {
         $VertexConnectionCounts[$__X] = $VertexConnectionCounts[$__X] + 1;
         $VertexConnectionCounts[$__Y] = $VertexConnectionCounts[$__Y] + 1;
     }
-    $Reader.Close()
+    $stream.Close()
 
     $Index = $Index + $C.Size;
   };
@@ -189,66 +216,104 @@ $MeasureConnectionDeserialisation = Measure-Command {
   # later generate edges between them depending on connections information
   # from the file
   #
-  $ClustersBridgeVertices = [int[][]]::new($ClustersConfig.Length);
+  $bridge_vertices = [int[][]]::new($ClustersConfig.Length);
+  $bridge_input_vertices = [int[][]]::new($ClustersConfig.Length);
+  $bridge_output_vertices = [int[][]]::new($ClustersConfig.Length);
   for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
-    $ClustersBridgeVertices[$i] = [int[]]::new($MinimumClustersBridgeVertices);
+    $bridge_vertices[$i]        = [int[]]::new($MinimumClustersBridgeVertices);
+    $bridge_input_vertices[$i]  = [int[]]::new($MinimumClustersInputBridgeVertices);
+    $bridge_output_vertices[$i] = [int[]]::new($MinimumClustersOutputBridgeVertices);
   }
 
   for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
-    $__ClustersConfig = $ClustersConfig[$i];
-    $__ClustersBridgeVerticesHashSet = [System.Collections.Generic.HashSet[int]]::new($MinimumClustersBridgeVertices);
+    $clusters_config     = $ClustersConfig[$i];
+    $bridge_vertices_set = [System.Collections.Generic.HashSet[int]]::new($MinimumClustersBridgeVertices);
 
-    while ($__ClustersBridgeVerticesHashSet.Count -ne $MinimumClustersBridgeVertices) {
-      $__Random_Vertex = [System.Random]::Shared.NextInt64(0, $__ClustersConfig.Size);
-
-      $__ClustersBridgeVerticesHashSet.Add($__Random_Vertex);
+    while ($bridge_vertices_set.Count -ne $MinimumClustersBridgeVertices) {
+      $bridge_vertices_set.Add([System.Random]::Shared.NextInt64(0, $clusters_config.Size));
     }
 
-    $__ClustersBridgeVerticesHashSet.CopyTo($ClustersBridgeVertices[$i]);
+    $bridge_vertices_set.CopyTo($bridge_vertices[$i]);
   }
 
-  $LinesCount = 0;
-  switch -File $G { default { ++$LinesCount } }
-
-  $XConnections = [int[]]::new($LinesCount);
-  $YConnections = [int[]]::new($LinesCount);
-
-  $ReaderIndex = 0;
-  $Reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
-  while (!$Reader.EndOfStream) {
-      $__Items = $Reader.ReadLine().Split();
-
-      $XConnections[$ReaderIndex] = [int]::Parse($__Items[0]);
-      $YConnections[$ReaderIndex] = [int]::Parse($__Items[1]);
-
-      $ReaderIndex++;
+  $bridge_vertices_scan_index = 0;
+  for ($i = 0; $i -lt $MinimumClustersInputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
+    for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
+      $bridge_input_vertices[$j][$i] = $bridge_vertices[$j][$bridge_vertices_scan_index];
+    }
   }
-  $Reader.Close();
+  for ($i = 0; $i -lt $MinimumClustersOutputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
+    for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
+      $bridge_output_vertices[$j][$i] = $bridge_vertices[$j][$bridge_vertices_scan_index];
+    }
+  }
 
-  for ($i = 0; $i -lt $LinesCount; ++$i) {
-    $__X_ClustersIndex = $XConnections[$i];
-    $__Y_ClustersIndex = $YConnections[$i];
+  $lines_count = 0;
+  switch -File $G { default { ++$lines_count } }
 
-    $__X__ClustersConfig = $ClustersConfig[$__X_ClustersIndex];
-    $__Y__ClustersConfig = $ClustersConfig[$__Y_ClustersIndex];
+  $x_connections = [int[]]::new($lines_count);
+  $y_connections = [int[]]::new($lines_count);
 
-    $__X_ClustersBridgeVertex = $ClustersBridgeVertices[$__X_ClustersIndex];
-    $__Y_ClustersBridgeVertex = $ClustersBridgeVertices[$__Y_ClustersIndex];
+  $line_index = 0;
+  $stream = New-Object -TypeName System.IO.StreamReader -ArgumentList $G
+  while (!$stream.EndOfStream) {
+      $split_items = $stream.ReadLine().Split();
 
-    for ($j = 0; $j -lt $MinimumClustersBridgeVertices; ++$j) {
-      $__X_Vertex = $__X_ClustersBridgeVertex[$j];
-      $__Y_Vertex = $__Y_ClustersBridgeVertex[$j];
+      $x_connections[$line_index] = [int]::Parse($split_items[0]);
+      $y_connections[$line_index] = [int]::Parse($split_items[1]);
 
-      $EdgesX[$EdgesLineIndex] = $__X_Vertex + $__X__ClustersConfig.IndexShift;
-      $EdgesY[$EdgesLineIndex] = $__Y_Vertex + $__Y__ClustersConfig.IndexShift;
+      $line_index++;
+  }
+  $stream.Close();
 
-      $EdgesX[$EdgesLineIndex] = $__Y_Vertex + $__Y__ClustersConfig.IndexShift;
-      $EdgesY[$EdgesLineIndex] = $__X_Vertex + $__X__ClustersConfig.IndexShift;
+  $clusters_connection_track = [System.Collections.Generic.HashSet[string]]::new();
 
-      $EdgesLineIndex = $EdgesLineIndex + 2;
+  for ($i = 0; $i -lt $lines_count; ++$i) {
+    $x_clusters_index = $x_connections[$i];
+    $y_clusters_index = $y_connections[$i];
 
-      $VertexConnectionCounts[$__X_Vertex] = $VertexConnectionCounts[$__X_Vertex] + 2;
-      $VertexConnectionCounts[$__Y_Vertex] = $VertexConnectionCounts[$__Y_Vertex] + 2;
+    if ($clusters_connection_track.Add("$($x_clusters_index)/$($y_clusters_index)") -eq $false) {
+      continue;
+    }
+
+    $x_clusters_config = $ClustersConfig[$x_clusters_index];
+    $y_clusters_config = $ClustersConfig[$y_clusters_index];
+
+    $x_bridge_input_vertices = $bridge_input_vertices[$x_clusters_index];
+    $y_bridge_input_vertices = $bridge_input_vertices[$y_clusters_index];
+
+    $x_bridge_output_vertices = $bridge_output_vertices[$x_clusters_index];
+    $y_bridge_output_vertices = $bridge_output_vertices[$y_clusters_index];
+
+    $x_bridge_output_vertices | ForEach-Object {
+      $x_output = $_;
+
+      $y_bridge_input_vertices | ForEach-Object {
+        $y_input = $_;
+
+        $EdgesX[$EdgesLineIndex] = $x_output + $x_clusters_config.IndexShift;
+        $EdgesY[$EdgesLineIndex] = $y_input  + $y_clusters_config.IndexShift;
+
+        $EdgesLineIndex = $EdgesLineIndex + 1;
+
+        $VertexConnectionCounts[$y_input] = $VertexConnectionCounts[$y_input]   + 1;
+        $VertexConnectionCounts[$x_output] = $VertexConnectionCounts[$x_output] + 1;
+      }
+    }
+    $y_bridge_output_vertices | ForEach-Object {
+      $y_output = $_;
+
+      $x_bridge_input_vertices | ForEach-Object {
+        $x_input = $_;
+
+        $EdgesX[$EdgesLineIndex] = $y_output + $y_clusters_config.IndexShift;
+        $EdgesY[$EdgesLineIndex] = $x_input  + $x_clusters_config.IndexShift;
+
+        $EdgesLineIndex = $EdgesLineIndex + 1;
+
+        $VertexConnectionCounts[$x_input] = $VertexConnectionCounts[$x_input]   + 1;
+        $VertexConnectionCounts[$y_output] = $VertexConnectionCounts[$y_output] + 1;
+      }
     }
   }
 };
@@ -259,8 +324,8 @@ $MeasureStateVerification = Measure-Command {
   $EdgesIntegrityY = [System.Collections.Generic.HashSet[int]]::new($EdgesY)
 
   if (($EdgesIntegrityX.Count -ne $Index) -or ($EdgesIntegrityY.Count -ne $Index)) {
-    Write-Verbose "$($EdgesIntegrityX.Length) -> $Index"
-    Write-Verbose "$($EdgesIntegrityY.Length) -> $Index"
+    Write-Verbose "$($EdgesIntegrityX.Count) -> $Index"
+    Write-Verbose "$($EdgesIntegrityY.Count) -> $Index"
 
     throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
   }
@@ -309,14 +374,14 @@ $MeasureShuffle = Measure-Command {
     $ListY = $VertexConnections[$R];
 
     for ($j = 0; $j -lt $ListX.Count; ++$j) {
-      $c  = $ListX[$j];
-      if ($EdgesX[$c] -eq $O) { $EdgesX[$c] = $R; } elseif ($EdgesX[$c] -eq $R) { $EdgesX[$c] = $O; }
-      if ($EdgesY[$c] -eq $O) { $EdgesY[$c] = $R; } elseif ($EdgesY[$c] -eq $R) { $EdgesY[$c] = $O; }
+      $vertex = $ListX[$j];
+      if ($EdgesX[$vertex] -eq $O) { $EdgesX[$vertex] = $R; } elseif ($EdgesX[$vertex] -eq $R) { $EdgesX[$vertex] = $O; }
+      if ($EdgesY[$vertex] -eq $O) { $EdgesY[$vertex] = $R; } elseif ($EdgesY[$vertex] -eq $R) { $EdgesY[$vertex] = $O; }
     }
     for ($j = 0; $j -lt $ListY.Count; ++$j) {
-      $c  = $ListY[$j];
-      if ($EdgesX[$c] -eq $O) { $EdgesX[$c] = $R; } elseif ($EdgesX[$c] -eq $R) { $EdgesX[$c] = $O; }
-      if ($EdgesY[$c] -eq $O) { $EdgesY[$c] = $R; } elseif ($EdgesY[$c] -eq $R) { $EdgesY[$c] = $O; }
+      $vertex = $ListY[$j];
+      if ($EdgesX[$vertex] -eq $O) { $EdgesX[$vertex] = $R; } elseif ($EdgesX[$vertex] -eq $R) { $EdgesX[$vertex] = $O; }
+      if ($EdgesY[$vertex] -eq $O) { $EdgesY[$vertex] = $R; } elseif ($EdgesY[$vertex] -eq $R) { $EdgesY[$vertex] = $O; }
     }
   }
 }
@@ -327,8 +392,8 @@ $MeasureStateVerification = Measure-Command {
   $EdgesIntegrityY = [System.Collections.Generic.HashSet[int]]::new($EdgesY)
 
   if (($EdgesIntegrityX.Count -ne $Index) -or ($EdgesIntegrityY.Count -ne $Index)) {
-    Write-Verbose "$($EdgesIntegrityX.Length) -> $Index"
-    Write-Verbose "$($EdgesIntegrityY.Length) -> $Index"
+    Write-Verbose "$($EdgesIntegrityX.Count) -> $Index"
+    Write-Verbose "$($EdgesIntegrityY.Count) -> $Index"
 
     throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
   }
