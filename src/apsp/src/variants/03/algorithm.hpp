@@ -107,7 +107,6 @@ calculate_vertical(
   pointer im_array_prv_weight = run_config.mm_array_prv_col + allocation_shift;
   pointer im_array_cur_weight = run_config.mm_array_cur_row + allocation_shift;
 
-  pointer im_array_nxt_weight = run_config.ckb1w + allocation_shift;
   pointer mm_array_nxt_weight = run_config.ckb3w + allocation_shift;
 
   const auto x = im.size();
@@ -115,7 +114,6 @@ calculate_vertical(
   __hack_ivdep
   for (auto i = size_type(0); i < x; ++i) {
     im_array_prv_weight[i] = ::utilz::constants::infinity<value_type>();
-    im_array_nxt_weight[i] = im.at(i, 1);
     mm_array_nxt_weight[i] = mm.at(i, 1);
   }
   for (auto k = size_type(1); k < x; ++k) {
@@ -136,7 +134,6 @@ calculate_vertical(
     for (auto i = size_type(0); i < im.size(); ++i) {
       im.at(i, k) = im_array_cur_weight[i];
 
-      im_array_nxt_weight[i] = im.at(i, k + 1);
       mm_array_nxt_weight[i] = mm.at(i, k + 1);
     }
     std::swap(im_array_prv_weight, im_array_cur_weight);
