@@ -230,20 +230,24 @@ run(
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
+            if (!input_positions.empty()) {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, input_positions)
 #endif
-            {
-              SCOPE_MEASURE_MILLISECONDS("VERT");
-              calculate_vertical(im, im, mm, input_positions);
+              {
+                SCOPE_MEASURE_MILLISECONDS("VERT");
+                calculate_vertical(im, im, mm, input_positions);
+              }
             }
 
+            if (!output_positions.empty()) {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, output_positions)
 #endif
-            {
-              SCOPE_MEASURE_MILLISECONDS("HORZ");
-              calculate_horizontal(mi, mm, mi, output_positions);
+              {
+                SCOPE_MEASURE_MILLISECONDS("HORZ");
+                calculate_horizontal(mi, mm, mi, output_positions);
+              }
             }
           }
         }
@@ -254,7 +258,7 @@ run(
           ? input_positions
           : output_positions;
 
-        if (min_positions.size() == 0)
+        if (min_positions.empty())
           continue;
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
