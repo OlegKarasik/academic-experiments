@@ -18,6 +18,7 @@
 #include "memory.hpp"
 #include "matrix.hpp"
 
+#include <omp.h>
 #include <thread>
 
 namespace utzmx = ::utilz::matrices;
@@ -90,41 +91,71 @@ calculate_diagonal(
   }
 }
 
-template<typename T, typename A>
+template<typename T, typename A, typename U>
 void
 calculate_vertical_fast(
   utzmx::rect_matrix<T, A>& im,
   utzmx::rect_matrix<T, A>& mm,
+  run_configuration<T, A, U>& run_config,
   auto bridges)
 {
-  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
+  using size_type  = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::value_type;
+  using pointer    = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
+
+#ifdef _OPENMP
+  auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
+#else
+  auto allocation_shift = 0;
+#endif
+
+  pointer im_array_prv_weight = run_config.mm_array_prv_col + allocation_shift;
+  pointer im_array_cur_weight = run_config.mm_array_cur_row + allocation_shift;
+  pointer mm_array_nxt_weight = run_config.mm_array_nxt_row + allocation_shift;
 
   const auto w = im.width();
   const auto h = im.height();
   const auto x = bridges[0];
 
+  __hack_ivdep
+  for (auto i = size_type(0); i < h; ++i) {
+    im_array_prv_weight[i] = im.at(i, x);
+    mm_array_nxt_weight[i] = mm.at(i, x + size_type(1));
+  }
   for (auto k = x + size_type(1); k < w; ++k) {
     const auto z = k - size_type(1);
     for (auto i = size_type(0); i < h; ++i) {
-      const auto iz = im.at(i, z);
+      const auto v = im_array_prv_weight[i];
 
       __hack_ivdep
       for (auto j = size_type(0); j < x; ++j)
-        im.at(i, j) = (std::min)(im.at(i, j), iz + mm.at(z, j));
+        im.at(i, j) = (std::min)(im.at(i, j), v + mm.at(z, j));
+
+      auto minimum = im.at(i, k);
 
       __hack_ivdep
       for (auto j = x; j < k; ++j) {
-        im.at(i, j) = (std::min)(im.at(i, j), iz + mm.at(z, j));
-        im.at(i, k) = (std::min)(im.at(i, k), im.at(i, j) + mm.at(j, k));
+        im.at(i, j) = (std::min)(im.at(i, j), v + mm.at(z, j));
+
+        minimum = (std::min)(minimum, im.at(i, j) + mm_array_nxt_weight[j]);
       }
+      im_array_cur_weight[i] = minimum;
     }
+    for (auto i = size_type(0); i < h; ++i) {
+      im.at(i, k) = im_array_cur_weight[i];
+
+      mm_array_nxt_weight[i] = mm.at(i, k + size_type(1));
+    }
+    std::swap(im_array_prv_weight, im_array_cur_weight);
   }
 
   const auto z = w - size_type(1);
   for (auto i = size_type(0); i < h; ++i) {
+    const auto v = im_array_prv_weight[i];
+
     __hack_ivdep
     for (auto j = size_type(0); j < z; ++j)
-      im.at(i, j) = (std::min)(im.at(i, j), im.at(i, z) + mm.at(z, j));
+      im.at(i, j) = (std::min)(im.at(i, j), v + mm.at(z, j));
   }
 };
 
@@ -354,28 +385,32 @@ run(
             if (input_positions.size() > output_positions.size()) {
               if (!input_positions.empty()) {
 #ifdef _OPENMP
+  #pragma omp task untied default(none) shared(im, mm, run_config, input_positions)
+#endif
+                {
+                  SCOPE_MEASURE_MILLISECONDS("VERT");
+                  calculate_vertical_fast(im, mm, run_config, input_positions);
+                }
+              }
+
+              if (!output_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(mi, mm, output_positions)
+#endif
+                {
+                  SCOPE_MEASURE_MILLISECONDS("HORZ");
+                  calculate_horizontal(mi, mm, mi, output_positions);
+                }
+              }
+            } else {
+              if (!input_positions.empty()) {
+#ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, input_positions)
 #endif
                 {
                   SCOPE_MEASURE_MILLISECONDS("VERT");
-                  calculate_vertical_fast(im, mm, input_positions);
+                  calculate_vertical(im, im, mm, input_positions);
                 }
-              }
-
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, output_positions)
-#endif
-              {
-                SCOPE_MEASURE_MILLISECONDS("HORZ");
-                calculate_horizontal(mi, mm, mi, output_positions);
-              }
-            } else {
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, input_positions)
-#endif
-              {
-                SCOPE_MEASURE_MILLISECONDS("VERT");
-                calculate_vertical(im, im, mm, input_positions);
               }
 
               if (!output_positions.empty()) {
@@ -397,7 +432,7 @@ run(
           ? input_positions
           : output_positions;
 
-        if (min_positions.size() == 0)
+        if (min_positions.empty())
           continue;
 
         for (auto i = size_type(0); i < blocks.size(); ++i) {
