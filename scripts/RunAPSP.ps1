@@ -6,9 +6,9 @@ param(
   [ValidateNotNullOrEmpty()]
   [string] $OutputDirectory = $(throw '-OutputDirectory parameter is required.'),
   [int]    $Repeat = 1,
-  [switch] $MeasureEnergy,
   [switch] $RunBase,
-  [switch] $RunProf
+  [switch] $RunProf,
+  [switch] $MeasureEnergy
 )
 # Constants
 #
@@ -157,6 +157,31 @@ $RunConfig | ForEach-Object {
             -DataPatterns 'Exec:\s+(\d+)ms' `
             -Output "cout-combined.txt" `
             -Default "0"
+
+          if ($Version.EndsWith('-stats')) {
+            # Here automatically collect the stats information
+            #
+            & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
+              -NamePattern "cout\.txt" `
+              -Groups 'PERH: \(Ttl\):cout-perh-ttl','PERH: \(Avg\):cout-perh-avg',`
+                      'HORZ: \(Ttl\):cout-horz-ttl','HORZ: \(Avg\):cout-horz-avg',`
+                      'VERT: \(Ttl\):cout-vert-ttl','VERT: \(Avg\):cout-vert-avg',`
+                      'DIAG: \(Ttl\):cout-diag-ttl','DIAG: \(Avg\):cout-diag-avg' `
+              -PrettyGroupMatchPatterns 'PERH: \(Ttl\)','PERH: \(Avg\)',`
+                                        'HORZ: \(Ttl\)','HORZ: \(Avg\)',`
+                                        'VERT: \(Ttl\)','VERT: \(Avg\)',`
+                                        'DIAG: \(Ttl\)','DIAG: \(Avg\)' `
+              -PrettyGroupReplacePatterns 'Peripheral Blocks Total (ms)','Peripheral Blocks Average (ms)',`
+                                          'Horizontal Blocks Total (ms)','Horizontal Blocks Average (ms)',`
+                                          'Vertical Blocks Total (ms)','Vertical Blocks Average (ms)',`
+                                          'Diagonal Blocks Total (ms)','Diagonal Blocks Average (ms)' `
+              -DataPatterns 'PERH:\s\(Ttl\):\s(\d+)ms','PERH:\s\(Avg\):\s(\d+)ms',`
+                            'HORZ:\s\(Ttl\):\s(\d+)ms','HORZ:\s\(Avg\):\s(\d+)ms',`
+                            'VERT:\s\(Ttl\):\s(\d+)ms','VERT:\s\(Avg\):\s(\d+)ms',`
+                            'DIAG:\s\(Ttl\):\s(\d+)ms','DIAG:\s\(Avg\):\s(\d+)ms' `
+              -Output "cout-combined.txt" `
+              -Default "0"
+          }
 
           if ($MeasureEnergy) {
             & $ComposeGroupResultsScript -TargetDirectory $ExperimentOutputDirectory `
