@@ -25,9 +25,17 @@ if ($Groups.Count -ne $DataPatterns.Count) {
 $Output = Join-Path -Path $TargetDirectory -ChildPath $Output -ErrorAction Stop;
 $Aliases = @($null) * $Groups.Length;
 for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
-  $Split = $Groups[$i] -split ':';
-  if ($Split.Length -eq 1) {
+  $SplitIndex = $Groups[$i].LastIndexOf(':');
+  if ($SplitIndex -eq ($Groups[$i].Length - 1)) {
+    throw "Invalid Group $($Groups[$i]). The group can't end with ':' symbol";
+  }
+  if ($SplitIndex -eq -1) {
     $Split += $Groups[$i];
+    $Split += $Groups[$i];
+  } else {
+    $Split = @($null) * 2;
+    $Split[0] = $Groups[$i].Substring(0, $SplitIndex);
+    $Split[1] = $Groups[$i].Substring($SplitIndex + 1);
   }
 
   $Groups[$i] = $Split[0];
