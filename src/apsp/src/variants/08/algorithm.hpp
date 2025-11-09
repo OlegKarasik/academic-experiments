@@ -100,7 +100,6 @@ calculate_vertical_fast(
   auto bridges)
 {
   using size_type  = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
-  using value_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::value_type;
   using pointer    = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
 
 #ifdef _OPENMP
@@ -120,6 +119,9 @@ calculate_vertical_fast(
   __hack_ivdep
   for (auto i = size_type(0); i < h; ++i) {
     im_array_prv_weight[i] = im.at(i, x);
+  }
+  __hack_ivdep
+  for (auto i = size_type(0); i < w; ++i) {
     mm_array_nxt_weight[i] = mm.at(i, x + size_type(1));
   }
   for (auto k = x + size_type(1); k < w; ++k) {
@@ -284,14 +286,16 @@ up_clusters(
         {
           utzmx::clusters_vertex_flag_none,
           utzmx::clusters_vertex_flag_output,
-          utzmx::clusters_vertex_flag_input
+          utzmx::clusters_vertex_flag_input,
+          utzmx::clusters_vertex_flag_input_output
         });
     } else {
       group.sort(
         {
           utzmx::clusters_vertex_flag_none,
           utzmx::clusters_vertex_flag_input,
-          utzmx::clusters_vertex_flag_output
+          utzmx::clusters_vertex_flag_output,
+          utzmx::clusters_vertex_flag_input_output
         });
     }
   }
