@@ -7,6 +7,7 @@ param(
   [ValidateNotNullOrEmpty()]
   [string] $ConnectionVertexPercentage = $(throw '-ConnectionVertexPercentage parameter is required'),
   [string] $ConnectionVertexBalance    = '',
+  [switch] $ConnectionVertexSymmetric,
   [ValidateNotNullOrEmpty()]
   [string] $OutputDirectory            = $(throw '-OutputDirectory parameter is required'),
   [string] $ToolsDirectory             = '',
@@ -79,6 +80,12 @@ if ($ConnectionVertexBalance -ne '') {
     throw "The '$ConnectionVertexBalance' value is invalid and must be either '' or '<in>/<out>' format"
   }
 
+  if ($ConnectionVertexSymmetric -eq $true) {
+    if ($balance_values[0] -ne $balance_values[1]) {
+      throw "When ConnectionVertexSymmetric switch is set, then ConnectionVertexBalance values must be identical (for instance, 5/5)"
+    }
+  }
+
   $ConnectionVertexInputPercentage  = [int]::Parse($balance_values[0]);
   $ConnectionVertexOutputPercentage = [int]::Parse($balance_values[1]);
 }
@@ -90,6 +97,9 @@ if ($ConnectionVertexOutputPercentage -gt 100) {
 }
 
 Write-Verbose -Message "CONNECTION VERTEX BALANCE    : $ConnectionVertexInputPercentage / $ConnectionVertexOutputPercentage" `
+              -ErrorAction Stop;
+
+Write-Verbose -Message "CONNECTION VERTEX SYMMETRIC  : $ConnectionVertexSymmetric" `
               -ErrorAction Stop;
 
 $ClustersConfig = Get-Content -Path $ClustersConfigPath -ErrorAction Stop -Raw `
@@ -237,14 +247,25 @@ $MeasureConnectionDeserialisation = Measure-Command {
   }
 
   $bridge_vertices_scan_index = 0;
-  for ($i = 0; $i -lt $MinimumClustersInputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
-    for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
-      $bridge_input_vertices[$j][$i] = $bridge_vertices[$j][$bridge_vertices_scan_index];
+  if ($ConnectionVertexSymmetric -eq $true) {
+    for ($i = 0; $i -lt $MinimumClustersInputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
+      for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
+        $vertex = $bridge_vertices[$j][$bridge_vertices_scan_index];
+
+        $bridge_input_vertices[$j][$i] = $vertex;
+        $bridge_output_vertices[$j][$i] = $vertex;
+      }
     }
-  }
-  for ($i = 0; $i -lt $MinimumClustersOutputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
-    for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
-      $bridge_output_vertices[$j][$i] = $bridge_vertices[$j][$bridge_vertices_scan_index];
+  } else {
+    for ($i = 0; $i -lt $MinimumClustersInputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
+      for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
+        $bridge_input_vertices[$j][$i] = $bridge_vertices[$j][$bridge_vertices_scan_index];
+      }
+    }
+    for ($i = 0; $i -lt $MinimumClustersOutputBridgeVertices; ++$i, ++$bridge_vertices_scan_index) {
+      for ($j = 0; $j -lt $ClustersConfig.Length; ++$j) {
+        $bridge_output_vertices[$j][$i] = $bridge_vertices[$j][$bridge_vertices_scan_index];
+      }
     }
   }
 
