@@ -81,25 +81,13 @@ public:
   }
 
   void
-  sort(const std::array<clusters_vertex_flag, 3> arrangements)
+  sort(const std::array<clusters_vertex_flag, 4> arrangements)
   {
     std::array<long, 4> orders = { 3, 3, 3, 3 };
     orders[arrangements[0]] = 0;
     orders[arrangements[1]] = 1;
     orders[arrangements[2]] = 2;
-
-    if (   arrangements[2] == clusters_vertex_flag_input
-        || arrangements[2] == clusters_vertex_flag_output) {
-      orders[clusters_vertex_flag_input_output] = 2;
-    }
-    if (   arrangements[1] == clusters_vertex_flag_input
-        || arrangements[1] == clusters_vertex_flag_output) {
-      orders[clusters_vertex_flag_input_output] = 1;
-    }
-    if (   arrangements[0] == clusters_vertex_flag_input
-        || arrangements[0] == clusters_vertex_flag_output) {
-      orders[clusters_vertex_flag_input_output] = 0;
-    }
+    orders[arrangements[3]] = 3;
 
     std::ranges::sort(
       this->m_vertices,
