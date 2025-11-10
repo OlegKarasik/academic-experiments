@@ -127,12 +127,13 @@ private:
   std::map<index_t, group>   m_groups;
   std::map<index_t, index_t> m_groups_lookup;
 
-  std::unordered_map<index_t, std::vector<index_t>> m_bridges;
-  std::unordered_map<index_t, std::vector<index_t>> m_bridges_input;
-  std::unordered_map<index_t, std::vector<index_t>> m_bridges_output;
-  std::unordered_map<index_t, std::vector<index_t>> m_bridges_position;
-  std::unordered_map<index_t, std::vector<index_t>> m_bridges_positions_input;
-  std::unordered_map<index_t, std::vector<index_t>> m_bridges_positions_output;
+  std::vector<bool> m_optimal;
+  std::vector<std::vector<index_t>> m_bridges;
+  std::vector<std::vector<index_t>> m_bridges_input;
+  std::vector<std::vector<index_t>> m_bridges_output;
+  std::vector<std::vector<index_t>> m_bridges_position;
+  std::vector<std::vector<index_t>> m_bridges_positions_input;
+  std::vector<std::vector<index_t>> m_bridges_positions_output;
 
 public:
   void
@@ -163,6 +164,7 @@ public:
 
   void
   optimise() {
+    this->m_optimal.clear();
     this->m_bridges.clear();
     this->m_bridges_input.clear();
     this->m_bridges_output.clear();
@@ -171,7 +173,20 @@ public:
     this->m_bridges_positions_input.clear();
     this->m_bridges_positions_output.clear();
 
+    auto size = this->m_groups.size();
+
+    this->m_optimal.resize(size);
+    this->m_bridges.resize(size);
+    this->m_bridges_input.resize(size);
+    this->m_bridges_output.resize(size);
+
+    this->m_bridges_position.resize(size);
+    this->m_bridges_positions_input.resize(size);
+    this->m_bridges_positions_output.resize(size);
+
     for (auto [key, group] : this->m_groups) {
+      bool optimal = true;
+
       std::vector<index_t> bridges;
       std::vector<index_t> bridges_input;
       std::vector<index_t> bridges_output;
@@ -186,6 +201,10 @@ public:
 
         if (std::get<clusters_vertex_flag>(v) == clusters_vertex_flag_none) {
           continue;
+        }
+
+        if (std::get<clusters_vertex_flag>(v) != clusters_vertex_flag_input_output) {
+          optimal = false;
         }
 
         const auto index    = std::get<index_t>(v);
@@ -204,13 +223,14 @@ public:
         }
       }
 
-      this->m_bridges.emplace(key, bridges);
-      this->m_bridges_input.emplace(key, bridges_input);
-      this->m_bridges_output.emplace(key, bridges_output);
+      this->m_optimal[key] = optimal;
+      this->m_bridges[key] = bridges;
+      this->m_bridges_input[key] = bridges_input;
+      this->m_bridges_output[key] = bridges_output;
 
-      this->m_bridges_position.emplace(key, bridges_positions);
-      this->m_bridges_positions_input.emplace(key, bridges_positions_input);
-      this->m_bridges_positions_output.emplace(key, bridges_positions_output);
+      this->m_bridges_position[key] = bridges_positions;
+      this->m_bridges_positions_input[key] = bridges_positions_input;
+      this->m_bridges_positions_output[key] = bridges_positions_output;
     }
   }
 
@@ -227,39 +247,45 @@ public:
   }
 
   auto
+  get_optimal(const index_t& group_idx) const
+  {
+    return this->m_optimal[group_idx];
+  }
+
+  auto
   get_all_bridges(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges.at(group_idx));
+    return std::views::all(this->m_bridges[group_idx]);
   }
 
   auto
   get_input_bridges(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_input.at(group_idx));
+    return std::views::all(this->m_bridges_input[group_idx]);
   }
 
   auto
   get_output_bridges(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_output.at(group_idx));
+    return std::views::all(this->m_bridges_output[group_idx]);
   }
 
   auto
   get_all_bridges_positions(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_position.at(group_idx));
+    return std::views::all(this->m_bridges_position[group_idx]);
   }
 
   auto
   get_input_bridges_positions(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_positions_input.at(group_idx));
+    return std::views::all(this->m_bridges_positions_input[group_idx]);
   }
 
   auto
   get_output_bridges_positions(const index_t& group_idx) const
   {
-    return std::views::all(this->m_bridges_positions_output.at(group_idx));
+    return std::views::all(this->m_bridges_positions_output[group_idx]);
   }
 };
 
