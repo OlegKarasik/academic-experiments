@@ -143,10 +143,15 @@ calculate_vertical_fast(
       }
       im_array_cur_weight[i] = minimum;
     }
+    __hack_ivdep
     for (auto i = size_type(0); i < h; ++i) {
       im.at(i, k) = im_array_cur_weight[i];
-
-      mm_array_nxt_weight[i] = mm.at(i, k + size_type(1));
+    }
+    if (k < (w - size_type(1))) {
+      __hack_ivdep
+      for (auto i = size_type(0); i < w; ++i) {
+        mm_array_nxt_weight[i] = mm.at(i, k + size_type(1));
+      }
     }
     std::swap(im_array_prv_weight, im_array_cur_weight);
   }
@@ -378,6 +383,7 @@ run(
           calculate_diagonal(mm, run_config);
         }
 
+        auto optimal = clusters.get_optimal(m);
         auto input_positions  = clusters.get_input_bridges_positions(m);
         auto output_positions = clusters.get_output_bridges_positions(m);
 
@@ -386,7 +392,7 @@ run(
             auto& im = blocks.at(i, m);
             auto& mi = blocks.at(m, i);
 
-            if (input_positions.size() > output_positions.size()) {
+            if (optimal) {
               if (!input_positions.empty()) {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm, run_config, input_positions)
@@ -396,27 +402,6 @@ run(
                   calculate_vertical_fast(im, mm, run_config, input_positions);
                 }
               }
-
-              if (!output_positions.empty()) {
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, output_positions)
-#endif
-                {
-                  SCOPE_MEASURE_MILLISECONDS("HORZ");
-                  calculate_horizontal(mi, mm, mi, output_positions);
-                }
-              }
-            } else {
-              if (!input_positions.empty()) {
-#ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, input_positions)
-#endif
-                {
-                  SCOPE_MEASURE_MILLISECONDS("VERT");
-                  calculate_vertical(im, im, mm, input_positions);
-                }
-              }
-
               if (!output_positions.empty()) {
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(mi, mm, output_positions)
@@ -424,6 +409,48 @@ run(
                 {
                   SCOPE_MEASURE_MILLISECONDS("HORZ");
                   calculate_horizontal_fast(mi, mm, output_positions);
+                }
+              }
+            } else {
+              if (input_positions.size() > output_positions.size()) {
+                if (!input_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(im, mm, run_config, input_positions)
+#endif
+                  {
+                    SCOPE_MEASURE_MILLISECONDS("VERT");
+                    calculate_vertical_fast(im, mm, run_config, input_positions);
+                  }
+                }
+
+                if (!output_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(mi, mm, output_positions)
+#endif
+                  {
+                    SCOPE_MEASURE_MILLISECONDS("HORZ");
+                    calculate_horizontal(mi, mm, mi, output_positions);
+                  }
+                }
+              } else {
+                if (!input_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(im, mm, input_positions)
+#endif
+                  {
+                    SCOPE_MEASURE_MILLISECONDS("VERT");
+                    calculate_vertical(im, im, mm, input_positions);
+                  }
+                }
+
+                if (!output_positions.empty()) {
+#ifdef _OPENMP
+  #pragma omp task untied default(none) shared(mi, mm, output_positions)
+#endif
+                  {
+                    SCOPE_MEASURE_MILLISECONDS("HORZ");
+                    calculate_horizontal_fast(mi, mm, output_positions);
+                  }
                 }
               }
             }
