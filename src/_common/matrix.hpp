@@ -184,8 +184,18 @@ public:
     this->m_bridges_positions_input.resize(size);
     this->m_bridges_positions_output.resize(size);
 
+    const int OPTIMAL_FLAG_INPUT_OUTPUT = 4;
+    const int OPTIMAL_FLAG_INPUT        = 2;
+    const int OPTIMAL_FLAG_OUTPUT       = 1;
+    const int OPTIMAL_FLAG_NONE         = 0;
+
+    const std::array<bool, 8> OPTIMAL_FLAGS_TABLE = {
+      false, false, false, false,
+      true,  true,  true,  false
+    };
+
     for (auto [key, group] : this->m_groups) {
-      bool optimal = true;
+      int bridges_flags = OPTIMAL_FLAG_NONE;
 
       std::vector<index_t> bridges;
       std::vector<index_t> bridges_input;
@@ -198,17 +208,21 @@ public:
       auto i = static_cast<index_t>(0);
       for (auto& v : group.list()) {
         const auto position = i++;
-
-        if (std::get<clusters_vertex_flag>(v) == clusters_vertex_flag_none) {
-          continue;
-        }
-
-        if (std::get<clusters_vertex_flag>(v) != clusters_vertex_flag_input_output) {
-          optimal = false;
-        }
-
         const auto index    = std::get<index_t>(v);
         const auto flag     = std::get<clusters_vertex_flag>(v);
+
+        switch (flag) {
+          case clusters_vertex_flag_none: continue;
+          case clusters_vertex_flag_input_output:
+            bridges_flags |= OPTIMAL_FLAG_INPUT_OUTPUT;
+            break;
+          case clusters_vertex_flag_input:
+            bridges_flags |= OPTIMAL_FLAG_INPUT;
+            break;
+          case clusters_vertex_flag_output:
+            bridges_flags |= OPTIMAL_FLAG_OUTPUT;
+            break;
+        }
 
         bridges.emplace_back(index);
         bridges_positions.emplace_back(position);
@@ -223,7 +237,8 @@ public:
         }
       }
 
-      this->m_optimal[key] = optimal;
+      this->m_optimal[key] = OPTIMAL_FLAGS_TABLE[bridges_flags];
+
       this->m_bridges[key] = bridges;
       this->m_bridges_input[key] = bridges_input;
       this->m_bridges_output[key] = bridges_output;
