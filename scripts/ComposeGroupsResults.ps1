@@ -30,8 +30,9 @@ for ($i = 0; $i -lt $Groups.Count; $i = $i + 1) {
     throw "Invalid Group $($Groups[$i]). The group can't end with ':' symbol";
   }
   if ($SplitIndex -eq -1) {
-    $Split += $Groups[$i];
-    $Split += $Groups[$i];
+    $Split = @($null) * 2;
+    $Split[0] += $Groups[$i];
+    $Split[1] += $Groups[$i];
   } else {
     $Split = @($null) * 2;
     $Split[0] = $Groups[$i].Substring(0, $SplitIndex);
