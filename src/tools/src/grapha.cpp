@@ -243,7 +243,6 @@ analyse_communities_intersections(
     auto pet = communities_pet.find(community.first);
 
     auto bv  = communities_bv.find(community.first);
-    auto bvi = communities_bvi.find(community.first);
     auto bvo = communities_bvo.find(community.first);
     auto be  = communities_be.find(community.first);
     auto ec  = communities_ec.find(community.first);
