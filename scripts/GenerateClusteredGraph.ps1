@@ -6,8 +6,8 @@ param(
   [string] $ConnectionEdgePercentage   = $(throw '-ConnectionEdgePercentage parameter is required'),
   [ValidateNotNullOrEmpty()]
   [string] $ConnectionVertexPercentage = $(throw '-ConnectionVertexPercentage parameter is required'),
-  [string] $ConnectionVertexBalance    = '',
-  [switch] $ConnectionVertexSymmetric,
+  [ValidateNotNullOrEmpty()]
+  [string] $ConnectionVertexBalance    = $(throw 'ConnectionVertexBalance parameter is required'),
   [ValidateNotNullOrEmpty()]
   [string] $OutputDirectory            = $(throw '-OutputDirectory parameter is required'),
   [string] $ToolsDirectory             = '',
@@ -18,7 +18,6 @@ param(
 Write-Verbose -Message "CLUSTERS CONFIG PATH         : $ClustersConfigPath" -ErrorAction Stop;
 Write-Verbose -Message "OUTPUT DIRECTORY             : $OutputDirectory" -ErrorAction Stop;
 Write-Verbose -Message "CONNECTION EDGE PERCENTAGE   : $ConnectionEdgePercentage" -ErrorAction Stop;
-Write-Verbose -Message "CONNECTION VERTEX PERCENTAGE : $ConnectionVertexPercentage" -ErrorAction Stop;
 Write-Verbose -Message "MIN WEIGHT                   : $MinWeight" -ErrorAction Stop;
 Write-Verbose -Message "MAX WEIGHT                   : $MaxWeight" -ErrorAction Stop;
 
@@ -68,44 +67,12 @@ if (-not (Test-Path -Path $GraphAnalysersExecutable -PathType Leaf -ErrorAction 
 };
 
 Write-Verbose -Message "TOOLS DIRECTORY              : $ToolsDirectory" -ErrorAction Stop;
-
-[int] $ConnectionVertexInputPercentage  = 100;
-[int] $ConnectionVertexOutputPercentage = 100;
-
-# Here we are parsing the balance value
-#
-if ($ConnectionVertexBalance -ne '') {
-  $balance_values = $ConnectionVertexBalance -split '/';
-  if ($balance_values.Length -ne 2) {
-    throw "The '$ConnectionVertexBalance' value is invalid and must be either '' or '<in>/<out>' format"
-  }
-
-  if ($ConnectionVertexSymmetric -eq $true) {
-    if ($balance_values[0] -ne $balance_values[1]) {
-      throw "When ConnectionVertexSymmetric switch is set, then ConnectionVertexBalance values must be identical (for instance, 5/5)"
-    }
-  }
-
-  $ConnectionVertexInputPercentage  = [int]::Parse($balance_values[0]);
-  $ConnectionVertexOutputPercentage = [int]::Parse($balance_values[1]);
-}
-if ($ConnectionVertexInputPercentage -gt 100) {
-  throw "It is impossible to generate more than $($ConnectionVertexInputPercentage)% of input vertices";
-}
-if ($ConnectionVertexOutputPercentage -gt 100) {
-  throw "It is impossible to generate more than $($ConnectionVertexOutputPercentage)% of output vertices";
-}
-
-Write-Verbose -Message "CONNECTION VERTEX BALANCE    : $ConnectionVertexInputPercentage / $ConnectionVertexOutputPercentage" `
-              -ErrorAction Stop;
-
-Write-Verbose -Message "CONNECTION VERTEX SYMMETRIC  : $ConnectionVertexSymmetric" `
-              -ErrorAction Stop;
+Write-Verbose -Message "CONNECTION VERTEX BALANCE    : $ConnectionVertexBalance" -ErrorAction Stop;
 
 $ClustersConfig = Get-Content -Path $ClustersConfigPath -ErrorAction Stop -Raw `
                 | ConvertFrom-Json -ErrorAction Stop -AsHashtable;
 
-# Pre-prcoess the input by generating random codes
+# Pre-process the input by generating random codes
 # and assigning start and end indexes
 #
 $ClustersCode = 0;
@@ -118,27 +85,60 @@ $ClustersConfig | ForEach-Object {
   $ClustersIndex += $_.Size;
 } -ErrorAction Stop;
 
-# Prepare connection vertices
+# Processing input related to balance of input and output vertices
 #
-[int] $MinimumClustersVertices             = $($ClustersConfig | Measure-Object -Property Size -Minimum).Minimum;
+function ParseConnectionVertexBalance {
+  param (
+    [string] $value
+  )
+  $split = $value -split '/';
+
+  if ($split.Length -ne 2) {
+    throw "The '$split' value is invalid and must be either '' or '<in>/<out>' format"
+  }
+
+  return @{
+    i = $split[0]
+    o = $split[1]
+  };
+};
+
+function CalculateConnectionVertexCount {
+  param(
+    [int] $max,
+    [int] $percent
+  )
+  return [int](($max * $percent) / 100);
+}
+
+function CalculateConnectionVertexBalanceCount {
+  param(
+    [int] $count,
+    [string] $balance
+  )
+
+  function GetBalanceValue {
+    param(
+      [string] $value
+    )
+    return [int]::Parse($value);
+  }
+
+  return [int](($count * $(GetBalanceValue $balance)) / 100);
+}
 
 # Prepare individual clusters configuration
 #
 $ClustersConfig | ForEach-Object {
-  [int]$MinimumBridgeVertices       = ($MinimumClustersVertices * $ConnectionVertexPercentage) / 100;
-  [int]$MinimumInputBridgeVertices  = ($MinimumBridgeVertices * $ConnectionVertexInputPercentage) / 100;
-  [int]$MinimumOutputBridgeVertices = ($MinimumBridgeVertices * $ConnectionVertexOutputPercentage) / 100;
+  $balance = ParseConnectionVertexBalance $ConnectionVertexBalance;
 
-  $_.MinimumBridgeVertices       = $MinimumBridgeVertices;
-  $_.MinimumInputBridgeVertices  = $MinimumInputBridgeVertices;
-  $_.MinimumOutputBridgeVertices = $MinimumOutputBridgeVertices;
+  $_.MinimumBridgeVertices       = CalculateConnectionVertexCount        $_.Size                  $ConnectionVertexPercentage;
+  $_.MinimumInputBridgeVertices  = CalculateConnectionVertexBalanceCount $_.MinimumBridgeVertices $balance.i;
+  $_.MinimumOutputBridgeVertices = CalculateConnectionVertexBalanceCount $_.MinimumBridgeVertices $balance.o;
 } -ErrorAction Stop;
 
 [int] $Index      = 0;
 [int] $EdgesCount = 0;
-
-$VertexConnectionCounts = [int[]]::new($ClustersIndex);
-$VertexConnections      = [System.Collections.Generic.Dictionary[int,System.Collections.Generic.List[int]]]::new($ClustersIndex);
 
 $MeasureClustersGeneration = Measure-Command {
   # Generate cluster.* files based on the input information
@@ -203,9 +203,6 @@ $MeasureClustersDeserialisation = Measure-Command {
         $EdgesY[$EdgesLineIndex] = $__Y;
 
         $EdgesLineIndex = $EdgesLineIndex + 1;
-
-        $VertexConnectionCounts[$__X] = $VertexConnectionCounts[$__X] + 1;
-        $VertexConnectionCounts[$__Y] = $VertexConnectionCounts[$__Y] + 1;
     }
     $stream.Close()
 
@@ -325,9 +322,6 @@ $MeasureConnectionDeserialisation = Measure-Command {
         $EdgesY[$EdgesLineIndex] = $y_input  + $y_clusters_config.IndexShift;
 
         $EdgesLineIndex = $EdgesLineIndex + 1;
-
-        $VertexConnectionCounts[$y_input] = $VertexConnectionCounts[$y_input]   + 1;
-        $VertexConnectionCounts[$x_output] = $VertexConnectionCounts[$x_output] + 1;
       } -ErrorAction Stop;
     } -ErrorAction Stop;
     $y_bridge_output_vertices | ForEach-Object {
@@ -340,82 +334,11 @@ $MeasureConnectionDeserialisation = Measure-Command {
         $EdgesY[$EdgesLineIndex] = $x_input  + $x_clusters_config.IndexShift;
 
         $EdgesLineIndex = $EdgesLineIndex + 1;
-
-        $VertexConnectionCounts[$x_input] = $VertexConnectionCounts[$x_input]   + 1;
-        $VertexConnectionCounts[$y_output] = $VertexConnectionCounts[$y_output] + 1;
       } -ErrorAction Stop;
     } -ErrorAction Stop;
   }
 } -ErrorAction Stop;
 Write-Verbose "[Connection Deserialization Completed] $($MeasureConnectionDeserialisation.TotalSeconds)" -ErrorAction Stop;
-
-$MeasureStateVerification = Measure-Command {
-  $EdgesIntegrityX = [System.Collections.Generic.HashSet[int]]::new($EdgesX)
-  $EdgesIntegrityY = [System.Collections.Generic.HashSet[int]]::new($EdgesY)
-
-  if (($EdgesIntegrityX.Count -ne $Index) -or ($EdgesIntegrityY.Count -ne $Index)) {
-    Write-Verbose "$($EdgesIntegrityX.Count) -> $Index" -ErrorAction Stop;
-    Write-Verbose "$($EdgesIntegrityY.Count) -> $Index" -ErrorAction Stop;
-
-    throw 'There is a mistake in the edges generation. The number of unique vertices doesn''t match';
-  }
-} -ErrorAction Stop;
-Write-Verbose "[State Verified] $($MeasureStateVerification.TotalSeconds)" -ErrorAction Stop;
-
-$MeasureCacheEdgePositions = Measure-Command {
-  for ($i = 0; $i -lt $VertexConnectionCounts.Length; ++$i) {
-    $VertexConnections[$i] = [System.Collections.Generic.List[int]]::new($VertexConnectionCounts[$i]);
-  }
-  for ($i = 0; $i -lt $EdgesLineIndex; ++$i) {
-    $X = $EdgesX[$i];
-    $Y = $EdgesY[$i];
-
-    $VertexConnections[$X].Add($i);
-    $VertexConnections[$Y].Add($i);
-  }
-} -ErrorAction Stop;
-Write-Verbose "[Edges Cache Generated] $($MeasureCacheEdgePositions.TotalSeconds)" -ErrorAction Stop;
-
-# Randomise vertex values by performing random replacements
-#
-$MeasureShuffle = Measure-Command {
-  $ShuffleSet = [System.Collections.Generic.HashSet[int]]::new();
-  $RandomIterations = [System.Random]::Shared.NextInt64(($Index * 0.20), ($Index * 0.60));
-  for ($i = 0; $i -lt $RandomIterations; ++$i) {
-    $O = [System.Random]::Shared.NextInt64(0, $Index);
-    $R = [System.Random]::Shared.NextInt64(0, $Index);
-
-    if ($O -eq $R) {
-      continue;
-    };
-
-    if (($ShuffleSet.Add($O) -eq $false) -or ($ShuffleSet.Add($R) -eq $false)) {
-      continue;
-    }
-
-    $X = $ClustersConfig | Where-Object { ($_.IndexShift -le $O) -and (($_.IndexShift + $_.Size) -gt $O) } | Select-Object -First 1;
-    $Y = $ClustersConfig | Where-Object { ($_.IndexShift -le $R) -and (($_.IndexShift + $_.Size) -gt $R) } | Select-Object -First 1;
-
-    if (($X.IndexShift) -eq ($Y.IndexShift)) {
-      continue;
-    }
-
-    $ListX = $VertexConnections[$O];
-    $ListY = $VertexConnections[$R];
-
-    for ($j = 0; $j -lt $ListX.Count; ++$j) {
-      $vertex = $ListX[$j];
-      if ($EdgesX[$vertex] -eq $O) { $EdgesX[$vertex] = $R; } elseif ($EdgesX[$vertex] -eq $R) { $EdgesX[$vertex] = $O; }
-      if ($EdgesY[$vertex] -eq $O) { $EdgesY[$vertex] = $R; } elseif ($EdgesY[$vertex] -eq $R) { $EdgesY[$vertex] = $O; }
-    }
-    for ($j = 0; $j -lt $ListY.Count; ++$j) {
-      $vertex = $ListY[$j];
-      if ($EdgesX[$vertex] -eq $O) { $EdgesX[$vertex] = $R; } elseif ($EdgesX[$vertex] -eq $R) { $EdgesX[$vertex] = $O; }
-      if ($EdgesY[$vertex] -eq $O) { $EdgesY[$vertex] = $R; } elseif ($EdgesY[$vertex] -eq $R) { $EdgesY[$vertex] = $O; }
-    }
-  }
-} -ErrorAction Stop;
-Write-Verbose "[Shuffle Completed] $($MeasureShuffle.TotalSeconds)" -ErrorAction Stop;
 
 $MeasureStateVerification = Measure-Command {
   $EdgesIntegrityX = [System.Collections.Generic.HashSet[int]]::new($EdgesX)
