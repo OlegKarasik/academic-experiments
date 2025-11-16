@@ -91,19 +91,48 @@ function ParseConnectionVertexBalance {
   param (
     [string] $value
   )
-  $split = $value -split '/';
 
-  if ($split.Length -ne 2) {
-    throw "The '$split' value is invalid and must be either '' or '<in>/<out>' format"
+  function GetBalanceValue {
+    param(
+      [string] $value
+    )
+    if ($value.StartsWith('R')) {
+      if ($value -eq 'R') {
+        return [int]([System.Random]::Shared.Next(0, 100));
+      }
+    }
+    return [int]::Parse($value);
   }
 
-  return @{
-    i = $split[0]
-    o = $split[1]
+  $split = $value -split '/';
+
+  if (($split.Length -ne 2) -and (($split.Length -ne 3) -or ($split[2] -ne 'E'))) {
+    throw "The '$split' value is invalid and must be '<in>/<out>' or '<in>/<out>/E format"
+  }
+  $overflow = $split.Length -eq 3;
+
+  $result = @{
+    i  = GetBalanceValue $split[0]
+    o  = GetBalanceValue $split[1]
+    io = 0
   };
+  Write-Verbose "$($result.i) / $($result.o)"
+  if (($result.i + $result.o) -gt 100) {
+    $delta = $result.i + $result.o - 100;
+    if ($result.i -gt $result.o) {
+      $result.i  = 100 - $result.o;
+    } else {
+      $result.o  = 100 - $result.i;
+    }
+    if ($overflow) {
+      $min = [System.Math]::Min($result.i, $result.o);
+      $result.io = $min -lt $delta ? $min : $delta;
+    }
+  }
+  return $result;
 };
 
-function CalculateConnectionVertexCount {
+function CalculatePercent {
   param(
     [int] $max,
     [int] $percent
@@ -111,30 +140,23 @@ function CalculateConnectionVertexCount {
   return [int](($max * $percent) / 100);
 }
 
-function CalculateConnectionVertexBalanceCount {
-  param(
-    [int] $count,
-    [string] $balance
-  )
-
-  function GetBalanceValue {
-    param(
-      [string] $value
-    )
-    return [int]::Parse($value);
-  }
-
-  return [int](($count * $(GetBalanceValue $balance)) / 100);
-}
-
 # Prepare individual clusters configuration
 #
 $ClustersConfig | ForEach-Object {
   $balance = ParseConnectionVertexBalance $ConnectionVertexBalance;
 
-  $_.MinimumBridgeVertices       = CalculateConnectionVertexCount        $_.Size                  $ConnectionVertexPercentage;
-  $_.MinimumInputBridgeVertices  = CalculateConnectionVertexBalanceCount $_.MinimumBridgeVertices $balance.i;
-  $_.MinimumOutputBridgeVertices = CalculateConnectionVertexBalanceCount $_.MinimumBridgeVertices $balance.o;
+  $_.MinimumBridgeVertices           = CalculatePercent $_.Size                  $ConnectionVertexPercentage;
+  $_.MinimumInputBridgeVertices      = CalculatePercent $_.MinimumBridgeVertices $balance.i;
+  $_.MinimumOutputBridgeVertices     = CalculatePercent $_.MinimumBridgeVertices $balance.o;
+  $_.MinimumInputOutputBridgeVertice = CalculatePercent $_.MinimumBridgeVertices $balance.io;
+
+  Write-Verbose -Message $("[$($_.Size)/" +
+                            "$($_.MinimumBridgeVertices)/" +
+                            "$($_.MinimumInputBridgeVertices):" +
+                            "$($_.MinimumOutputBridgeVertices):" +
+                            "$($_.MinimumInputOutputBridgeVertice)" +
+                           "]: $($balance.i) / $($balance.o)") `
+                -ErrorAction Stop;
 } -ErrorAction Stop;
 
 [int] $Index      = 0;
@@ -250,27 +272,25 @@ $MeasureConnectionDeserialisation = Measure-Command {
     $bridge_vertices_set.CopyTo($bridge_vertices[$i]);
   }
 
-  if ($ConnectionVertexSymmetric -eq $true) {
-    for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
-      $clusters_config = $ClustersConfig[$i];
-      for ($j = 0; $j -lt $clusters_config.MinimumInputBridgeVertices; ++$j) {
-        $vertex = $bridge_vertices[$i][$j];
-
-        $bridge_input_vertices[$i][$j] = $vertex;
-        $bridge_output_vertices[$i][$j] = $vertex;
-      }
+  for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
+    $clusters_config = $ClustersConfig[$i];
+    for ($j = 0; $j -lt $clusters_config.MinimumInputBridgeVertices; ++$j) {
+      $bridge_input_vertices[$i][$j] = $bridge_vertices[$i][$j];
     }
-  } else {
-    for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
-      $clusters_config = $ClustersConfig[$i];
-      for ($j = 0; $j -lt $clusters_config.MinimumInputBridgeVertices; ++$j) {
-        $bridge_input_vertices[$i][$j] = $bridge_vertices[$i][$j];
-      }
+  }
+  for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
+    $clusters_config = $ClustersConfig[$i];
+    for ($j = 0; $j -lt $clusters_config.MinimumOutputBridgeVertices; ++$j) {
+      $bridge_output_vertices[$i][$j] = $bridge_vertices[$i][$clusters_config.MinimumInputBridgeVertices + $j];
     }
-    for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
-      $clusters_config = $ClustersConfig[$i];
-      for ($j = 0; $j -lt $clusters_config.MinimumOutputBridgeVertices; ++$j) {
-        $bridge_output_vertices[$i][$j] = $bridge_vertices[$i][$clusters_config.MinimumInputBridgeVertices + $j];
+  }
+  for ($i = 0; $i -lt $ClustersConfig.Length; ++$i) {
+    $clusters_config = $ClustersConfig[$i];
+    if ($clusters_config.MinimumInputOutputBridgeVertice -ne 0) {
+      if ($clusters_config.MinimumInputBridgeVertices -lt $clusters_config.MinimumOutputBridgeVertices) {
+        [System.Array]::Copy($bridge_input_vertices[$i], 0, $bridge_output_vertices[$i], 0, $clusters_config.MinimumInputOutputBridgeVertice);
+      } else {
+        [System.Array]::Copy($bridge_output_vertices[$i], 0, $bridge_input_vertices[$i], 0, $clusters_config.MinimumInputOutputBridgeVertice);
       }
     }
   }
