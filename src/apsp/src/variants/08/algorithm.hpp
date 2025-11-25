@@ -28,9 +28,9 @@ struct run_configuration
 {
   using pointer = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
 
-  pointer mm_array_cur_row;
-  pointer mm_array_prv_col;
   pointer mm_array_cur_col;
+  pointer mm_array_prv_col;
+  pointer mm_array_cur_row;
   pointer mm_array_nxt_row;
 
   size_t allocation_line;
@@ -179,37 +179,53 @@ calculate_vertical(
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
 
-  for (auto k : bridges)
-    for (auto i = size_type(0); i < ij_h; ++i)
+  for (auto i = size_type(0); i < ij_h; ++i)
+    for (auto k : bridges)
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
 
-template<typename T, typename A>
+template<typename T, typename A, typename U>
 void
 calculate_horizontal_fast(
   utzmx::rect_matrix<T, A>& mi,
   utzmx::rect_matrix<T, A>& mm,
+  run_configuration<T, A, U>& run_config,
   auto bridges)
 {
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
+  using pointer    = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
+
+#ifdef _OPENMP
+  auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
+#else
+  auto allocation_shift = 0;
+#endif
+
+  pointer mm_array_nxt_weight = run_config.mm_array_cur_col + allocation_shift;
 
   const auto w = mi.width();
   const auto h = mm.height();
   const auto x = bridges[0];
 
-  for (auto k = x + size_type(1); k < h; ++k) {
-    auto const z = k - size_type(1);
-    for (auto i = size_type(0); i < x; ++i) {
+  for (auto i = size_type(0); i < x; ++i) {
+    for (auto k = x + size_type(1), z = x; k < h; ++k, ++z) {
       const auto iz = mm.at(i, z);
 
       __hack_ivdep
       for (auto j = size_type(0); j < w; ++j)
         mi.at(i, j) = (std::min)(mi.at(i, j), iz + mi.at(z, j));
     }
+  }
+
+  __hack_ivdep
+  for (auto i = size_type(0); i <= x; ++i)
+    mm_array_nxt_weight[i] = mm.at(i, h - 1);
+
+  for (auto k = x + size_type(1), z = x; k < h; ++k, ++z) {
     for (auto i = x; i < k; ++i) {
-      const auto iz = mm.at(i, z);
+      const auto iz = mm_array_nxt_weight[i];
       const auto ki = mm.at(k, i);
 
       __hack_ivdep
@@ -218,6 +234,10 @@ calculate_horizontal_fast(
         mi.at(k, j) = (std::min)(mi.at(k, j), ki + mi.at(i, j));
       }
     }
+
+    __hack_ivdep
+    for (auto i = x; i < k; ++i)
+      mm_array_nxt_weight[i] = mm.at(i, k);
   }
 
   const auto z = h - size_type(1);
@@ -243,8 +263,8 @@ calculate_horizontal(
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
 
-  for (auto k : bridges)
-    for (auto i = size_type(0); i < ij_h; ++i)
+  for (auto i = size_type(0); i < ij_h; ++i)
+    for (auto k : bridges)
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
@@ -323,8 +343,8 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = abstract.size();
-  auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
+  auto allocation_line = abstract.size() * 3;
+  auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx * 3;
 
   run_config.allocation_line = allocation_line;
   run_config.allocation_size = allocation_size;
@@ -404,11 +424,11 @@ run(
               }
               if (!output_positions.empty()) {
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, output_positions)
+  #pragma omp task untied default(none) shared(mi, mm, run_config, output_positions)
 #endif
                 {
                   SCOPE_MEASURE_MILLISECONDS("HORZ");
-                  calculate_horizontal_fast(mi, mm, output_positions);
+                  calculate_horizontal_fast(mi, mm, run_config, output_positions);
                 }
               }
             } else {
@@ -445,11 +465,11 @@ run(
 
                 if (!output_positions.empty()) {
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, output_positions)
+  #pragma omp task untied default(none) shared(mi, mm, run_config, output_positions)
 #endif
                   {
                     SCOPE_MEASURE_MILLISECONDS("HORZ");
-                    calculate_horizontal_fast(mi, mm, output_positions);
+                    calculate_horizontal_fast(mi, mm, run_config, output_positions);
                   }
                 }
               }
