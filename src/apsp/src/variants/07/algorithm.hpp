@@ -98,8 +98,8 @@ calculate_vertical(
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
 
-  for (auto k : bridges)
-    for (auto i = size_type(0); i < ij_h; ++i)
+  for (auto i = size_type(0); i < ij_h; ++i)
+    for (auto k : bridges)
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
@@ -118,8 +118,8 @@ calculate_horizontal(
   const auto ij_w = ij.width();
   const auto ij_h = ij.height();
 
-  for (auto k : bridges)
-    for (auto i = size_type(0); i < ij_h; ++i)
+  for (auto i = size_type(0); i < ij_h; ++i)
+    for (auto k : bridges)
       __hack_ivdep
       for (auto j = size_type(0); j < ij_w; ++j)
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
