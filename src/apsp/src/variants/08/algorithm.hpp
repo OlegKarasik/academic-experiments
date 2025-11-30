@@ -32,9 +32,11 @@ struct run_configuration
   pointer mm_array_prv_col;
   pointer mm_array_cur_row;
   pointer mm_array_nxt_row;
+  pointer mm_cp;
 
   size_t allocation_line;
   size_t allocation_size;
+  size_t allocation_cp_size;
 };
 
 template<typename T, typename A, typename U>
@@ -99,35 +101,22 @@ calculate_vertical_fast(
   run_configuration<T, A, U>& run_config,
   auto bridges)
 {
-  using size_type  = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
-  using pointer    = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
+  using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
+  using pointer   = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::pointer;
 
-#ifdef _OPENMP
-  auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
-#else
-  auto allocation_shift = 0;
-#endif
 
-  pointer im_array_prv_weight = run_config.mm_array_prv_col + allocation_shift;
-  pointer im_array_cur_weight = run_config.mm_array_cur_row + allocation_shift;
-  pointer mm_array_nxt_weight = run_config.mm_array_nxt_row + allocation_shift;
+  auto mm_cp               = run_config.mm_cp;
 
   const auto w = im.width();
   const auto h = im.height();
   const auto x = bridges[0];
 
-  __hack_ivdep
   for (auto i = size_type(0); i < h; ++i) {
-    im_array_prv_weight[i] = im.at(i, x);
-  }
-  __hack_ivdep
-  for (auto i = size_type(0); i < w; ++i) {
-    mm_array_nxt_weight[i] = mm.at(i, x + size_type(1));
-  }
-  for (auto k = x + size_type(1); k < w; ++k) {
-    const auto z = k - size_type(1);
-    for (auto i = size_type(0); i < h; ++i) {
-      const auto v = im_array_prv_weight[i];
+    for (auto k = x + size_type(1); k < w; ++k) {
+      auto mm_cp_row = reinterpret_cast<pointer>(&mm_cp[k * mm.width()]);
+
+      const auto z = k - size_type(1);
+      const auto v = im.at(i, z);//im_array_prv_weight[i];
 
       __hack_ivdep
       for (auto j = size_type(0); j < x; ++j)
@@ -139,26 +128,15 @@ calculate_vertical_fast(
       for (auto j = x; j < k; ++j) {
         im.at(i, j) = (std::min)(im.at(i, j), v + mm.at(z, j));
 
-        minimum = (std::min)(minimum, im.at(i, j) + mm_array_nxt_weight[j]);
+        minimum = (std::min)(minimum, im.at(i, j) + mm_cp_row[j]);
       }
-      im_array_cur_weight[i] = minimum;
+      im.at(i, k) = minimum;
     }
-    __hack_ivdep
-    for (auto i = size_type(0); i < h; ++i) {
-      im.at(i, k) = im_array_cur_weight[i];
-    }
-    if (k < (w - size_type(1))) {
-      __hack_ivdep
-      for (auto i = size_type(0); i < w; ++i) {
-        mm_array_nxt_weight[i] = mm.at(i, k + size_type(1));
-      }
-    }
-    std::swap(im_array_prv_weight, im_array_cur_weight);
   }
 
   const auto z = w - size_type(1);
   for (auto i = size_type(0); i < h; ++i) {
-    const auto v = im_array_prv_weight[i];
+    const auto v = im.at(i, z);
 
     __hack_ivdep
     for (auto j = size_type(0); j < z; ++j)
@@ -343,21 +321,37 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = abstract.size() * 3;
-  auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx * 3;
+  auto& matrix = abstract.matrix();
 
-  run_config.allocation_line = allocation_line;
-  run_config.allocation_size = allocation_size;
-  run_config.mm_array_cur_row = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.mm_array_prv_col = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.mm_array_cur_col = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.mm_array_nxt_row = reinterpret_cast<T*>(b.allocate(allocation_size));
+  auto allocation_line = size_type(0);
+  for (auto i = size_type(0); i < matrix.size(); ++i) {
+    auto& block = matrix.at(i, i);
 
-  for (size_type i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
+    // The block is square (because it is on the diagonal)
+    //
+    allocation_line = std::max({ allocation_line, block.width() });
+  }
+
+  auto allocation_size     = allocation_line * sizeof(value_type) * allocation_mulx;
+  auto allocation_cp_size  = allocation_line * allocation_line * sizeof(value_type);
+
+  run_config.allocation_line    = allocation_line;
+  run_config.allocation_size    = allocation_size;
+  run_config.allocation_cp_size = allocation_cp_size;
+  run_config.mm_cp              = reinterpret_cast<T*>(b.allocate(allocation_cp_size));
+  run_config.mm_array_cur_row   = reinterpret_cast<T*>(b.allocate(allocation_size));
+  run_config.mm_array_prv_col   = reinterpret_cast<T*>(b.allocate(allocation_size));
+  run_config.mm_array_cur_col   = reinterpret_cast<T*>(b.allocate(allocation_size));
+  run_config.mm_array_nxt_row   = reinterpret_cast<T*>(b.allocate(allocation_size));
+
+  for (auto i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
     run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
     run_config.mm_array_nxt_row[i] = ::utilz::constants::infinity<value_type>();
+  }
+  for (auto i = size_type(0); i < allocation_line * allocation_line; ++i) {
+    run_config.mm_cp[i] = ::utilz::constants::infinity<value_type>();
   }
 };
 
@@ -371,6 +365,7 @@ down(
 {
   using alptr_type = typename ::utilz::memory::buffer::pointer;
 
+  b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_cp)          , run_config.allocation_cp_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_row), run_config.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_prv_col), run_config.allocation_size);
   b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_col), run_config.allocation_size);
@@ -401,6 +396,10 @@ run(
         {
           SCOPE_MEASURE_MILLISECONDS("DIAG");
           calculate_diagonal(mm, run_config);
+
+          for (auto i = size_type(0); i < mm.height(); ++i)
+            for (auto j = size_type(0); j < mm.width(); ++j)
+              run_config.mm_cp[i * mm.width() + j] = mm.at(j, i);
         }
 
         auto optimal = clusters.get_optimal(m);
