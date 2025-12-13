@@ -104,8 +104,7 @@ calculate_vertical_fast(
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
   using pointer   = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::pointer;
 
-
-  auto mm_cp               = run_config.mm_cp;
+  auto mm_cp = run_config.mm_cp;
 
   const auto w = im.width();
   const auto h = im.height();
@@ -116,7 +115,7 @@ calculate_vertical_fast(
       auto mm_cp_row = reinterpret_cast<pointer>(&mm_cp[k * mm.width()]);
 
       const auto z = k - size_type(1);
-      const auto v = im.at(i, z);//im_array_prv_weight[i];
+      const auto v = im.at(i, z);
 
       __hack_ivdep
       for (auto j = size_type(0); j < x; ++j)
@@ -173,15 +172,9 @@ calculate_horizontal_fast(
   auto bridges)
 {
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
-  using pointer    = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
+  using pointer   = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
 
-#ifdef _OPENMP
-  auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
-#else
-  auto allocation_shift = 0;
-#endif
-
-  pointer mm_array_nxt_weight = run_config.mm_array_cur_col + allocation_shift;
+  auto mm_cp = run_config.mm_cp;
 
   const auto w = mi.width();
   const auto h = mm.height();
@@ -197,13 +190,11 @@ calculate_horizontal_fast(
     }
   }
 
-  __hack_ivdep
-  for (auto i = size_type(0); i <= x; ++i)
-    mm_array_nxt_weight[i] = mm.at(i, h - 1);
-
   for (auto k = x + size_type(1), z = x; k < h; ++k, ++z) {
+    auto mm_cp_row = reinterpret_cast<pointer>(&mm_cp[z * mm.width()]);
+
     for (auto i = x; i < k; ++i) {
-      const auto iz = mm_array_nxt_weight[i];
+      const auto iz = mm_cp_row[i];
       const auto ki = mm.at(k, i);
 
       __hack_ivdep
@@ -212,10 +203,6 @@ calculate_horizontal_fast(
         mi.at(k, j) = (std::min)(mi.at(k, j), ki + mi.at(i, j));
       }
     }
-
-    __hack_ivdep
-    for (auto i = x; i < k; ++i)
-      mm_array_nxt_weight[i] = mm.at(i, k);
   }
 
   const auto z = h - size_type(1);
