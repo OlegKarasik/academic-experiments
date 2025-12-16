@@ -162,8 +162,18 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = abstract.size();
-  auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
+  auto& matrix = abstract.matrix();
+
+  auto allocation_line = size_type(0);
+  for (auto i = size_type(0); i < matrix.size(); ++i) {
+    auto& block = matrix.at(i, i);
+
+    // The block is square (because it is on the diagonal)
+    //
+    allocation_line = std::max({ allocation_line, block.width() });
+  }
+
+  auto allocation_size     = allocation_line * sizeof(value_type) * allocation_mulx;
 
   run_config.allocation_line = allocation_line;
   run_config.allocation_size = allocation_size;
