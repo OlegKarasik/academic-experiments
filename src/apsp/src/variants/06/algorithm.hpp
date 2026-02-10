@@ -28,7 +28,7 @@ void
 up(
   utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
   utilz::memory::buffer& b,
-  run_configuration<T>& run_config)
+  run_configuration<T, A>& run_config)
 {
   auto library_name  = NS::String::string("_algorithm-v06-metal.metallib", NS::ASCIIStringEncoding);
   auto function_name = NS::String::string("calculate", NS::ASCIIStringEncoding);
@@ -65,7 +65,7 @@ void
 down(
   utzmx::matrix_abstract<utzmx::square_matrix<T, A>>& m,
   utilz::memory::buffer& b,
-  run_configuration<T>& run_config)
+  run_configuration<T, A>& run_config)
 {
   run_config.command_queue->release();
   run_config.pipeline_state->release();
@@ -77,7 +77,7 @@ __hack_noinline
 void
 run(
   utzmx::square_matrix<T, A>& m,
-  run_configuration<T>& run_config)
+  run_configuration<T, A>& run_config)
 {
   using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
 
