@@ -42,7 +42,7 @@
             ],
             "configurationProvider": "ms-vscode.cmake-tools",
             "macFrameworkPath": [
-                "/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
             ]
         }
     ],

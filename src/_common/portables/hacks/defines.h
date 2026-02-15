@@ -4,25 +4,38 @@
 #define _INTEL_COMPILER
 #endif
 
-#ifdef _INTEL_COMPILER
+// __hack_noinline
+
+#if defined(_INTEL_COMPILER)
 #define __hack_noinline __declspec(noinline)
-#else
+#elif defined(__clang__)
 #define __hack_noinline __attribute__((noinline))
-#endif
-
-#ifdef _INTEL_COMPILER
+#elif defined(__GNUC__)
+#define __hack_noinline __attribute__((noinline))
 #else
-#define __hack_nounroll _Pragma("GCC unroll 1")
+#define __hack_noinline
 #endif
 
-#ifdef _INTEL_COMPILER
+// __hack_noexcept
+
+#if defined(_INTEL_COMPILER)
 #define __hack_noexcept
-#else
+#elif defined(__clang__)
 #define __hack_noexcept noexcept
+#elif defined(__GNUC__)
+#define __hack_noexcept noexcept
+#else
+#define __hack_noexcept
 #endif
 
-#ifdef _INTEL_COMPILER
+// __hack_ivdep
+
+#if defined(_INTEL_COMPILER)
 #define __hack_ivdep _Pragma("ivdep")
-#else
+#elif defined(__clang__)
+#define __hack_ivdep _Pragma("clang loop vectorize(assume_safety)")
+#elif defined(__GNUC__)
 #define __hack_ivdep _Pragma("GCC ivdep")
+#else
+#define __hack_ivdep
 #endif

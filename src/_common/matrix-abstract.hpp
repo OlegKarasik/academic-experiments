@@ -234,7 +234,7 @@ private:
   using matrix_reference = S&;
 
 protected:
-  const matrix_reference m_matrix;
+  matrix_reference m_matrix;
 
 protected:
   std::tuple<size_type, size_type>
