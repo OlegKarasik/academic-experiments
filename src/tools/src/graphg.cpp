@@ -181,6 +181,10 @@ main(int argc, char* argv[])
     std::cerr << "erro: the -o parameter is required";
     return 1;
   }
+  if (opt_output_format == utilz::graphs::io::graph_format::graph_fmt_none) {
+    std::cerr << "erro: the -O parameter is required";
+    return 1;
+  }
   if (opt_algorithm == OPT_ALGORITHM_NONE) {
     std::cerr << "erro: the -a parameter is required";
     return 1;
