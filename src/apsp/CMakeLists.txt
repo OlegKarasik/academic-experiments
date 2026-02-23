@@ -253,6 +253,7 @@ list(APPEND stats_targets "08-stats")
 #
 if (APPLE)
   list(APPEND metal_targets "06-metal")
+  list(APPEND metal_targets "09-metal")
 endif()
 
 # Initialise Kernel compatible targets (Windows & Kernel)
@@ -278,6 +279,7 @@ endif()
 if (ITT_FOUND)
   if (APPLE)
     list(APPEND itt_metal_targets "06-metal-itt")
+    list(APPEND itt_metal_targets "09-metal-itt")
   endif()
 
   if (WIN32 AND KERNEL_FOUND AND VS_FOUND)
