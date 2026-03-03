@@ -13,6 +13,18 @@ namespace utilz {
 namespace matrices {
 namespace io {
 
+template<typename S>
+struct scan_matrix_params
+{
+  ::utilz::graphs::io::graph_format graph_format;
+  std::istream&                     graph_stream;
+
+  ::utilz::communities::io::communities_format communities_format;
+  std::istream&                                communities_stream;
+
+  ::utilz::matrices::traits::matrix_traits<S>::size_type block_size;
+};
+
 template<typename T, typename A>
 void
 scan_matrix(

@@ -22,7 +22,10 @@ enum matrix_access_schema
 template<typename S>
 class matrix_dimensions;
 
-template<matrix_access_schema TSchema, typename S>
+template<matrix_access_schema TSchema, typename S, class Enable = void>
+class matrix_access;
+
+template<matrix_access_schema TSchema, typename S, class Enable = void>
 class matrix_access
 {
   static_assert(false, "The matrix access schema is not supported");
@@ -65,7 +68,12 @@ public:
 };
 
 template<typename T, typename A>
-class matrix_access<matrix_access_schema::matrix_access_schema_square, square_matrix<T, A>>
+class matrix_access
+  <
+    matrix_access_schema::matrix_access_schema_square,
+    square_matrix<T, A>,
+    typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type
+  >
 {
   static_assert(::utilz::matrices::traits::matrix_traits<T>::is_type, "Matrix<Matrix> types aren't allowed");
 
@@ -76,7 +84,7 @@ private:
   using size_type                   = ::utilz::matrices::traits::matrix_traits<matrix_type>::size_type;
   using value_type                  = ::utilz::matrices::traits::matrix_traits<matrix_type>::value_type;
 
-  using value_reference              = value_type&;
+  using value_reference             = value_type&;
   using matrix_reference            = matrix_type&;
   using matrix_dimensions_reference = matrix_dimensions_type&;
 
@@ -157,6 +165,73 @@ public:
     const auto i_point = (i / this->m_block_size) * this->m_block_row_size;
     const auto j_point = (j / this->m_block_size) * this->m_block_square_size + j % this->m_block_size;
     return this->m_matrix.at(i_point, j_point);
+  }
+};
+
+template<typename T, typename A, typename U>
+class matrix_access<square_matrix<square_matrix<T, A>, U>, typename std::enable_if<traits::matrix_traits<T>::is_type::value>::type>
+  : public impl::impl_matrix_abstract<square_matrix<square_matrix<T, A>, U>>
+{
+public:
+  using matrix_type = square_matrix<square_matrix<T, A>, U>;
+  using size_type   = typename traits::matrix_traits<matrix_type>::size_type;
+  using value_type  = typename traits::matrix_traits<matrix_type>::value_type;
+
+private:
+  using reference        = typename traits::matrix_traits<matrix_type>::reference;
+  using const_reference  = typename traits::matrix_traits<matrix_type>::const_reference;
+  using matrix_reference = matrix_type&;
+
+private:
+  std::vector<int> m_cache;
+
+  size_type m_s;
+
+protected:
+  reference
+  translate_at(size_type i, size_type j) override
+  {
+    auto [r, ro] = this->translation_entry_unpack(this->m_cache[i]);
+    auto [c, co] = this->translation_entry_unpack(this->m_cache[j]);
+
+    return this->m_matrix.at(r, c).at(i - ro, j - co);
+  }
+
+public:
+  matrix_abstract(matrix_reference matrix)
+    : impl::impl_matrix_abstract<square_matrix<square_matrix<T, A>, U>>(matrix)
+    , m_s(size_type(0))
+  {
+    this->rebind();
+  }
+
+  void
+  rebind()
+  {
+    auto s = size_type(0);
+    for (auto z = size_type(0); z < this->m_matrix.size(); ++z)
+      s += this->m_matrix.at(z, z).size();
+
+    this->m_s = s;
+
+    this->m_cache.clear();
+    this->m_cache.reserve(this->m_s);
+
+    auto delta = size_type(0);
+    for (auto z = size_type(0); z < this->m_matrix.size(); ++z) {
+      auto size = this->m_matrix.at(z, z).size();
+
+      for (auto i = size_type(0); i < size; ++i)
+        this->m_cache.push_back(this->translation_entry_pack(z, delta));
+
+      delta += size;
+    }
+  }
+
+  size_type
+  size() const
+  {
+    return this->m_s;
   }
 };
 
