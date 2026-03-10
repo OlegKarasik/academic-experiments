@@ -31,7 +31,7 @@ public:
   allocate(size_type size) = 0;
 
   virtual inline void
-    deallocate(pointer, size_type) = 0;
+  deallocate(pointer, size_type) = 0;
 };
 
 template<typename T>
