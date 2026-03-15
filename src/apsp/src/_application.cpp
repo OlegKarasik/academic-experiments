@@ -313,7 +313,7 @@ main(int argc, char* argv[]) __hack_noexcept
   scan_matrix_params_type scan_matrix_params(buffer_fx, graph, communities);
 #endif
 
-#ifdef APSP_ALG_ACCESS_FLAG
+#ifdef APSP_ALG_ACCESS_FLAT
   matrix_params_type matrix_params;
 #endif
 #ifdef APSP_ALG_ACCESS_BLOCKS

@@ -2,6 +2,8 @@
 
 #define APSP_ALG_MATRIX_BLOCKS
 
+#define APSP_ALG_ACCESS_BLOCKS
+
 #define APSP_ALG_RUN_CONFIGURATION
 
 #include "portables/hacks/defines.h"
@@ -21,6 +23,15 @@
 #include <cassert>
 
 namespace utzmx = ::utilz::matrices;
+
+template<typename S>
+struct run_configuration;
+
+using matrix_block_type      = utzmx::square_matrix<g_type, g_allocator_type<g_type>>;
+using matrix_type            = utzmx::square_matrix<matrix_block_type, g_allocator_type<matrix_block_type>>;
+using matrix_access_type     = utzmx::access::matrix_access<utzmx::access::matrix_access_schema_flat, matrix_type>;
+using matrix_params_type     = utzmx::access::matrix_params<matrix_type>;
+using matrix_run_config_type = run_configuration<matrix_type>;
 
 using heights_matrix      = utzmx::square_matrix<size_t, ::utilz::memory::buffer_allocator<size_t>>;
 using heights_sync_matrix = utzmx::square_matrix<PKRCORE_SYNCBLOCK, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>>;
@@ -105,14 +116,13 @@ notify_block(
   std::ignore = ::KrCoreSyncblockSignal(heights_sync->at(i, j));
 };
 
-template<typename T, typename A>
 void
 calculate_block(
-  utzmx::square_matrix<T, A>& ij,
-  utzmx::square_matrix<T, A>& ik,
-  utzmx::square_matrix<T, A>& kj)
+  matrix_block_type& ij,
+  matrix_block_type& ik,
+  matrix_block_type& kj)
 {
-  using size_type = typename utzmx::square_matrix<T, A>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<matrix_block_type>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -416,14 +426,13 @@ calculate_passive_type_a(
   calculate_following_type(node);
 }
 
-template<typename S>
 __hack_noinline
 unsigned long
 calculation_routine(
   void* routine_state
 )
 {
-  auto* node = reinterpret_cast<stream_node<S>*>(routine_state);
+  auto* node = reinterpret_cast<stream_node<matrix_type>*>(routine_state);
 
   const size_t p = node->processors_count;
   const size_t c = node->rank;
@@ -440,59 +449,57 @@ calculation_routine(
   return 0UL;
 };
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
-  ::utilz::memory::buffer& b,
-  run_configuration<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& run_config)
+  matrix_type&        matrix,
+  matrix_access_type& matrix_access,
+  matrix_run_config_type&  matrix_run_config,
+  ::utilz::memory::buffer& b)
 {
-  auto& matrix = abstract.matrix();
-
   // Set parameters
   //
-  run_config.tasks_count   = matrix.size();
-  run_config.threads_count = matrix.size() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : matrix.size();
+  matrix_run_config.tasks_count   = matrix.size();
+  matrix_run_config.threads_count = matrix.size() > std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : matrix.size();
 
   // Initialise "Heights" matrix
   //
-  run_config.heights      = heights_matrix(run_config.tasks_count, ::utilz::memory::buffer_allocator<size_t>(&b));
-  run_config.heights_sync = heights_sync_matrix(run_config.tasks_count, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>(&b));
+  matrix_run_config.heights      = heights_matrix(matrix_run_config.tasks_count, ::utilz::memory::buffer_allocator<size_t>(&b));
+  matrix_run_config.heights_sync = heights_sync_matrix(matrix_run_config.tasks_count, ::utilz::memory::buffer_allocator<PKRCORE_SYNCBLOCK>(&b));
 
   // Allocate space
   //
-  run_config.tasks   = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
-  run_config.threads = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * run_config.threads_count));
-  run_config.nodes   = reinterpret_cast<stream_node<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>*>(b.allocate(sizeof(stream_node<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>) * run_config.tasks_count));
+  matrix_run_config.tasks   = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * matrix_run_config.tasks_count));
+  matrix_run_config.threads = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * matrix_run_config.threads_count));
+  matrix_run_config.nodes   = reinterpret_cast<stream_node<matrix_type>*>(b.allocate(sizeof(stream_node<matrix_type>) * matrix_run_config.tasks_count));
 
   // Prepare runtime configuration
   //
   for (auto i = size_t(0); i < matrix.size(); ++i) {
-    run_config.nodes[i].rank = i;
-    run_config.nodes[i].processors_count = run_config.threads_count;
-    run_config.nodes[i].tasks = run_config.tasks;
+    matrix_run_config.nodes[i].rank = i;
+    matrix_run_config.nodes[i].processors_count = matrix_run_config.threads_count;
+    matrix_run_config.nodes[i].tasks = matrix_run_config.tasks;
 
-    run_config.nodes[i].blocks = &matrix;
-    run_config.nodes[i].heights = &run_config.heights;
-    run_config.nodes[i].heights_sync = &run_config.heights_sync;
+    matrix_run_config.nodes[i].blocks = &matrix;
+    matrix_run_config.nodes[i].heights = &matrix_run_config.heights;
+    matrix_run_config.nodes[i].heights_sync = &matrix_run_config.heights_sync;
 
-    run_config.nodes[i].fst_rank = i % run_config.threads_count;
-    run_config.nodes[i].lst_rank = (run_config.tasks_count / run_config.threads_count) * run_config.threads_count + (i % run_config.threads_count);
-    run_config.nodes[i].prv_rank = i - run_config.threads_count;
-    run_config.nodes[i].nxt_rank = i + run_config.threads_count;
+    matrix_run_config.nodes[i].fst_rank = i % matrix_run_config.threads_count;
+    matrix_run_config.nodes[i].lst_rank = (matrix_run_config.tasks_count / matrix_run_config.threads_count) * matrix_run_config.threads_count + (i % matrix_run_config.threads_count);
+    matrix_run_config.nodes[i].prv_rank = i - matrix_run_config.threads_count;
+    matrix_run_config.nodes[i].nxt_rank = i + matrix_run_config.threads_count;
 
-    if (i < run_config.threads_count)
-      run_config.nodes[i].prv_rank = i;
+    if (i < matrix_run_config.threads_count)
+      matrix_run_config.nodes[i].prv_rank = i;
 
-    if (run_config.nodes[i].nxt_rank >= run_config.tasks_count)
-      run_config.nodes[i].nxt_rank = i;
+    if (matrix_run_config.nodes[i].nxt_rank >= matrix_run_config.tasks_count)
+      matrix_run_config.nodes[i].nxt_rank = i;
 
-    if (run_config.threads_count > run_config.tasks_count)
-      run_config.nodes[i].lst_rank = i;
+    if (matrix_run_config.threads_count > matrix_run_config.tasks_count)
+      matrix_run_config.nodes[i].lst_rank = i;
 
-    if (run_config.nodes[i].lst_rank < run_config.nodes[i].nxt_rank || run_config.nodes[i].lst_rank >= run_config.tasks_count)
-      run_config.nodes[i].lst_rank = run_config.nodes[i].nxt_rank;
+    if (matrix_run_config.nodes[i].lst_rank < matrix_run_config.nodes[i].nxt_rank || matrix_run_config.nodes[i].lst_rank >= matrix_run_config.tasks_count)
+      matrix_run_config.nodes[i].lst_rank = matrix_run_config.nodes[i].nxt_rank;
   }
 
   // Initialise Core
@@ -501,12 +508,12 @@ up(
   ::memset(&CoreInitData, 0, sizeof(KRCORE_INIT_DATA));
 
   CoreInitData.MaxResourceCount = 1 + /* delay syncblock */
-    run_config.tasks_count +
-    run_config.threads_count +
-    run_config.tasks_count * run_config.tasks_count;
+    matrix_run_config.tasks_count +
+    matrix_run_config.threads_count +
+    matrix_run_config.tasks_count * matrix_run_config.tasks_count;
 
-  run_config.core = ::KrCoreInitialize(&CoreInitData);
-  assert(run_config.core != nullptr);
+  matrix_run_config.core = ::KrCoreInitialize(&CoreInitData);
+  assert(matrix_run_config.core != nullptr);
 
   // Initialise delay Syncblock
   //
@@ -515,8 +522,8 @@ up(
 
   DelayInitData.ResetMode = CoreSyncblockResetModeManual;
 
-  run_config.delay = ::KrCoreInitializeSyncblock(run_config.core, &DelayInitData);
-  assert(run_config.delay != nullptr);
+  matrix_run_config.delay = ::KrCoreInitializeSyncblock(matrix_run_config.core, &DelayInitData);
+  assert(matrix_run_config.delay != nullptr);
 
   // Initialise Heights
   //
@@ -527,17 +534,17 @@ up(
 
       SyncblockInitData.ResetMode = CoreSyncblockResetModeAutoAll;
 
-      PKRCORE_SYNCBLOCK Syncblock = ::KrCoreInitializeSyncblock(run_config.core, &SyncblockInitData);
+      PKRCORE_SYNCBLOCK Syncblock = ::KrCoreInitializeSyncblock(matrix_run_config.core, &SyncblockInitData);
       assert(Syncblock != nullptr);
 
-      run_config.heights.at(i, j) = size_t(0);
-      run_config.heights_sync.at(i, j) = Syncblock;
+      matrix_run_config.heights.at(i, j) = size_t(0);
+      matrix_run_config.heights_sync.at(i, j) = Syncblock;
     }
   }
 
   // Initialise Threads
   //
-  for (auto i = size_t(0); i < run_config.threads_count; ++i) {
+  for (auto i = size_t(0); i < matrix_run_config.threads_count; ++i) {
     KRCORE_THREAD_INIT_DATA ThreadInitData;
     ::memset(&ThreadInitData, 0, sizeof(KRCORE_THREAD_INIT_DATA));
 
@@ -545,14 +552,14 @@ up(
     ThreadInitData.Binding.LogicalProcessors.Group = 0;
     ThreadInitData.Binding.LogicalProcessors.Mask  = 1ULL << i;
 
-    run_config.threads[i] = ::KrCoreInitializeThread(run_config.core, &ThreadInitData);
+    matrix_run_config.threads[i] = ::KrCoreInitializeThread(matrix_run_config.core, &ThreadInitData);
 
-    assert(run_config.threads[i] != nullptr);
+    assert(matrix_run_config.threads[i] != nullptr);
   }
 
   // Initialise Tasks
   //
-  for (auto i = size_t(0); i < run_config.tasks_count; ++i) {
+  for (auto i = size_t(0); i < matrix_run_config.tasks_count; ++i) {
     KRCORE_TASK_INIT_DATA TaskInitData;
     ::memset(&TaskInitData, 0, sizeof(KRCORE_TASK_INIT_DATA));
 
@@ -561,61 +568,58 @@ up(
 
     Attribute.Attribute = CoreTaskAttributeStartupCreateDelayed;
 
-    if (i < run_config.threads_count)
-      Attribute.ON_DELAY.Syncblock = run_config.delay;
+    if (i < matrix_run_config.threads_count)
+      Attribute.ON_DELAY.Syncblock = matrix_run_config.delay;
 
     TaskInitData.AttributesCount = 1;
     TaskInitData.Attributes = &Attribute;
     TaskInitData.Binding.Type = SystemBindingLogicalProcessors;
     TaskInitData.Binding.LogicalProcessors.Group = 0;
-    TaskInitData.Binding.LogicalProcessors.Mask  = 1ULL << (i % run_config.threads_count);
-    TaskInitData.TaskRoutineState = &run_config.nodes[i];
-    TaskInitData.TaskRoutine = calculation_routine<T, A, U>;
+    TaskInitData.Binding.LogicalProcessors.Mask  = 1ULL << (i % matrix_run_config.threads_count);
+    TaskInitData.TaskRoutineState = &matrix_run_config.nodes[i];
+    TaskInitData.TaskRoutine = calculation_routine;
 
-    run_config.tasks[i] = ::KrCoreInitializeTask(run_config.core, &TaskInitData);
+    matrix_run_config.tasks[i] = ::KrCoreInitializeTask(matrix_run_config.core, &TaskInitData);
 
-    assert(run_config.tasks[i] != nullptr);
+    assert(matrix_run_config.tasks[i] != nullptr);
   }
 };
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
-  ::utilz::memory::buffer& b,
-  run_configuration<T, A, U>& run_config)
+  matrix_type&        matrix,
+  matrix_access_type& matrix_access,
+  matrix_run_config_type&  matrix_run_config,
+  ::utilz::memory::buffer& b)
 {
-  auto& matrix = abstract.matrix();
+  for (auto i = size_t(0); i < matrix_run_config.tasks_count; ++i)
+    KRASSERT(::KrCoreDeinitializeTask(matrix_run_config.core, matrix_run_config.tasks[i]));
 
-  for (auto i = size_t(0); i < run_config.tasks_count; ++i)
-    KRASSERT(::KrCoreDeinitializeTask(run_config.core, run_config.tasks[i]));
-
-  for (auto i = size_t(0); i < run_config.threads_count; ++i)
-    KRASSERT(::KrCoreDeinitializeThread(run_config.core, run_config.threads[i]));
+  for (auto i = size_t(0); i < matrix_run_config.threads_count; ++i)
+    KRASSERT(::KrCoreDeinitializeThread(matrix_run_config.core, matrix_run_config.threads[i]));
 
   for (auto i = size_t(0); i < matrix.size(); ++i) {
     for (auto j = size_t(0); j < matrix.size(); ++j) {
-      KRASSERT(::KrCoreDeinitializeSyncblock(run_config.core, run_config.heights_sync.at(i, j)));
+      KRASSERT(::KrCoreDeinitializeSyncblock(matrix_run_config.core, matrix_run_config.heights_sync.at(i, j)));
     }
   }
 
-  KRASSERT(::KrCoreDeinitialize(run_config.core));
+  KRASSERT(::KrCoreDeinitialize(matrix_run_config.core));
 }
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>& blocks,
-  run_configuration<T, A, U>& run_config)
+  matrix_type& matrix,
+  matrix_run_config_type& matrix_run_config)
 {
   // Unblock all previously initialised Tasks
   //
-  KRASSERT(::KrCoreSyncblockSignal(run_config.delay));
+  KRASSERT(::KrCoreSyncblockSignal(matrix_run_config.delay));
 
   // Wait them run to completion
   //
-  for (auto i = size_t(0); i < run_config.tasks_count; ++i)
-    ::WaitForSingleObject(run_config.tasks[i]->InternalThread, INFINITE);
+  for (auto i = size_t(0); i < matrix_run_config.tasks_count; ++i)
+    ::WaitForSingleObject(matrix_run_config.tasks[i]->InternalThread, INFINITE);
 };

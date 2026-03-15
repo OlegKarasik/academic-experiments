@@ -118,7 +118,8 @@ public:
       matrix_params_type matrix_params(communities);
 #endif
 
-      matrix_type        matrix;
+      matrix_type          matrix;
+      matrix_clusters_type matrix_clusters;
 
       scan_init_matrix(matrix, scan_matrix_params);
 
@@ -127,7 +128,6 @@ public:
       scan_set_matrix (matrix_access, scan_matrix_params);
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-      matrix_clusters_type matrix_clusters;
       scan_matrix_clusters(matrix_clusters, scan_matrix_params);
 #endif
 
@@ -172,7 +172,7 @@ BENCHMARK_DEFINE_F(Fixture, Execute)
 #endif
 
 #ifdef APSP_ALG_RUN_CONFIGURATION
-    up(matrix, matrix_access_type, matrix_run_config, this->m_buffer_fx);
+    up(matrix, matrix_access, matrix_run_config, this->m_buffer_fx);
 #endif
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -185,7 +185,7 @@ BENCHMARK_DEFINE_F(Fixture, Execute)
     state.SetIterationTime(elapsed_seconds.count());
 
 #ifdef APSP_ALG_RUN_CONFIGURATION
-    down(matrix, matrix_access_type, matrix_run_config, this->m_buffer_fx);
+    down(matrix, matrix_access, matrix_run_config, this->m_buffer_fx);
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
