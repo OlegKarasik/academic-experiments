@@ -201,7 +201,7 @@ endif()
 # Configure global includes for all configuration
 # and targets
 #
-set(INC_LIST ../_common; src/utilz; ../_deps)
+set(INC_LIST ../_common; src/utilz; ../_deps; src/variants)
 
 # Configure targets entry points
 #

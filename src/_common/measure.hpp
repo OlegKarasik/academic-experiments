@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 #include <map>
+#include <unordered_map>
 
 #ifdef ENABLE_SCOPE_MEASUREMENTS
   #define SCOPE_MEASURE_MILLISECONDS(KEY) utilz::auto_measurement __auto__measurement(KEY)

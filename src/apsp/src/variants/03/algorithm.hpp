@@ -2,23 +2,36 @@
 
 #define APSP_ALG_MATRIX_BLOCKS
 
-#define APSP_ALG_EXTRA_CONFIGURATION
+#define APSP_ALG_ACCESS_BLOCKS
+
+#define APSP_ALG_RUN_CONFIGURATION
 
 #include "portables/hacks/defines.h"
-
-#include "memory.hpp"
-#include "matrix.hpp"
-#include "constants.hpp"
 
 #include <thread>
 #include <omp.h>
 
+#include "constants.hpp"
+#include "memory.hpp"
+
+#include "matrix.hpp"
+#include "matrix-access.hpp"
+
 namespace utzmx = ::utilz::matrices;
 
-template<typename T, typename A, typename U>
+template<typename S>
+struct run_configuration;
+
+using matrix_block_type      = utzmx::square_matrix<g_type, g_allocator_type<g_type>>;
+using matrix_type            = utzmx::square_matrix<matrix_block_type, g_allocator_type<matrix_block_type>>;
+using matrix_access_type     = utzmx::access::matrix_access<utzmx::access::matrix_access_schema_flat, matrix_type>;
+using matrix_params_type     = utzmx::access::matrix_params<matrix_type>;
+using matrix_run_config_type = run_configuration<matrix_type>;
+
+template<typename S>
 struct run_configuration
 {
-  using pointer = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T>>::pointer;
+  using pointer = typename utzmx::traits::matrix_traits<S>::pointer;
 
   pointer mm_array_cur_row;
   pointer mm_array_prv_col;
@@ -33,14 +46,13 @@ struct run_configuration
   size_t allocation_size;
 };
 
-template<typename T, typename A, typename U>
 void
 calculate_diagonal(
-  utzmx::square_matrix<T, A>& mm,
-  run_configuration<T, A, U>& run_config)
+  matrix_block_type& mm,
+  matrix_run_config_type& run_config)
 {
-  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
-  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
+  using size_type  = typename utzmx::traits::matrix_traits<matrix_block_type>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<matrix_block_type>::value_type;
 
   run_config.mm_array_prv_col[0] = ::utilz::constants::infinity<value_type>();
   run_config.mm_array_nxt_row[0] = mm.at(0, 1);
@@ -87,16 +99,15 @@ calculate_diagonal(
   }
 }
 
-template<typename T, typename A, typename U>
 void
 calculate_vertical(
-  utzmx::square_matrix<T, A>& im,
-  utzmx::square_matrix<T, A>& mm,
-  run_configuration<T, A, U>& run_config)
+  matrix_block_type& im,
+  matrix_block_type& mm,
+  matrix_run_config_type& run_config)
 {
-  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
-  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::value_type;
-  using pointer    = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::pointer;
+  using size_type  = typename utzmx::traits::matrix_traits<matrix_block_type>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<matrix_block_type>::value_type;
+  using pointer    = typename utzmx::traits::matrix_traits<matrix_block_type>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
@@ -106,7 +117,6 @@ calculate_vertical(
 
   pointer im_array_prv_weight = run_config.mm_array_prv_col + allocation_shift;
   pointer im_array_cur_weight = run_config.mm_array_cur_row + allocation_shift;
-
   pointer mm_array_nxt_weight = run_config.ckb3w + allocation_shift;
 
   const auto x = im.size();
@@ -149,15 +159,14 @@ calculate_vertical(
   }
 }
 
-template<typename T, typename A, typename U>
 void
 calculate_horizontal(
-  utzmx::square_matrix<T, A>& mi,
-  utzmx::square_matrix<T, A>& mm,
-  run_configuration<T, A, U>& run_config)
+  matrix_block_type& mi,
+  matrix_block_type& mm,
+  matrix_run_config_type& run_config)
 {
-  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
-  using pointer    = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::pointer;
+  using size_type  = typename utzmx::traits::matrix_traits<matrix_block_type>::size_type;
+  using pointer    = typename utzmx::traits::matrix_traits<matrix_block_type>::pointer;
 
 #ifdef _OPENMP
   auto allocation_shift = run_config.allocation_line * omp_get_thread_num();
@@ -197,14 +206,13 @@ calculate_horizontal(
   }
 }
 
-template<typename T, typename A>
 void
 calculate_peripheral(
-  utzmx::square_matrix<T, A>& ij,
-  utzmx::square_matrix<T, A>& ik,
-  utzmx::square_matrix<T, A>& kj)
+  matrix_block_type& ij,
+  matrix_block_type& ik,
+  matrix_block_type& kj)
 {
-  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<matrix_block_type>::size_type;
 
   const auto x = ij.size();
   for (auto i = size_type(0); i < x; ++i)
@@ -215,16 +223,17 @@ calculate_peripheral(
 }
 
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 up(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
-  utilz::memory::buffer& b,
-  run_configuration<T, A, U>& run_config)
+  matrix_type&             matrix,
+  matrix_access_type&      matrix_access,
+  matrix_run_config_type&  matrix_run_config,
+  ::utilz::memory::buffer& b)
 {
-  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
-  using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::value_type;
+  using size_type  = typename utzmx::traits::matrix_traits<matrix_type>::size_type;
+  using value_type = typename utzmx::traits::matrix_traits<matrix_type>::value_type;
+  using pointer    = typename utzmx::traits::matrix_traits<matrix_type>::pointer;
 
 #ifdef _OPENMP
   auto allocation_mulx = std::thread::hardware_concurrency();
@@ -232,98 +241,97 @@ up(
   auto allocation_mulx = 1;
 #endif
 
-  auto allocation_line = abstract.size();
+  auto allocation_line = matrix_access.dimensions().max();
   auto allocation_size = allocation_line * sizeof(value_type) * allocation_mulx;
 
-  run_config.allocation_line = allocation_line;
-  run_config.allocation_size = allocation_size;
-  run_config.mm_array_cur_row = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.mm_array_prv_col = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.mm_array_cur_col = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.mm_array_nxt_row = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb1  = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ck1b1 = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb1w = reinterpret_cast<T*>(b.allocate(allocation_size));
-  run_config.ckb3w = reinterpret_cast<T*>(b.allocate(allocation_size));
+  matrix_run_config.allocation_line = allocation_line;
+  matrix_run_config.allocation_size = allocation_size;
+  matrix_run_config.mm_array_cur_row = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.mm_array_prv_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.mm_array_cur_col = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.mm_array_nxt_row = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.ckb1  = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.ck1b1 = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.ckb1w = reinterpret_cast<pointer>(b.allocate(allocation_size));
+  matrix_run_config.ckb3w = reinterpret_cast<pointer>(b.allocate(allocation_size));
 
   for (size_type i = size_type(0); i < allocation_line * allocation_mulx; ++i) {
-    run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
-    run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
-    run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
-    run_config.mm_array_nxt_row[i] = ::utilz::constants::infinity<value_type>();
-    run_config.ckb1[i]  = ::utilz::constants::infinity<value_type>();
-    run_config.ck1b1[i] = ::utilz::constants::infinity<value_type>();
-    run_config.ckb1w[i] = ::utilz::constants::infinity<value_type>();
-    run_config.ckb3w[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.mm_array_cur_row[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.mm_array_prv_col[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.mm_array_cur_col[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.mm_array_nxt_row[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.ckb1[i]  = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.ck1b1[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.ckb1w[i] = ::utilz::constants::infinity<value_type>();
+    matrix_run_config.ckb3w[i] = ::utilz::constants::infinity<value_type>();
   }
 };
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 down(
-  utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
-  ::utilz::memory::buffer& b,
-  run_configuration<T, A, U>& run_config)
+  matrix_type&             matrix,
+  matrix_access_type&      matrix_access,
+  matrix_run_config_type&  matrix_run_config,
+  ::utilz::memory::buffer& b)
 {
   using alptr_type = typename ::utilz::memory::buffer::pointer;
 
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_row), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_prv_col), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_cur_col), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.mm_array_nxt_row), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ckb1), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ck1b1), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ckb1w), run_config.allocation_size);
-  b.deallocate(reinterpret_cast<alptr_type>(run_config.ckb3w), run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.mm_array_cur_row), matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.mm_array_prv_col), matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.mm_array_cur_col), matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.mm_array_nxt_row), matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.ckb1),  matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.ck1b1), matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.ckb1w), matrix_run_config.allocation_size);
+  b.deallocate(reinterpret_cast<alptr_type>(matrix_run_config.ckb3w), matrix_run_config.allocation_size);
 }
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>& blocks,
-  run_configuration<T, A, U>& run_config)
+  matrix_type&            matrix,
+  matrix_run_config_type& matrix_run_config)
 {
-  using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
+  using size_type  = typename utzmx::traits::matrix_traits<matrix_type>::size_type;
 #ifdef _OPENMP
-  #pragma omp parallel default(none) shared(blocks, run_config)
+  #pragma omp parallel default(none) shared(matrix, matrix_run_config)
 #endif
   {
 #ifdef _OPENMP
   #pragma omp single
 #endif
     {
-      for (auto m = size_type(0); m < blocks.size(); ++m) {
-        auto& mm = blocks.at(m, m);
+      for (auto m = size_type(0); m < matrix.size(); ++m) {
+        auto& mm = matrix.at(m, m);
 
-        calculate_diagonal(mm, run_config);
-        for (auto i = size_type(0); i < blocks.size(); ++i) {
+        calculate_diagonal(mm, matrix_run_config);
+        for (auto i = size_type(0); i < matrix.size(); ++i) {
           if (i != m) {
-            auto& im = blocks.at(i, m);
-            auto& mi = blocks.at(m, i);
+            auto& im = matrix.at(i, m);
+            auto& mi = matrix.at(m, i);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(im, mm, run_config)
+  #pragma omp task untied default(none) shared(im, mm, matrix_run_config)
 #endif
-            calculate_vertical(im, mm, run_config);
+            calculate_vertical(im, mm, matrix_run_config);
 
 #ifdef _OPENMP
-  #pragma omp task untied default(none) shared(mi, mm, run_config)
+  #pragma omp task untied default(none) shared(mi, mm, matrix_run_config)
 #endif
-            calculate_horizontal(mi, mm, run_config);
+            calculate_horizontal(mi, mm, matrix_run_config);
           }
         }
 #ifdef _OPENMP
   #pragma omp taskwait
 #endif
-        for (auto i = size_type(0); i < blocks.size(); ++i) {
+        for (auto i = size_type(0); i < matrix.size(); ++i) {
           if (i != m) {
-            auto& im = blocks.at(i, m);
-            for (auto j = size_type(0); j < blocks.size(); ++j) {
+            auto& im = matrix.at(i, m);
+            for (auto j = size_type(0); j < matrix.size(); ++j) {
               if (j != m) {
-                auto& ij = blocks.at(i, j);
-                auto& mj = blocks.at(m, j);
+                auto& ij = matrix.at(i, j);
+                auto& mj = matrix.at(m, j);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(ij, im, mj)

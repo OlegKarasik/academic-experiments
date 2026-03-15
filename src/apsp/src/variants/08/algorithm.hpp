@@ -2,10 +2,10 @@
 
 #define APSP_ALG_MATRIX_CLUSTERS
 
-#define APSP_ALG_EXTRA_CONFIGURATION
+#define APSP_ALG_RUN_CONFIGURATION
 
-#define APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
-#define APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
+#define APSP_ALG_MATRIX_CLUSTERS_CONFIGURATION
+#define APSP_ALG_MATRIX_CLUSTERS_REARRANGEMENTS
 
 #include <constants.hpp>
 #include <matrix-manip.hpp>
@@ -23,10 +23,10 @@
 
 namespace utzmx = ::utilz::matrices;
 
-template<typename T, typename A, typename U>
+template<typename S>
 struct run_configuration
 {
-  using pointer = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::pointer;
+  using pointer = typename utzmx::traits::matrix_traits<S>::pointer;
 
   pointer mm_array_cur_col;
   pointer mm_array_prv_col;
@@ -43,7 +43,7 @@ template<typename T, typename A, typename U>
 void
 calculate_diagonal(
   utzmx::rect_matrix<T, A>& mm,
-  run_configuration<T, A, U>& run_config)
+  run_configuration<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& run_config)
 {
   using size_type  = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::size_type;
   using value_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T, A>>::value_type;
@@ -98,7 +98,7 @@ void
 calculate_vertical_fast(
   utzmx::rect_matrix<T, A>& im,
   utzmx::rect_matrix<T, A>& mm,
-  run_configuration<T, A, U>& run_config,
+  run_configuration<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& run_config,
   auto bridges)
 {
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
@@ -168,7 +168,7 @@ void
 calculate_horizontal_fast(
   utzmx::rect_matrix<T, A>& mi,
   utzmx::rect_matrix<T, A>& mm,
-  run_configuration<T, A, U>& run_config,
+  run_configuration<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& run_config,
   auto bridges)
 {
   using size_type = typename utzmx::traits::matrix_traits<utzmx::rect_matrix<T>>::size_type;
@@ -297,7 +297,7 @@ void
 up(
   utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
-  run_configuration<T, A, U>& run_config)
+  run_configuration<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& run_config)
 {
   using size_type  = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>::size_type;
   using value_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>::value_type;
@@ -348,7 +348,7 @@ void
 down(
   utzmx::matrix_abstract<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
-  run_configuration<T, A, U>& run_config)
+  run_configuration<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& run_config)
 {
   using alptr_type = typename ::utilz::memory::buffer::pointer;
 
@@ -364,7 +364,7 @@ __hack_noinline
 void
 run(
   utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>& blocks,
-  run_configuration<T, A, U>& run_config,
+  run_configuration<utzmx::square_matrix<utzmx::rect_matrix<T, A>, U>>& run_config,
   utzmx::clusters& clusters)
 {
   using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;

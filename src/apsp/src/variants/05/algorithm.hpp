@@ -2,7 +2,7 @@
 
 #define APSP_ALG_MATRIX_BLOCKS
 
-#define APSP_ALG_EXTRA_CONFIGURATION
+#define APSP_ALG_RUN_CONFIGURATION
 
 #include "portables/hacks/defines.h"
 
@@ -31,10 +31,10 @@ struct stream_node_wait_condition
   size_t  v;
 };
 
-template<typename T, typename A, typename U>
+template<typename S>
 struct stream_node
 {
-  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>* blocks;
+  S* blocks;
 
   size_t rank;
   size_t processors_count;
@@ -50,7 +50,7 @@ struct stream_node
   size_t prv_rank;
 };
 
-template<typename T, typename A, typename U>
+template<typename S>
 struct run_configuration
 {
   heights_matrix      heights;
@@ -64,7 +64,7 @@ struct run_configuration
   PPKRCORE_THREAD   threads;
   PKRCORE_SYNCBLOCK delay;
 
-  stream_node<T, A, U>* nodes;
+  stream_node<S>* nodes;
 };
 
 void
@@ -122,11 +122,11 @@ calculate_block(
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 void
 calculate_complimenting_type(
-  stream_node<T, A, U>* node
+  stream_node<S>* node
 ) {
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
@@ -169,11 +169,11 @@ calculate_complimenting_type(
     std::ignore = ::KrCoreTaskContinue(tasks[i]);
 }
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 void
 calculate_passive_type_c(
-  stream_node<T, A, U>* node
+  stream_node<S>* node
 ) {
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
@@ -229,11 +229,11 @@ calculate_passive_type_c(
   };
 }
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 void
 calculate_passive_type_b(
-  stream_node<T, A, U>* node
+  stream_node<S>* node
 ) {
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
@@ -261,11 +261,11 @@ calculate_passive_type_b(
   calculate_passive_type_c(node);
 }
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 void
 calculate_leading_type(
-  stream_node<T, A, U>* node
+  stream_node<S>* node
 ) {
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
@@ -314,11 +314,11 @@ calculate_leading_type(
   };
 }
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 void
 calculate_following_type(
-  stream_node<T, A, U>* node
+  stream_node<S>* node
 ) {
   auto* tasks        = node->tasks;
   auto* blocks       = node->blocks;
@@ -369,11 +369,11 @@ calculate_following_type(
   calculate_leading_type(node);
 }
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 void
 calculate_passive_type_a(
-  stream_node<T, A, U>* node
+  stream_node<S>* node
 ) {
   auto* tasks  = node->tasks;
   auto* blocks = node->blocks;
@@ -416,14 +416,14 @@ calculate_passive_type_a(
   calculate_following_type(node);
 }
 
-template<typename T, typename A, typename U>
+template<typename S>
 __hack_noinline
 unsigned long
 calculation_routine(
   void* routine_state
 )
 {
-  auto* node = reinterpret_cast<stream_node<T, A, U>*>(routine_state);
+  auto* node = reinterpret_cast<stream_node<S>*>(routine_state);
 
   const size_t p = node->processors_count;
   const size_t c = node->rank;
@@ -446,7 +446,7 @@ void
 up(
   utzmx::matrix_abstract<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& abstract,
   ::utilz::memory::buffer& b,
-  run_configuration<T, A, U>& run_config)
+  run_configuration<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>& run_config)
 {
   auto& matrix = abstract.matrix();
 
@@ -464,7 +464,7 @@ up(
   //
   run_config.tasks   = reinterpret_cast<PPKRCORE_TASK>(b.allocate(sizeof(PKRCORE_TASK) * run_config.tasks_count));
   run_config.threads = reinterpret_cast<PPKRCORE_THREAD>(b.allocate(sizeof(PKRCORE_THREAD) * run_config.threads_count));
-  run_config.nodes   = reinterpret_cast<stream_node<T, A, U>*>(b.allocate(sizeof(stream_node<T, A, U>) * run_config.tasks_count));
+  run_config.nodes   = reinterpret_cast<stream_node<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>*>(b.allocate(sizeof(stream_node<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>) * run_config.tasks_count));
 
   // Prepare runtime configuration
   //

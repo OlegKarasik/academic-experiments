@@ -43,87 +43,49 @@
 
 // local utilz
 //
-#include "graphs-io.hpp"
-#include "measure.hpp"
 #include "memory.hpp"
+#include "measure.hpp"
+#include "graphs-io.hpp"
 
-#include "matrix-io.hpp"
+#include "matrix.hpp"
 #include "matrix-manip.hpp"
 #include "matrix-traits.hpp"
-#include "matrix.hpp"
-#include "matrix-abstract.hpp"
+#include "matrix-io.hpp"
+#include "matrix-access.hpp"
 
 // local includes
 //
-#include "algorithm.hpp"
+#include "_shell_inject.hpp"
 
-// define global types
-//
-using g_calculation_type = int;
-
-template<typename T>
-using g_allocator_type = typename ::utilz::memory::buffer_allocator<T>;
-
-// aliasing
-//
-#ifdef APSP_ALG_MATRIX_BLOCKS
-using matrix_block = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix       = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
-#endif
-#endif
-
-#ifdef APSP_ALG_MATRIX_CLUSTERS
-using matrix_block    = ::utilz::matrices::rect_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-using matrix          = ::utilz::matrices::square_matrix<matrix_block, g_allocator_type<matrix_block>>;
-using clusters        = ::utilz::matrices::clusters;
-
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>, g_allocator_type<matrix_block>>;
-#endif
-#endif
-
-#ifdef APSP_ALG_MATRIX
-using matrix = ::utilz::matrices::square_matrix<g_calculation_type, g_allocator_type<g_calculation_type>>;
-
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-using extra_configuration = run_configuration<g_calculation_type, g_allocator_type<g_calculation_type>>;
-#endif
-#endif
-
-using matrix_abstract = ::utilz::matrices::matrix_abstract<matrix>;
+using buffer_type      = ::utilz::memory::buffer_fx;
 
 int
 main(int argc, char* argv[]) __hack_noexcept
 {
-  ::utilz::graphs::io::graph_format opt_input_graph_format = ::utilz::graphs::io::graph_format::graph_fmt_none;
-  ::utilz::graphs::io::graph_format opt_output_format      = ::utilz::graphs::io::graph_format::graph_fmt_none;
+  graph_format_type       opt_input_graph_format       = graph_format_type::graph_fmt_none;
+  graph_format_type       opt_output_format            = graph_format_type::graph_fmt_none;
 
-  bool   opt_pages     = false;
-  size_t opt_reserve   = size_t(0);
-  size_t opt_alignment = size_t(0);
+  communities_format_type opt_input_communities_format = communities_format_type::communities_fmt_none;
+
+  bool      opt_pages      = false;
+  size_t    opt_reserve    = size_t(0);
+  size_t    opt_alignment  = size_t(0);
+  size_type opt_block_size = size_type(0);
 
   std::string opt_input_graph;
+  std::string opt_input_communities;
   std::string opt_output;
 
-#ifdef APSP_ALG_MATRIX_BLOCKS
-  matrix::size_type opt_block_size = matrix::size_type(0);
+#ifdef APSP_ALG_MATRIX_FLAT
+  const char* options = "g:G:o:O:pr:a:";
+#endif
 
+#ifdef APSP_ALG_MATRIX_BLOCKS
   const char* options = "g:G:o:O:pr:a:s:";
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  utilz::communities::io::communities_format opt_input_clusters_format = utilz::communities::io::communities_format::communities_fmt_none;
-
-  std::string opt_input_clusters;
-
   const char* options = "g:G:o:O:pr:a:c:C:";
-#endif
-
-#ifdef APSP_ALG_MATRIX
-  const char* options = "g:G:o:O:pr:a:";
 #endif
 
   std::cerr << "Options:\n";
@@ -141,7 +103,7 @@ main(int argc, char* argv[]) __hack_noexcept
         std::cerr << "erro: unexpected '-g' option detected" << '\n';
         return 1;
       case 'G':
-        if (opt_input_graph_format == ::utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_input_graph_format == graph_format_type::graph_fmt_none) {
           std::cerr << "-G: " << optarg << "\n";
 
           if (!::utilz::graphs::io::parse_graph_format(optarg, opt_input_graph_format)) {
@@ -152,21 +114,20 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-G' option detected" << '\n';
         return 1;
-#ifdef APSP_ALG_MATRIX_CLUSTERS
       case 'c':
-        if (opt_input_clusters.empty()) {
+        if (opt_input_communities.empty()) {
           std::cerr << "-c: " << optarg << "\n";
 
-          opt_input_clusters = optarg;
+          opt_input_communities = optarg;
           break;
         }
         std::cerr << "erro: unexpected '-c' option detected" << '\n';
         return 1;
       case 'C':
-        if (opt_input_clusters_format == ::utilz::communities::io::communities_format::communities_fmt_none) {
+        if (opt_input_communities_format == communities_format_type::communities_fmt_none) {
           std::cerr << "-C: " << optarg << "\n";
 
-          if (!::utilz::communities::io::parse_communities_format(optarg, opt_input_clusters_format)) {
+          if (!::utilz::communities::io::parse_communities_format(optarg, opt_input_communities_format)) {
             std::cerr << "erro: invalid communities format has been detected in '-C' option" << '\n';
             return 1;
           }
@@ -174,7 +135,6 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-C' option detected" << '\n';
         return 1;
-#endif
       case 'o':
         if (opt_output.empty()) {
           std::cerr << "-o: " << optarg << "\n";
@@ -185,7 +145,7 @@ main(int argc, char* argv[]) __hack_noexcept
         std::cerr << "erro: unexpected '-o' option detected" << '\n';
         return 1;
       case 'O':
-        if (opt_output_format == ::utilz::graphs::io::graph_format::graph_fmt_none) {
+        if (opt_output_format == graph_format_type::graph_fmt_none) {
           std::cerr << "-O: " << optarg << "\n";
 
           if (!::utilz::graphs::io::parse_graph_format(optarg, opt_output_format)) {
@@ -233,14 +193,13 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-a' option detected" << '\n';
         return 1;
-#ifdef APSP_ALG_MATRIX_BLOCKS
       case 's':
-        if (opt_block_size == matrix::size_type(0)) {
+        if (opt_block_size == matrix_type::size_type(0)) {
           std::cerr << "-s: " << optarg << "\n";
 
           opt_block_size = atoi(optarg);
 
-          if (opt_block_size == matrix::size_type(0)) {
+          if (opt_block_size == matrix_type::size_type(0)) {
             std::cerr << "erro: missing value after '-s' option";
             return 1;
           }
@@ -248,19 +207,33 @@ main(int argc, char* argv[]) __hack_noexcept
         }
         std::cerr << "erro: unexpected '-s' option detected" << '\n';
         return 1;
-#endif
       default:
         return 1;
     }
   }
-  if (opt_input_graph_format == ::utilz::graphs::io::graph_fmt_none) {
+
+#ifdef APSP_ALG_MATRIX_BLOCKS
+  if (opt_block_size == matrix_type::size_type(0)) {
+    std::cerr << "erro: the -s parameter is required";
+    return 1;
+  }
+#endif
+
+  if (opt_input_graph_format == graph_format_type::graph_fmt_none) {
     std::cerr << "erro: the -G parameter is required";
     return 1;
   }
-  if (opt_output_format == ::utilz::graphs::io::graph_fmt_none) {
+  if (opt_output_format == graph_format_type::graph_fmt_none) {
     std::cerr << "erro: the -O parameter is required";
     return 1;
   }
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
+  if (opt_input_communities_format == communities_format_type::communities_fmt_none) {
+    std::cerr << "erro: the -C parameter is required";
+    return 1;
+  }
+#endif
 
   // Open the input stream
   //
@@ -270,18 +243,11 @@ main(int argc, char* argv[]) __hack_noexcept
     return 1;
   }
 
-#ifdef APSP_ALG_MATRIX_BLOCKS
-  if (opt_block_size == matrix::size_type(0)) {
-    std::cerr << "erro: the -s parameter is required";
-    return 1;
-  }
-#endif
-
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  // Open the input clusters stream
+  // Open the input communities stream
   //
-  std::ifstream input_clusters_fstream(opt_input_clusters);
-  if (!input_clusters_fstream.is_open()) {
+  std::ifstream input_communities_fstream(opt_input_communities);
+  if (!input_communities_fstream.is_open()) {
     std::cerr << "erro: the -c parameter is required";
     return 1;
   }
@@ -297,7 +263,7 @@ main(int argc, char* argv[]) __hack_noexcept
   std::istream& input_graph_stream = input_graph_fstream;
 
 #if defined(APSP_ALG_MATRIX_CLUSTERS)
-  std::istream& input_clusters_stream = input_clusters_fstream;
+  std::istream& input_communities_stream = input_communities_fstream;
 #endif
 
   std::ostream& output_stream = output_fstream.is_open() ? output_fstream : std::cout;
@@ -323,91 +289,101 @@ main(int argc, char* argv[]) __hack_noexcept
 
   ::memset(memory.get(), 0, opt_reserve);
 
-  ::utilz::memory::buffer_fx                            buffer_fx(memory, opt_reserve, opt_alignment);
-  ::utilz::memory::buffer_allocator<matrix::value_type> buffer_allocator(&buffer_fx);
+  buffer_type            buffer_fx(memory, opt_reserve, opt_alignment);
 
   // Define matrix and execute algorithm specific overloads of methods
   //
-  matrix          m(buffer_allocator);
-  matrix_abstract abstract(m);
+  matrix_type            matrix;
+  matrix_run_config_type matrix_run_config;
+  matrix_clusters_type   matrix_clusters;
 
-#ifdef APSP_ALG_MATRIX
-  auto scan_ms = ::utilz::measure_milliseconds(
-    [&abstract, &input_graph_stream, opt_input_graph_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, abstract);
-    });
+  graph_type       graph       = ::utilz::graphs::io::scan_graph<size_type, value_type>(opt_input_graph_format, input_graph_stream);
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
+  communities_type communities = ::utilz::communities::io::scan_communities<size_type>(opt_input_communities_format, input_communities_stream);
 #endif
 
+#ifdef APSP_ALG_MATRIX_FLAT
+  scan_matrix_params_type scan_matrix_params(buffer_fx, graph);
+#endif
 #ifdef APSP_ALG_MATRIX_BLOCKS
-  auto scan_ms = ::utilz::measure_milliseconds(
-    [&abstract, &input_graph_stream, opt_input_graph_format, opt_block_size]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, abstract, opt_block_size);
+  scan_matrix_params_type scan_matrix_params(buffer_fx, graph, opt_block_size);
+#endif
+#ifdef APSP_ALG_MATRIX_CLUSTERS
+  scan_matrix_params_type scan_matrix_params(buffer_fx, graph, communities);
+#endif
+
+#ifdef APSP_ALG_ACCESS_FLAG
+  matrix_params_type matrix_params;
+#endif
+#ifdef APSP_ALG_ACCESS_BLOCKS
+  matrix_params_type matrix_params(opt_block_size);
+#endif
+#ifdef APSP_ALG_ACCESS_CLUSTERS
+  matrix_params_type matrix_params(communities);
+#endif
+
+  auto scan_time = int64_t(0);
+
+  scan_time += ::utilz::measure_milliseconds(
+    [&matrix, &scan_matrix_params]() -> void {
+      scan_init_matrix(matrix, scan_matrix_params);
+    });
+
+  matrix_access_type matrix_access(matrix, matrix_params);
+
+  scan_time += ::utilz::measure_milliseconds(
+    [&matrix_access, &scan_matrix_params]() -> void {
+      scan_set_matrix(matrix_access, scan_matrix_params);
+    });
+
+#ifdef APSP_ALG_MATRIX_CLUSTERS
+  scan_time += ::utilz::measure_milliseconds(
+    [&matrix_clusters, &scan_matrix_params]() -> void {
+      scan_matrix_clusters(matrix_clusters, scan_matrix_params);
     });
 #endif
 
-#ifdef APSP_ALG_MATRIX_CLUSTERS
-  // Define the clusters
-  //
-  clusters c;
-
-  auto scan_ms = ::utilz::measure_milliseconds(
-    [&abstract, &input_graph_stream, opt_input_graph_format, &c, &input_clusters_stream, opt_input_clusters_format]() -> void {
-      ::utilz::matrices::io::scan_matrix(opt_input_graph_format, input_graph_stream, opt_input_clusters_format, input_clusters_stream, abstract, c);
-    });
-#endif
-
-  std::cerr << "Scan: " << scan_ms << "ms" << std::endl;
+  std::cerr << "Scan: " << scan_time << "ms" << std::endl;
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  #ifdef APSP_ALG_EXTRA_CLUSTERS_CONFIGURATION
+  #ifdef APSP_ALG_MATRIX_CLUSTERS_CONFIGURATION
   auto up_clusters_ms = ::utilz::measure_milliseconds([&c]() -> void { up_clusters(c); });
 
   std::cerr << "U/CU: " << up_clusters_ms << "ms" << std::endl;
   #endif
 
-  auto op_clusters_ms = ::utilz::measure_milliseconds([&c]() -> void { c.optimise(); });
+  auto op_clusters_ms = ::utilz::measure_milliseconds([&matrix_clusters]() -> void { matrix_clusters.optimise(); });
 
   std::cerr << "U/CO: " << op_clusters_ms << "ms" << std::endl;
 
-  #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-  ::utilz::matrices::procedures::abstract_arrange<matrix_abstract> arrange_matrix;
-
-  auto up_arrange_ms = ::utilz::measure_milliseconds([&abstract, &c, &arrange_matrix]() -> void {
-    arrange_matrix(abstract, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+  #ifdef APSP_ALG_MATRIX_CLUSTERS_REARRANGEMENTS
+  auto up_arrange_ms = ::utilz::measure_milliseconds([&matrix_access, &matrix_clusters]() -> void {
+    ::utilz::matrices::procedures::abstract_arrange<matrix_access_type> arrange_matrix;
+    arrange_matrix(matrix_access, matrix_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
   });
 
   std::cerr << "U/AR: " << up_arrange_ms << "ms" << std::endl;
   #endif
 #endif
 
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
+#ifdef APSP_ALG_RUN_CONFIGURATION
   // In cases when algorithm requires additional setup (ex. pre-allocated arrays)
   // it can be done in up procedure (and undone in down).
   //
   // It is important to keep in mind that up acts on memory buffer after the
   // matrix has been allocated.
   //
-  extra_configuration run_config;
-  auto up_ms = ::utilz::measure_milliseconds([&run_config, &abstract, &buffer_fx]() -> void { up(abstract, buffer_fx, run_config); });
+  auto up_ms = ::utilz::measure_milliseconds(
+    [&matrix, &matrix_access, &matrix_run_config, &buffer_fx]() -> void {
+      up(matrix, matrix_access, matrix_run_config, buffer_fx);
+    });
 
   std::cerr << "U/CF: " << up_ms << "ms" << std::endl;
 #endif
 
   auto exec_ms = utilz::measure_milliseconds(
-
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-  #ifdef APSP_ALG_MATRIX_CLUSTERS
-    [&m, &run_config, &c]() -> void {
-  #else
-    [&m, &run_config]() -> void {
-  #endif
-#else
-  #ifdef APSP_ALG_MATRIX_CLUSTERS
-    [&m, &c]() -> void {
-  #else
-    [&m]() -> void {
-  #endif
-#endif
+    [&matrix, &matrix_clusters, &matrix_run_config]() -> void {
 
 #ifdef ITT_TRACE
       __itt_domain*        domain      = __itt_domain_create("apsp.shell");
@@ -415,19 +391,7 @@ main(int argc, char* argv[]) __hack_noexcept
       __itt_task_begin(domain, __itt_null, __itt_null, handle_exec);
 #endif
 
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-  #ifdef APSP_ALG_MATRIX_CLUSTERS
-      run(m, run_config, c);
-  #else
-      run(m, run_config);
-  #endif
-#else
-  #ifdef APSP_ALG_MATRIX_CLUSTERS
-      run(m, c);
-  #else
-      run(m);
-  #endif
-#endif
+      SHELL_RUN(matrix, matrix_clusters, matrix_run_config);
 
 #ifdef ITT_TRACE
       __itt_task_end(domain);
@@ -436,24 +400,28 @@ main(int argc, char* argv[]) __hack_noexcept
 
   std::cerr << "Exec: " << exec_ms << "ms" << std::endl;
 
-#ifdef APSP_ALG_EXTRA_CONFIGURATION
-  auto down_ms = utilz::measure_milliseconds([&abstract, &buffer_fx, &run_config]() -> void { down(abstract, buffer_fx, run_config); });
+#ifdef APSP_ALG_RUN_CONFIGURATION
+  auto down_ms = utilz::measure_milliseconds(
+    [&matrix, &matrix_access, &matrix_run_config, &buffer_fx]() -> void {
+      down(matrix, matrix_access, matrix_run_config, buffer_fx);
+    });
 
   std::cerr << "D/CF: " << down_ms << "ms" << std::endl;
 #endif
 
 #ifdef APSP_ALG_MATRIX_CLUSTERS
-  #ifdef APSP_ALG_EXTRA_CLUSTERS_REARRANGEMENTS
-  auto down_arrange_ms = ::utilz::measure_milliseconds([&abstract, &c, &arrange_matrix]() -> void {
-    arrange_matrix(abstract, c, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+  #ifdef APSP_ALG_MATRIX_CLUSTERS_REARRANGEMENTS
+  auto down_arrange_ms = ::utilz::measure_milliseconds([&matrix_access, &matrix_clusters]() -> void {
+    ::utilz::matrices::procedures::abstract_arrange<matrix_access_type> arrange_matrix;
+    arrange_matrix(matrix_access, matrix_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
   });
 
   std::cerr << "D/AR: " << down_arrange_ms << "ms" << std::endl;
   #endif
 #endif
 
-  auto prnt_ms = ::utilz::measure_milliseconds([&abstract, &output_stream, opt_output_format]() -> void {
-    ::utilz::matrices::io::print_matrix(opt_output_format, output_stream, abstract);
+  auto prnt_ms = ::utilz::measure_milliseconds([&matrix_access, &output_stream, opt_output_format]() -> void {
+    ::utilz::matrices::io::print_matrix(opt_output_format, output_stream, matrix_access);
   });
   std::cerr << "Prnt: " << prnt_ms << "ms" << std::endl;
 

@@ -2,22 +2,29 @@
 
 #define APSP_ALG_MATRIX_BLOCKS
 
+#define APSP_ALG_ACCESS_BLOCKS
+
 #include "portables/hacks/defines.h"
 
 #include "measure.hpp"
 
 #include "matrix.hpp"
+#include "matrix-access.hpp"
 
 namespace utzmx = ::utilz::matrices;
 
-template<typename T, typename A>
+using matrix_block_type      = utzmx::square_matrix<g_type, g_allocator_type<g_type>>;
+using matrix_type            = utzmx::square_matrix<matrix_block_type, g_allocator_type<matrix_block_type>>;
+using matrix_access_type     = utzmx::access::matrix_access<utzmx::access::matrix_access_schema_flat, matrix_type>;
+using matrix_params_type     = utzmx::access::matrix_params<matrix_type>;
+
 void
 calculate_block(
-  utzmx::square_matrix<T, A>& ij,
-  utzmx::square_matrix<T, A>& ik,
-  utzmx::square_matrix<T, A>& kj)
+  matrix_block_type& ij,
+  matrix_block_type& ik,
+  matrix_block_type& kj)
 {
-  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<T, A>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<matrix_block_type>::size_type;
 
   const auto x = ij.size();
   for (auto k = size_type(0); k < x; ++k)
@@ -27,34 +34,33 @@ calculate_block(
         ij.at(i, j) = (std::min)(ij.at(i, j), ik.at(i, k) + kj.at(k, j));
 };
 
-template<typename T, typename A, typename U>
 __hack_noinline
 void
 run(
-  utzmx::square_matrix<utzmx::square_matrix<T, A>, U>& blocks)
+  matrix_type& matrix)
 {
-  using size_type = typename utzmx::traits::matrix_traits<utzmx::square_matrix<utzmx::square_matrix<T, A>, U>>::size_type;
+  using size_type = typename utzmx::traits::matrix_traits<matrix_type>::size_type;
 
 #ifdef _OPENMP
-  #pragma omp parallel default(none) shared(blocks)
+  #pragma omp parallel default(none) shared(matrix)
 #endif
   {
 #ifdef _OPENMP
   #pragma omp single
 #endif
     {
-      for (auto m = size_type(0); m < blocks.size(); ++m) {
-        auto& mm = blocks.at(m, m);
+      for (auto m = size_type(0); m < matrix.size(); ++m) {
+        auto& mm = matrix.at(m, m);
 
         {
           SCOPE_MEASURE_MILLISECONDS("DIAG");
           calculate_block(mm, mm, mm);
         }
 
-        for (auto i = size_type(0); i < blocks.size(); ++i) {
+        for (auto i = size_type(0); i < matrix.size(); ++i) {
           if (i != m) {
-            auto& im = blocks.at(i, m);
-            auto& mi = blocks.at(m, i);
+            auto& im = matrix.at(i, m);
+            auto& mi = matrix.at(m, i);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(im, mm)
@@ -76,13 +82,13 @@ run(
 #ifdef _OPENMP
   #pragma omp taskwait
 #endif
-        for (auto i = size_type(0); i < blocks.size(); ++i) {
+        for (auto i = size_type(0); i < matrix.size(); ++i) {
           if (i != m) {
-            auto& im = blocks.at(i, m);
-            for (auto j = size_type(0); j < blocks.size(); ++j) {
+            auto& im = matrix.at(i, m);
+            for (auto j = size_type(0); j < matrix.size(); ++j) {
               if (j != m) {
-                auto& ij = blocks.at(i, j);
-                auto& mj = blocks.at(m, j);
+                auto& ij = matrix.at(i, j);
+                auto& mj = matrix.at(m, j);
 
 #ifdef _OPENMP
   #pragma omp task untied default(none) shared(ij, im, mj)
