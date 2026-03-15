@@ -359,8 +359,11 @@ main(int argc, char* argv[]) __hack_noexcept
 
   #ifdef APSP_ALG_MATRIX_CLUSTERS_REARRANGEMENTS
   auto up_arrange_ms = ::utilz::measure_milliseconds([&matrix_access, &matrix_clusters]() -> void {
-    ::utilz::matrices::procedures::abstract_arrange<matrix_access_type> arrange_matrix;
-    arrange_matrix(matrix_access, matrix_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_forward);
+    matrix_arrange_procedure_type matrix_arrange_procedure;
+    matrix_arrange_procedure(
+      matrix_access,
+      matrix_clusters,
+      ::utilz::matrices::procedures::matrix_arrangement::matrix_arrangement_forward);
   });
 
   std::cerr << "U/AR: " << up_arrange_ms << "ms" << std::endl;
@@ -412,8 +415,11 @@ main(int argc, char* argv[]) __hack_noexcept
 #ifdef APSP_ALG_MATRIX_CLUSTERS
   #ifdef APSP_ALG_MATRIX_CLUSTERS_REARRANGEMENTS
   auto down_arrange_ms = ::utilz::measure_milliseconds([&matrix_access, &matrix_clusters]() -> void {
-    ::utilz::matrices::procedures::abstract_arrange<matrix_access_type> arrange_matrix;
-    arrange_matrix(matrix_access, matrix_clusters, ::utilz::matrices::procedures::matrix_clusters_arrangement::matrix_clusters_arrangement_backward);
+    matrix_arrange_procedure_type matrix_arrange_procedure;
+    matrix_arrange_procedure(
+      matrix_access,
+      matrix_clusters,
+      ::utilz::matrices::procedures::matrix_arrangement::matrix_arrangement_backward);
   });
 
   std::cerr << "D/AR: " << down_arrange_ms << "ms" << std::endl;
